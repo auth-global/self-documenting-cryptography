@@ -1,8 +1,8 @@
-This repository introduces the concept of self-documenting cryptography, which isthe art of using self-reference in cryptographic constructions in order to communicate certain indelible facts to legitimate users and other observers.
+This repository introduces the concept of self-documenting cryptography, which is the art of using self-reference and self-narration in cryptographic constructions in order to communicate certain indelible facts to legitimate users and other observers.
 
-The two headline contributions in this repository is the Global Password Prehash Protocol (G3P), and the Seguid Protocol.  The G3P is a self-documenting password hash function based on PHKDF and BCrypt.  It designed to be particularly suitable for use on the user's endpoint before a password is sent to an authentication server.
+The two headline contributions in this repository is the Global Password Prehash Protocol (G3P), and the Seguid Protocol. The G3P is a self-documenting password hash function based on PHKDF and BCrypt. It designed to be particularly suitable for use on the user's endpoint before a password is sent to an authentication server.
 
-The G3P is self-documenting in the sense that password hashes are supposed to be _traceable_ or _useless_ after they have been _stolen. If Acme Corporation were to deploy the G3P, and their password hash database was stolen, then it is supposed to be impossible for the thief to outsource any brute force attacks on Acme's password database without admitting that the password hashes are Acme's.
+The G3P is self-documenting in the sense that password hashes are supposed to be _traceable_ or _useless_ after they have been _stolen_. If Acme Corporation were to deploy the G3P, and their password hash database was stolen, then it is supposed to be impossible for the thief to outsource any brute force attacks on Acme's password database without admitting that the password hashes are Acme's.
 
 The purpose is to point their conspirator in the correct direction to sell out the endeavor to Acme and report the hashes as stolen. In doing so, I hope to make it increasingly untenable to post meaningful password hashes where they can be widely seen without drawing the attention of relevant security departments. In the longer run, I hope that will disrupt the activities of the cybercriminal scene.
 
