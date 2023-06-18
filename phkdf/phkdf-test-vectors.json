@@ -1,0 +1,125 @@
+[{
+    "name":"phkdf first light",
+    "args": {
+        "username":"Yuri",
+        "password":"default remote access code",
+        "long-tag":"Please leave the location of America's nuclear wessels after the beep.",
+        "domain-tag":"1-800-CALL-SPY",
+        "rounds":1998
+    },
+    "results":{
+        "phkdf-pass":"66b7c7c2db86acef4dff128a2536d99cad9e27ec4c9628ea881b52779f758ca7d1c8e16d22c318fc2598158e60bfa3d2c66ebe546e4b0d8f3b4b3dc19432eee466eaab431bb183e29c2897106f5978d5488198718b1f194ddc0365bd13676d0289ac5a80c5c4b9918488a8b017d6ed32fcb8de6efc9ac2bed55d4428ad7d3649",
+        "phkdf-simple":"51a2f5ec15cbb30a4f050a8b2e243dff98aac96c3f1e618151852c670f73e2a0a6f0d432ea4abbf0d41be6d39d9f04cecf015ee993ea452dbb8828d9c1c8b69cc53a96eaa157200ee7c8646ef454b5f4307fc2af0811af035121289746dbe517c145edcc7cb6c5168b628c4658f96704a6d0d00e0a8e976bc33085fc166e2b62"
+    }
+},{
+    "name":"phkdf first light, elaborated",
+    "args": {
+        "username":"Yuri",
+        "password":"default remote access code",
+        "credentials":["The Indiana Academy for Science, Mathematics, and the Humanities"],
+        "long-tag":"Please leave the location of America's nuclear wessels after the beep.",
+        "domain-tag":"1-800-CALL-SPY",
+        "seed-tags":["United States Army Counterintelligence Tip Line"],
+        "role":["prankster"],
+        "echo-tags":["Star Trek IV: The Voyage Home","https://www.youtube.com/watch?v=MdSJFrhb-HM"],
+        "rounds":1998
+    },
+    "results":{
+        "phkdf-pass":"15e4d011df45097e55a1c5c8fd9d8d3ed4958c65bac9ea1b8c93cc278d3b7c151d2c34da0bff3533f058b6cb8a8d8f9bb7cdc0c57e607e0fc877f34f96ac664391f93d74b0cd28d4777d2f02d3c849b1c18cde318e59c572016bf79da146bcf746e4bce3e01bb67d8c8c2fe3a6d78201a5354b9df544f4209d1353bb487b8864"
+,
+        "phkdf-simple":"96f4422caa4f06df230dc4762afffa25d6234c9dfef98fb5b1eba797b1be8e5ecf72bf3770d59d578958aac3a43ff43127ef5293d17c63dcb2370b5807d33c26c0449d94ed33e9d1f3fa0175e61da2afbe9fe83e11f889c08bec1fced819be5363f3712e35a921c3eaa3588b96d825b7df31fff64e069e6e7761b078447ff4e9"
+    }
+},{
+    "name":"phkdf unicode test, inset naval story with a reference",
+    "args": {
+        "username":"Р-360 «Нептун»",
+        "password":"Русский военный корабль, иди на хуй",
+        "seed-tags":["Державне Київське конструкторське бюро «Луч»"],
+	      "echo-tags":["Збройні Cили України «ЗСУ»"],
+        "domain-tag":"Україна",
+        "rounds":2022
+    },
+    "results":{
+        "phkdf-pass":"76122785e62fad10cebe4cad1a520646d8f2f5895be03d5b5b139f9119e2a861790c6668d05336845625276d98442f21731e4fcc4b91395d2eac1a3b9e5bbc2e9cb551ce3a9c6ff89bcabe3db20eefe3eaceb8310ab367a1c0c00301a3f478590fecd943f3bc29c1bb7c3d50ff23028361776611fb9857f01ef3e11e5e212815",
+        "phkdf-simple":"befcde2665c619bd18c9a0cdbdea85c28b3fcc89921a587b2919ea18075ead4cb91f07052bfbd238bf844d83a94cafac626000dab5be104f03735428d91bb08d26ce27dd57dd139547dd055ca9966ebe38df7a7facfc81ec7b920515e6b6eb324ae549ad866bc0cb83b249c77e48219cc5e43b5bfc2fe9cd85732fa32dc571bb"
+    }
+},{
+    "name":"phkdf unicode test, lightly extended on top",
+    "args": {
+        "username":"Лев Николаевич Толстой",
+        "password":"Книга моя, как я и ожидал, была задержана русской цензурой, но отчасти вследствие моей репутации как писателя, отчасти потому, что она заинтересовала людей, книга эта распространилась в рукописях и литографиях в России и в переводах за границей и вызвала, с одной стороны, от людей, разделяющих мои мысли, ряд сведений о сочинениях, писанных об этом же предмете, с другой стороны, ряд критик на мысли, высказанные в самой книге.",
+        "domain-tag":"Царство Божие внутри вас",
+        "long-tag":"В другой брошюре, под заглавием: «Сколько нужно людей, чтобы преобразить злодейство в праведность», Адина Баллу говорит: «Один человек не должен убивать. Если он убил, он преступник, он убийца. Два, десять, сто человек, если они делают это, — они убийцы. Но государство или народ может убивать, сколько он хочет, и это не будет убийство, а хорошее, доброе дело. Только собрать побольше народа, и бойня десятков тысяч людей становится невинным делом. Но сколько именно нужно людей для этого? Вот в чем вопрос. Один не может красть, грабить, но целый народ может. Но сколько именно нужно для этого? Почему 1, 10, 100 человек не должны нарушать закона бога, а очень много могут?»",
+        "tags":["Мы будем стараться распространять свои взгляды среди всех людей, к каким бы народам, исповеданиям и слоям общества они ни принадлежали. Для этой цели мы будем устраивать публичные чтения, распространять печатные объявления и брошюры, составлять общества и подавать прошения во всякие правительственные учреждения. Вообще будем стремиться всеми доступными для нас средствами к достижению коренного переворота во взглядах, чувствах и действиях нашего общества относительно греховности насилия по отношению к внешним и внутренним врагам. Принимаясь за это великое дело, мы вполне сознаем, что наша искренность может быть подвергнута жестоким испытаниям. Наша задача может навлечь на нас оскорбления, обиды, страдания и даже смерть. Нас ожидает непонимание, ложное толкование и клевета. Против нас должна подняться буря. Гордость и фарисейство, честолюбие и жестокость, правители и власти, — всё это может соединиться, чтоб уничтожить нас. Таким образом поступали с мессией, которому мы стремимся подражать по мере сил своих. Но нас не пугают эти ужасы. Мы надеемся не на людей, а на всемогущего господа. Если мы отказались от человеческого заступничества, что же может поддержать нас, как не одна вера, побеждающая мир? Мы не будем удивляться тем испытаниям, которым мы подвергнемся, а будем радоваться тому, что удостоимся разделить страдания Христа.","Вильям Ллойд Гаррисон"],
+        "rounds":1894
+    },
+    "results":{
+        "phkdf-pass":"569bc05873f65ed562dbe048baf368d0ef60e70867fe4ec41f4f3e46738fb5af2443e102747dc5aba20e2dd272bf39d6c591f8e8bfe0abc8d9c27eabdbe1c46b6b7d0b58165b289192147eaf75424e290e908ccc789d3667f3f7c052fae4d33a667a6502f4948c2c93e11707fc4327d4787e120395ff731baab4b37d25a8808e",
+        "phkdf-simple":"93ca0f29846459b95edacfabc6ca7651b01b8042205fb8b2b9be0a6ed994d63e0aa75e587b430ed404ca8825d762707bde69b56d1d2fdc2fadcd14e31372895310cb53f588dee6f7d5b041471ffca774241315c603e854bda138dc20855f5a7e2fefda99bb963cc5d133f27eab431f4c3fdacfb119472a8ecc867413ce45bdbe"
+    }
+},{
+    "name":"xkcd account problems",
+    "args":{
+        "username":"Cueball",
+        "password":{"hex":"7061737300776f7264"},
+        "credentials":["input method not included"], 
+        "domain-tag":"https://xkcd.com/2700/",
+        "rounds":2022
+    },
+    "results":{
+        "phkdf-pass":"d9c8141bc1a4d84c08f6487cb655bde588ed16ac2d52ea313580a8fed749ff65d3f7316ad27bc359ba8e6c6e0068ef555fa238db64dd078b960a22ae7b89a3f81230055aa4e5aa361e9e3e39e80d04864a9dacdeef319fe4125c30d746c3ffb2eae481952299e4390081d8b6ef07c7a715242a63f244a578a3fa29a5dee74bdb",
+        "phkdf-simple":"0a59a7ae5dd3806c4e5356deda38affbef1c28d46ea07650d086c5f687f10d84a1f5fb0716b0df6da6aef59d6b3eeda9866b67b040e010d4d51bd9d684cca0d160dcc6eb83ab66ddf50e5ac7a1b17d13f5f015cb489b4e3ce8376c76fdeb9822fb737ad850b4412fcfbe273e28213214b48e9651f690367c823e90aae517ea35"
+    }
+},{
+    "name":"xkcd password strength #1",
+    "args":{
+        "username":"Anonymous Coward",
+        "password":"Tr0ub4dor&3",
+        "domain-tag":"https://xkcd.com/936/",
+        "rounds":2011
+    },
+    "results":{
+        "phkdf-pass":"0f8df843e668198ecc1a15798f47e940d31017a78fb13028a31c5f48253a4f2d4222079cf03ad3b8fbf15342994622b5a8f9fda611ede24623cbb20b2d6c716482632c770b5f2aa1a10046580f5c23e5854cdf253c22bec26c6490610ba7fb6b0bdacc206caefd7a5d511bbec9319f5beca82c0b10ea7194412335ff5461d601",
+        "phkdf-simple":"299eea078296a6a27453c397703b731e733e59e41ad2c5399e8eca1e6a162162763a4b23e422af3e727dacb7aa0db6e937893ee52f11bc63c2fc5094acac1b7926b2b13a606e1e7d04cca0f10569e87a6103596be011f472d14a6382f4225ac5b2abbf5cd5be5e39e70634b87e20fd3adcc90231b9d1db0324eb749ae47c6032"
+    }
+},{
+    "name":"xkcd password strength #2",
+    "args":{
+        "username":"Randall Munroe",
+        "password":"correct horse battery staple",
+        "tags":[
+            "Diceware","https://theworld.com/~reinhold/diceware.html","Arnold Reinhold",
+            "https://www.eff.org/dice","Electronic Frontier Foundation"
+        ],
+        "domain-tag":"https://xkcd.com/936/",
+        "rounds":2011
+    },
+    "results":{
+        "phkdf-pass":"7b5e550767e59bc2347ef02569fbcc64a78cab45b6d59e9783d518918dc374784aa8a79eb025fe1051b575e5e929c67592c5918565c0e3ceb8985da920d2f2d52e725d4cff4daa46fc14edce5725e58abcaebd99791510de57a0cec663472d5e633c3b6345648ca40d29b004f1611583a2d5c47b8aa01faffc74a1c5326ace68",
+        "phkdf-simple":"433f50421e85a82d582567c39be9e07c1056e8539f45308d5908862f8742f42ea9096efc12dc20f9ed7337036d2ab6b11b2e28bfd0ea20b8063a98621327c21ef811dfe6fdfb0069b061955fca9358d84da95937ae41afa4729b4bf32726f1501d679fa19bbdea93215666dfa35cb351aa81b3f32dff9217e9650c7c030afffc"
+    }
+},{
+    "name":"xkcd password reuse #1",
+    "args":{
+        "username":"Imperfect User",
+        "password":"Password reuse between multiple deployments of the G3P can be safe(-ish), but adds risk and fragility, often meaningfully so. See https://xkcd.com/792/",
+        "domain-tag":"Every authentication service provider inherently has offline cracking attacks against its own password database, even if PAKE is used. When you set a password, you are inherently providing that service with the means to verify your password. If a password is reused and its entropy is low enough to be cracked, access to the right authentication database can be used to bootstrap attacks on other accounts.",
+        "rounds":2010
+    },
+    "results":{
+        "phkdf-pass":"b5570995eb938d1e46f74123a04bb08c5edaba284047ea3409835e2d2b7547aa82de67e0f9883b06b33ac8a2d34c856ba73bf3fe4d121c7617710a9ac1b7e291a8a7cc08345ce429d3ed119bf73a8c4124b7716c10246d12720c02cd1d9187209db8052efb84b1baeec1a1893a115ce93047637c28def1aa0a951bdd5744e6f9",
+        "phkdf-simple":"f6e98e4519cd6f54dbcb378eb8e583bb7188777cd71c3de472aaffca697af60711155da001fdfc64a96f0654ab94159cbb5f6f1aeda8a705c773d350edcad7edb71039f252e951fa63e86c42e328a10866e7b4d744cad47a670fc1e8978ca9e2de093491eaa9b7004a8f1ea9c4b09deaca13e9687d97e7b1cbf6c8373ec3209b"
+    }
+},{
+    "name":"xkcd password reuse #2",
+    "args":{
+        "username":"Imperfect User",
+        "password":"Password reuse between multiple deployments of the G3P can be safe(-ish), but adds risk and fragility, often meaningfully so. See https://xkcd.com/792/",
+        "domain-tag":"How do you know that your password is really being prehashed on your own device? Even if this does indeed happen, how do you know that it happens every single time? In the context of a webapp, it's relatively easy to covertly inject arbitrary code into selected page loads. Thus it is possible that the first 99 times you log into a webpage, you get a completely legitimate login page that properly prehashes your password in your browser. But on that 100th login, maybe you are instead presented with a webpage that steals your password in addition to its normal login functionality. It would be relatively easy to make such an attack covertly in such a way that is likely to turn surreptitious, leaving no trace that the attack ever happened. This is easiest to accomplish if the attacker is providing the webapp, or has the cooperation of those who do. However this isn't always necessary. At the start of the Arab Spring, Facebook's login page was not delivered over a TLS-authenticated channel. This oversight allowed state actors to steal user's passwords by injecting their own malicious code into Facebook's login page as it traversed Internet Service Providers inside their respective countries. Installed applications can be somewhat more resistant to selective-pageload style attacks, but more generally, malware on endpoints is a significant attack vector to be concerned about. Shoulder-surfing attacks upon password entry are another. Consider these things carefully when making decisions with security implications, such as whether or not to reuse a password and in what context(s).",
+        "rounds":2010
+    },
+    "results":{
+        "phkdf-pass":"5a52f2da1508d648ba0f8fe7ca1b5cfe4914c24d761b84bf5af5adabf78fd9293956c07d62941cbe7b3d81ef0bb963016be73274b6c13ecb56491195c7fd2b265e94c0a5f319ccb7c2fb6401af0da027b293c9586c3eacb0748937cde51689186c7a5fb50f2fc400f110cf93591fd0d966f1f4d77b97d54bcea597bb67c316e8",
+        "phkdf-simple":"86203cbbdd8cbd34d81eefbd1411f009b70816f3b08aaf12078f15b2e44d14924850f0fceb82c38cef15979a5569798ed129e54a17859ba6359d5cd8a23294edf76c42148aceb3e57a94f808bfb45a82ab292dcc0f7ab524039ae42c7cab0a7a083abcdef81353845501371d741ea1f863e278644eb7e56d3e069522c3f1a11f"
+    }
+}]

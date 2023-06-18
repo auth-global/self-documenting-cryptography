@@ -1,0 +1,24 @@
+name:                tuplehash-utils
+version:             0.0.0.0
+synopsis:            Left Encode and friends from SHA-3's TupleHash
+-- description:
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Leon P Smith
+-- maintainer:
+copyright:           Auth Global
+category:            Cryptography
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       >=1.10
+
+library
+  exposed-modules:     Crypto.Encoding.SHA3.TupleHash
+  -- other-modules:
+  -- other-extensions:
+  ghc-options:         -Wall
+  build-depends:       base,
+                       bytestring,
+                       integer-logarithms
+  hs-source-dirs:      lib
+  default-language:    Haskell2010

@@ -1,0 +1,56 @@
+name:                phkdf
+version:             0.0.0.0
+synopsis:            A Self-Documenting Key Derivation Function inspired by PBKDF2, HKDF, and TupleHash
+-- description:
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Leon P Smith
+-- maintainer:
+copyright:           Auth Global
+category:            Cryptography
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+                     phkdf-test-vectors.json
+cabal-version:       >=1.10
+
+library
+  exposed-modules:
+                     Crypto.PHKDF
+                     Crypto.Encoding.PHKDF
+                     Crypto.PHKDF.Primitives
+                     Crypto.PHKDF.Primitives.Assert
+                     Crypto.PHKDF.Primitives.Subtle
+                     Crypto.PHKDF.HMAC
+                     Crypto.PHKDF.HMAC.Subtle
+
+  build-depends:     base
+                   , bytestring
+                   , cryptohash-sha256
+                   , network-byte-order
+                   , Stream
+                   , tuplehash-utils
+                   , vector
+
+  ghc-options:       -Wall
+
+  hs-source-dirs:    lib
+  default-language:  Haskell2010
+
+test-suite test
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    test
+  main-is:           Main.hs
+
+  other-modules:     HMAC
+                     PHKDF
+
+  build-depends:     base
+                   , aeson >= 2
+                   , base16
+                   , bytestring
+                   , phkdf
+                   , Stream
+                   , tasty
+                   , tasty-hunit
+                   , text
+                   , vector

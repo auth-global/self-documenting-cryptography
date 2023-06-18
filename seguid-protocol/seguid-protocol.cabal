@@ -1,0 +1,47 @@
+name:                seguid-protocol
+version:             0.0.0.0
+synopsis:            Self-Documenting Globally Unique Identifiers
+-- description:
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Leon P Smith
+-- maintainer:
+copyright:           Auth Global
+category:            Cryptography
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       >=1.10
+
+library
+  exposed-modules:
+                     -- Crypto.Seguid
+                     Crypto.Seguid.Protocol
+                     Crypto.Seguid.Protocol.Constants
+                     Crypto.Seguid.HKDF
+
+  build-depends:     base
+                   , bytestring
+                   , cryptohash-sha512
+                   , Stream
+                   , tuplehash-utils
+
+  hs-source-dirs:    lib
+  default-language:  Haskell2010
+
+test-suite test
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    test
+  main-is:           Main.hs
+
+  other-modules:     HKDF
+                   , PreinitSalt
+
+  build-depends:     base
+                   , bytestring
+                   , base16-bytestring
+                   , network-byte-order
+                   , seguid-protocol
+                   , tasty
+                   , tasty-hunit
+
+  default-language:  Haskell2010
