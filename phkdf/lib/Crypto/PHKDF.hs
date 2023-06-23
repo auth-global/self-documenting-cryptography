@@ -16,11 +16,8 @@
 --   while managing implementation costs.
 --
 --   1. Every bit of every parameter matters. Every boundary between
---      parameters matter. There isn't supposed to be any trivial collisions,
---      the only exception being null-extension collisions on the seguid. This
---      is exactly the same issue exhibited by HMAC's key parameter, as the
---      seguid is a fancy name for the HMAC key that these protocols use right
---      up until final output expansion.
+--      parameters matter. There aren't supposed to be any trivial collisions,
+--      the only exception being null-extension collisions on the seguid.
 --
 --   2. Except for the tweaks, any change to any parameter requires restarting
 --      the PHKDF key-stretching computation from somewhere in the very first
@@ -119,10 +116,28 @@ import           Crypto.PHKDF.Primitives.Assert
 
 data PhkdfInputBlock = PhkdfInputBlock
   { phkdfInputBlock_seguid     :: !ByteString
+    -- ^ HMAC-SHA256 key, usable as a high-repetition indirect tag via
+    --   self-documenting globally unique identifiers (seguids).
   , phkdfInputBlock_domainTag  :: !ByteString
+    -- ^ plaintext tag with one repetition per round.  0-19 bytes are free,
+    --   20-83 bytes cost a additional sha256 block per round, with every
+    --   64 bytes thereafter incurring a similar cost.
   , phkdfInputBlock_longTag    :: !ByteString
+    -- ^ plaintext tag with 1x repetition, then cycled for roughly
+    --   8 kilobytes.  Constant time on inputs up to nearly 5 kilobytes.
   , phkdfInputBlock_tags       :: !(Vector ByteString)
+    -- ^ plaintext tag with 2x repetition ('phkdfPass') or 3x repetition
+    --   ('phkdfSimple'). Constant-time on 0-63 encoded bytes, which includes
+    --   the length encoding of each string. Thus 60 of those bytes are usable
+    --   if the tags vector is a single string, or less if it contains two or
+    --   more strings.
   , phkdfInputBlock_rounds     :: !Word32
+    -- ^ how expensive will this hash function be? An optimal implementation
+    --   computes exactly three SHA256 blocks per round if the domain tag is
+    --   19 bytes or less.  It is not recommended that phkdf be used as the
+    --   primary key-stretching component of a deployment, but if it is used
+    --   this way, we recommend at least 250,000 rounds.  This can be adjusted
+    --   downward in the case of domain tags longer than 19 bytes.
   } deriving (Eq, Ord, Show)
 
 -- | The username and password are grouped together because they are normally
@@ -150,6 +165,12 @@ data PhkdfInputBlock = PhkdfInputBlock
 
 data PhkdfInputArgs = PhkdfInputArgs
   { phkdfInputArgs_username    :: !ByteString
+  -- ^ The name of this parameter is suggestive, but this parameter is
+  --   functionally identical to a second password. The only difference
+  --   is the fact that a password can be cracked without knowledge of the
+  --   plaintext username. By contrast, the password acts as a plaintext tag
+  --   if one provides the username: guessing the username implies plaintext
+  --   knowledge of the password.
   , phkdfInputArgs_password    :: !ByteString
   , phkdfInputArgs_credentials :: !(Vector ByteString)
   } deriving (Eq, Ord, Show)

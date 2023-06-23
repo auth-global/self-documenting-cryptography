@@ -208,7 +208,7 @@ return HMAC (
   )
 ```
 
-However, one of the few advantages that any of the constructions of this section have over PHKDF is that TAGGED-PBKDF2-HMAC can be efficiently implemented in terms of common, baroque APIs such as WebCryto.  Unfortunately, this isn't true of PBKDF2-TAGGED-HMAC, and at that point PHKDF seems superior to both.
+However, one of the few advantages that any of the constructions of this section have over PHKDF is that TAGGED-PBKDF2-HMAC can be efficiently implemented in terms of common, baroque APIs such as WebCrypto.  Unfortunately, this isn't true of PBKDF2-TAGGED-HMAC, and at that point PHKDF seems superior to both.
 
 The main limitation is that the WebCrypto's interface doesn't support precomputed HMAC keys. Recomputing the key for every application of HMAC means that in the core iterated hash construction behind PBKDF2 requires four SHA256 blocks to be computed per round, instead of two SHA256 blocks per round. Reusing a precomputed HMAC key saves half the blocks needed to compute PBKDF2.  This result is exact modulo a small constant number of blocks. A very similar statement is true of PHKDF and HKDF, though longer tags/info parameters change these calculations.
 
@@ -456,19 +456,10 @@ PHKDF-SIMPLE : (
     password : BitString,
     domain-tag : BitString,
     seguid : BitString,
-
-    // cycled for about 8 kilobytes
     long-tag : BitString = domain-tag,
-
-    // credential parameters are also tags (1x)
     credentials : Vector<BitString> = [],
-
-    // 3x repetition
     tags : Vector<BitString> = [],
-
-    // two less than the number of PHKDF blocks to compact
-    rounds : Word32 = 250000,
-
+    rounds : Word32 = 250000
   ) -> UnboundedByteStream =
 
 // used to flush the SHA256 buffer after the username and password:
@@ -682,7 +673,7 @@ Because PHKDF is not a particularly effective expenditure of latency, the G3P in
 
 Bcrypt's partial cache-hardness means that building and operating a bcrypt password cracker is going to be particularly expensive relative to the level of parallelism achieved. Within the G3P, bcrypt is primarily used as an expensive compression function. Bcrypt is secondarily used as another cryptographically self-documenting construction in order to reinforce and hedge the self-documenting properties of PHKDF.
 
-To derive the input for bcrypt's password parameter, PHKDF-SLOW-EXTRACT is used to generate 26 pseudorandom bytes to which the bcrypt tag is appended.  This tag is either truncated or cyclicly expanded to 46 bytes.   This truncation does not lead to trivial collisions, because the bcrypt tag is also included in the initial inputs to PHKDF-SLOW-EXTRACT, thus varying this tag also requires the recomputation of those pseudorandom bytes via PHKDF.  Bcrypt's salt parameter is used as a similar 16 byte self-documenting tag.
+To derive the input for bcrypt's password parameter, PHKDF-SLOW-EXTRACT is used to generate 32 pseudorandom bytes to which the bcrypt tag is appended.  This tag is either truncated or cyclicly expanded to 40 bytes.   This truncation does not lead to trivial collisions, because the bcrypt tag is also included in the initial inputs to PHKDF-SLOW-EXTRACT, thus varying this tag also requires the recomputation of those pseudorandom bytes via PHKDF.  Bcrypt's salt parameter is used as a similar 16 byte self-documenting tag.
 
 Finally, a seed is created by combining bcrypt's 24-byte output hash and another 38 pseudorandom bytes from PHKDF-SLOW-EXTRACT.  Other than this use of bcrypt, and different choices for protocol constants, the G3P is the same as PHKDF-PASSWORD.
 
@@ -877,12 +868,17 @@ I would also like to thank Troy Hunt. I doubt my invention of self-documenting c
 TODO: Format this more properly
 
 NIST Special Publication 800-185
+
 NIST Special Publication 800-108r1
 
 https://tools.ietf.org/html/rfc3490
+
 https://tools.ietf.org/html/rfc3986
+
 https://tools.ietf.org/html/rfc5869
+
 https://tools.ietf.org/html/rfc6530
+
 https://tools.ietf.org/html/rfc8018
 
 https://blog.cryptographyengineering.com/2014/02/21/cryptographic-obfuscation-and/
