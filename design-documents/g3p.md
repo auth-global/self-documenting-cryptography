@@ -482,9 +482,9 @@ secretKey = PHKDF-SLOW-EXTRACT-HMAC-SHA256 (
         || [ long-tag ]
         || [ long-padding(headerExtract, long-tag) ]
         || credentials
-	|| [ short-padding(credentials, domain-tag) ]
+    || [ short-padding(credentials, domain-tag) ]
         || tags
-	|| [ encode-vector-length(tags) ]
+    || [ encode-vector-length(tags) ]
     tag = phkdfTag,
     rounds = rounds,
     tags-1x = tags,
@@ -620,7 +620,7 @@ headerExtract = [
     username, "username\x00" || protoPad,
     password, "password\x00" || protoPad,
     bare-encode(bit-length(domain-tag)),
-    bare-encode(phkdf-rounds),
+    bare-encode(phkdf-rounds)
   ]
 
 headerPadding = long-padding(headerExtract, long-tag)
@@ -631,9 +631,9 @@ secretSeed = PHKDF-SLOW-EXTRACT-HMAC-SHA256 (
         || [ long-tag ]
         || [ headerPadding ]
         || credentials
-	|| [ short-padding(credentials) ]
-	|| seed-tags
-	|| [ encode-vector-length(seed-tags) ]
+        || [ short-padding(credentials) ]
+        || seed-tags
+        || [ encode-vector-length(seed-tags) ]
     tag = tag,
     rounds = rounds,
     tags-1x = seed-tags,
@@ -701,19 +701,13 @@ G3P-HASH : (
     echo-tags : Vector<BitString> = seed-tags,
   ) -> UnboundedByteStream =
 
-protoPad = cycle-bitstring-with-null (52, "global-password-prehash-protocol seguid G3Pb1")
+protoPad = cycle-bitstring-with-null (52,
+    "global-password-prehash-protocol seguid G3Pb1"
+  )
 
 phkdfTag = expand-domain-tag(domain-tag)
 
 // First, G3Pb1 extract alpha  (bcrypt variant)
-
-bcryptTagLen =
-    encoded-byte-length(bcrypt-tag)
-  + encoded-byte-length(bcrypt-salt-tag)
-
-reducedBcryptTagLen = bcryptTagLen mod 64
-
-targetLen = 8312 - reducedBcryptTagLen
 
 headerAlfa = [
     "G3Pb1 alfa",
@@ -724,16 +718,37 @@ headerAlfa = [
     bare-encode(bcrypt-rounds)
   ]
 
-headerPadding = long-padding (headerAlfa, long-tag, bytes = targetLen)
+headerPadding = [
+    long-tag,
+    long-padding (headerAlfa, long-tag, bytes = 8346)
+  ]
+
+bcryptTags = [
+    bcrypt-tag,
+    bcrypt-salt-tag
+  ]
+
+credsPadLen = 253 - encoded-byte-length(bcryptTags)
+
+while (credsPadLen < 135)
+    credsPadLen += 64
+
+credsPadLen -= encoded-byte-length(creds)
+
+while (credsPadLen < 32)
+    credsPadLen += 64
+
+credsPad = cycle-bytestring-with-null(credsPadLen, domain-tag)
 
 secretStream = PHKDF-SLOW-EXTRACT-HMAC-SHA256 (
     key = seguid,
     msgs = headerAlfa
-        || [ headerPadding, bcrypt-tag, bcrypt-salt-tag ]
+        || headerPadding
+        || bcryptTags
         || credentials
-	|| [ short-padding(credentials) ]
-	|| seed-tags
-	|| [ encode-vector-length(seed-tags) ]
+        || [ credsPad ]
+        || seed-tags
+        || [ encode-vector-length(seed-tags) ]
     tag = phkdfTag,
     rounds = phkdf-rounds,
     tags-1x = seed-tags,

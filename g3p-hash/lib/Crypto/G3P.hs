@@ -118,11 +118,11 @@ data G3PInputBlock = G3PInputBlock
   , g3pInputBlock_bcryptTag :: !ByteString
     -- ^ One repetition of the first 56 bytes per bcrypt round, plus one
     --   repetition of the full tag in PHKDF. When combined with the
-    --   @bcryptSaltTag@, 0-63 encoded bytes are all constant-time in PHKDF.
+    --   @bcryptSaltTag@, 0-118 encoded bytes are constant-time in PHKDF.
   , g3pInputBlock_bcryptSaltTag :: !ByteString
     -- ^ One repetition of the first 56 bytes per bcrypt round, plus one
     --   repetition of the full tag in PHKDF. When combined with the
-    --   @bcryptTag@, 0-63 encoded bytes are all constant-time in PHKDF.
+    --   @bcryptTag@, 0-118 encoded bytes are constant-time in PHKDF.
   } deriving (Eq, Ord, Show)
 
 -- | The username and password are grouped together because they are normally
@@ -137,7 +137,7 @@ data G3PInputBlock = G3PInputBlock
 --   into the output a single time, this is the least expensive
 --   pay-as-you-go option for plaintext tagging.
 --
---   The credentials vector is constant time on 0-63 encoded bytes, incurring
+--   The credentials vector is constant time on 0-100 encoded bytes, incurring
 --   one additional SHA256 block every 64 bytes thereafter. This includes
 --   a variable-length field that encodes the bit length of each string; this
 --   field itself requires 2 or more bytes.
