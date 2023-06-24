@@ -691,8 +691,8 @@ G3P-HASH : (
     seguid : BitString,
     domain-tag : BitString,
     long-tag : BitString = domain-tag,
-    bcrypt-tag : BitString = take(40, domain-tag),
-    bcrypt-salt-tag : BitString = take(16, domain-tag),
+    bcrypt-tag : BitString = take(56, domain-tag),
+    bcrypt-salt-tag : BitString = take(56, domain-tag),
     seed-tags : Vector<BitString> = [],
     phkdf-rounds : Word32 = 20240,
     bcrypt-rounds : Word32 = 4095,
@@ -744,9 +744,10 @@ secretStream = PHKDF-SLOW-EXTRACT-HMAC-SHA256 (
 
 phkdfHash  = secretStream.read(bytes = 32)
 
-bcryptPass = secretStream.read(bytes = 32)
-          || cycle-bitstring-with-null(40, bcrypt-tag)
-bcryptSalt = cycle-bitstring-with-null(16, bcrypt-salt-tag)
+bcryptPass = secretStream.read(bytes = 16)
+          || cycle-bitstring-with-null(56, bcrypt-tag)
+bcryptSalt = secretStream.read(bytes = 16)
+          || cycle-bitstring-with-null(56, bcrypt-salt-tag)
 bcryptHash = bcrypt ( bcryptPass, bcryptSalt, bcrypt-rounds )
 
 // G3Pb1 combine charlie

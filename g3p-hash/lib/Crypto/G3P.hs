@@ -49,6 +49,7 @@
 
 module Crypto.G3P where
 
+import           Control.Exception(assert)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.Function((&))
@@ -115,11 +116,11 @@ data G3PInputBlock = G3PInputBlock
     --   expensive than a PHKDF round. Using the recommended parameters, the
     --   cost should be dominated by bcrypt.
   , g3pInputBlock_bcryptTag :: !ByteString
-    -- ^ One repetition of the first 40 bytes per bcrypt round, plus one
+    -- ^ One repetition of the first 56 bytes per bcrypt round, plus one
     --   repetition of the full tag in PHKDF. When combined with the
     --   @bcryptSaltTag@, 0-63 encoded bytes are all constant-time in PHKDF.
   , g3pInputBlock_bcryptSaltTag :: !ByteString
-    -- ^ One repetition of the first 16 bytes per bcrypt round, plus one
+    -- ^ One repetition of the first 56 bytes per bcrypt round, plus one
     --   repetition of the full tag in PHKDF. When combined with the
     --   @bcryptTag@, 0-63 encoded bytes are all constant-time in PHKDF.
   } deriving (Eq, Ord, Show)
@@ -297,11 +298,13 @@ g3pHash_seedInit block args =
 
     (Cons phkdfHash (Cons bcryptInput _)) = secretStream
 
-    bKey = bcryptInput <> cycleByteStringWithNull 40 bcryptTag
-    bSalt = cycleByteStringWithNull 16 bcryptSaltTag
+    (bKeyInput, bSaltInput) = B.splitAt 16 bcryptInput
 
-    -- only fails if the length of bKey or bSalt is wrong
-    (Just bcryptHash) = bcryptRaw bKey bSalt bcryptRounds
+    bKey = bKeyInput <> cycleByteStringWithNull 56 bcryptTag
+    bSalt = bSaltInput <> cycleByteStringWithNull 56 bcryptSaltTag
+
+    bcryptHash = assert (B.length bKey == 72 && B.length bSalt == 72) $
+                 bcryptRaw bKey bSalt bcryptRounds
 
     headerCharlie = B.concat [
         "G3Pb1 charlie", phkdfHash, bcryptHash,

@@ -7,25 +7,25 @@
 #define BCRYPT_WORDS 6
 
 void
-bcrypt_raw(const char key[BCRYPT_RAW_KEY_LENGTH],
-	   const char salt[BCRYPT_RAW_SALT_LENGTH],
-	   char output[BCRYPT_RAW_OUTPUT_LENGTH],
-	   uint32_t rounds) {
-        G3P_blf_ctx state;
-        uint8_t ciphertext[BCRYPT_RAW_OUTPUT_LENGTH] = "OrpheanBeholderScryDoubt";
+bcrypt_raw ( const char *key, uint32_t keybytes,
+             const char *salt, uint32_t saltbytes,
+             char output[BCRYPT_RAW_OUTPUT_LENGTH],
+             uint32_t rounds) {
+  G3P_blf_ctx state;
+  uint8_t ciphertext[BCRYPT_RAW_OUTPUT_LENGTH] = "OrpheanBeholderScryDoubt";
 	uint32_t cdata[BCRYPT_WORDS];
-	
+
 	/* Setting up S-Boxes and Subkeys */
 	G3P_Blowfish_initstate(&state);
 	G3P_Blowfish_expandstate(&state,
-	    (const uint8_t *) salt, BCRYPT_RAW_SALT_LENGTH,
-	    (const uint8_t *) key, BCRYPT_RAW_KEY_LENGTH);
+	    (const uint8_t *) salt, saltbytes,
+	    (const uint8_t *) key, keybytes);
 
-	/* Written so that things work when rounds == UINT32_MAX */ 
+	/* Written so that things work when rounds == UINT32_MAX */
 	rounds++;
 	do {
-		G3P_Blowfish_expand0state(&state, (const uint8_t *) key, BCRYPT_RAW_KEY_LENGTH);
-		G3P_Blowfish_expand0state(&state, (const uint8_t *) salt, BCRYPT_RAW_SALT_LENGTH);
+		G3P_Blowfish_expand0state(&state, (const uint8_t *) key, keybytes);
+		G3P_Blowfish_expand0state(&state, (const uint8_t *) salt, saltbytes);
 		rounds--;
 	} while (rounds != 0);
 
