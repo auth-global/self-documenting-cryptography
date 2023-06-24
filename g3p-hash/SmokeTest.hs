@@ -25,3 +25,25 @@ yt1 = G3PInputTweak
   { g3pInputTweak_role = []
   , g3pInputTweak_tags = []
   }
+
+nb1 = G3PInputBlock
+  { g3pInputBlock_domainTag = ""
+  , g3pInputBlock_seguid = ""
+  , g3pInputBlock_longTag = ""
+  , g3pInputBlock_tags = []
+  , g3pInputBlock_phkdfRounds = 0
+  , g3pInputBlock_bcryptRounds = 0
+  , g3pInputBlock_bcryptTag = ""
+  , g3pInputBlock_bcryptSaltTag = ""
+  }
+
+na1 = G3PInputArgs
+  { g3pInputArgs_username = ""
+  , g3pInputArgs_password = ""
+  , g3pInputArgs_credentials = []
+  }
+
+nt1 = G3PInputTweak
+  { g3pInputTweak_role = []
+  , g3pInputTweak_tags = []
+  }

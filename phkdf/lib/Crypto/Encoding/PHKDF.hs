@@ -3,6 +3,7 @@
 module Crypto.Encoding.PHKDF where
 
 import Data.Monoid((<>))
+import Data.Bits(Bits, (.&.))
 import Data.ByteString(ByteString)
 import Data.Foldable(Foldable, foldl')
 import qualified Data.ByteString as B
@@ -44,8 +45,8 @@ longPaddingAll :: Foldable f => Int -> Int -> Int -> f ByteString -> ByteString 
 longPaddingAll minlen minext bytes msgs longTag =
     cycleByteStringWithNull padLen longTag
   where
-    extent = addWhileLt 64 (bytes - encodedByteLength longTag) minext
-    padLen = addWhileLt 64 (extent - encodedVectorByteLength msgs) minlen
+    extent = add64WhileLt (bytes - encodedByteLength longTag) minext
+    padLen = add64WhileLt (extent - encodedVectorByteLength msgs) minlen
 
 longPaddingBytes :: Foldable f => Int -> f ByteString -> ByteString -> ByteString
 longPaddingBytes = longPaddingAll 32 3072
@@ -61,6 +62,11 @@ addWhileLt :: Integral a => a -> a -> a -> a
 addWhileLt a b c
    | b >= c = b
    | otherwise = c + ((b - c) `mod` a)
+
+add64WhileLt :: (Ord a, Num a, Bits a) => a -> a -> a
+add64WhileLt b c
+   | b >= c = b
+   | otherwise = c + ((b - c) .&. 63)
 
 shortPadding :: Foldable f => f ByteString -> ByteString -> ByteString
 shortPadding creds = cycleByteStringWithNull n

@@ -251,11 +251,6 @@ g3pHash_seedInit block args =
     bcryptTagLen = encodedByteLength bcryptTag
                  + encodedByteLength bcryptSaltTag
 
-    -- Make room for the bcrypt tags to maintain a consistent
-    -- relative starting position in the SHA256 buffer for the
-    -- credentials vector
-    paddedLength = defaultLongPaddingBytes - bcryptTagLen `mod` 64
-
     headerAlfa =
       [ "G3Pb1 alfa"
       , user, userProtoPad
@@ -269,11 +264,19 @@ g3pHash_seedInit block args =
     -- (on the order of 8 kilobytes)
     headerPadding =
       [ longTag
-      , longPaddingBytes paddedLength headerAlfa longTag
-      , bcryptTag, bcryptSaltTag
+      , longPaddingBytes 8346 headerAlfa longTag
       ]
 
     headerBravo = "G3Pb1 bravo\x00" <> domainTag
+
+    bcryptHeader = [bcryptTag, bcryptSaltTag]
+
+    credsPadding = cycleByteStringWithNull padLen domainTag
+      where
+        bcryptHeaderLen = sum (map encodedByteLength bcryptHeader)
+        extent = add64WhileLt (253 - bcryptHeaderLen) 135
+        credsLen = encodedVectorByteLength creds
+        padLen = add64WhileLt (extent - credsLen) 32
 
     seguidKey = hmacKey_init seguid
 
@@ -281,9 +284,10 @@ g3pHash_seedInit block args =
         phkdfCtx_initFromHmacKey seguidKey &
         phkdfCtx_addArgs headerAlfa &
         phkdfCtx_addArgs headerPadding &
-        phkdfCtx_assertBufferPosition' 59 &
+        phkdfCtx_assertBufferPosition' 29 &
+        phkdfCtx_addArgs bcryptHeader &
         phkdfCtx_addArgs creds &
-        phkdfCtx_addArg (shortPadding creds domainTag) &
+        phkdfCtx_addArg  credsPadding &
         phkdfCtx_assertBufferPosition' 29 &
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
