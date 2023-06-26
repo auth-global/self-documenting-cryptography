@@ -131,7 +131,7 @@ bareEncodeZero :: ByteString
 bareEncodeZero = "\x00"
 
 bareEncodeInteger :: Integer -> Maybe ByteString
-bareEncodeInteger =
+bareEncodeInteger n =
   case compare n 0 of
     LT -> Nothing
     EQ -> Just leftEncodeZero

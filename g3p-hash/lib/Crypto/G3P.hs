@@ -292,10 +292,8 @@ g3pHash_seedInit block args =
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
         phkdfSlowCtx_extract
-            headerBravo
-            phkdfRounds
-            (word32 "go\x00\x00" + 2023)
-            phkdfTag &
+            (word32 "go\x00\x00" + 2023) phkdfTag
+            headerBravo phkdfRounds &
         phkdfSlowCtx_assertBufferPosition' 32 &
         phkdfSlowCtx_addArgs seedTags &
         phkdfSlowCtx_finalizeStream

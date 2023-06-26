@@ -265,10 +265,8 @@ phkdfSimple block args = echo
         phkdfCtx_addArgs tags &
         phkdfCtx_addArg (bareEncode (V.length tags)) &
         phkdfSlowCtx_extract
-            ("phkdf-simple-v0 compact\x00" <> domainTag)
-            rounds
-            (word32 "go\x00\x00" + 2023)
-            phkdfTag &
+            (word32 "go\x00\x00" + 2023) phkdfTag
+            ("phkdf-simple-v0 compact\x00" <> domainTag) rounds &
         phkdfSlowCtx_assertBufferPosition 32 &
         phkdfSlowCtx_addArgs tags &
         phkdfSlowCtx_finalize
@@ -353,10 +351,8 @@ phkdfPass_seedInit block args =
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
         phkdfSlowCtx_extract
-            ("phkdf-pass-v0 compact\x00" <> domainTag)
-            rounds
-            (word32 "go\x00\x00" + 2023)
-            phkdfTag &
+            (word32 "go\x00\x00" + 2023) phkdfTag
+            ("phkdf-pass-v0 compact\x00" <> domainTag) rounds &
         phkdfSlowCtx_assertBufferPosition 32 &
         phkdfSlowCtx_addArgs seedTags &
         phkdfSlowCtx_finalize
