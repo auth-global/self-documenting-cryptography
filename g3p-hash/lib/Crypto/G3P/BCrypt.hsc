@@ -18,7 +18,7 @@
 --        72 byte salt parameters.
 --
 --    For this reason, this binding completely removes the code for handling
---    unix-style bcrypt hashes, whic has repeatedly proven problematic. One
+--    unix-style bcrypt hashes, which has repeatedly proven problematic. One
 --    of the major design motifs of the G3P is to replace this cruft with PHKDF,
 --    which is intended to be bulletproof.
 --

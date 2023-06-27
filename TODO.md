@@ -4,19 +4,11 @@
 
 ## API documentation TODOs:
 
-1.  G3P
+1.  HMAC
 
-    Adapt from Crypto.PHKDF and design docs
+2.  HKDF
 
-2.  Crypto.PHKDF.Primitives
-
-    Adapt from design-documents/g3p.md
-
-3.  HMAC
-
-4.  HKDF
-
-5.  seguid-protocol
+3.  seguid-protocol
 
 ## Testing TODOs:
 
