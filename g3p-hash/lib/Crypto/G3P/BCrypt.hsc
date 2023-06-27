@@ -34,6 +34,7 @@
 
 module Crypto.G3P.BCrypt
   ( bcryptRaw
+  , bcryptRaw_maxInputLength
   , bcryptRaw_outputLength
   ) where
 
@@ -50,12 +51,10 @@ import           System.IO.Unsafe
 
 foreign import capi "bcrypt_raw.h bcrypt_raw" c_bcrypt_raw :: CString -> Word32 -> CString -> Word32 -> CString -> Word32 -> IO ()
 
-
 -- | Any input longer than 72 bytes will be truncated.
 
 bcryptRaw_maxInputLength :: Int
 bcryptRaw_maxInputLength = (#const BCRYPT_RAW_MAX_INPUT_LENGTH)
-
 
 -- | Any output hash from 'bcryptRaw' will be exactly 24 bytes long.
 
