@@ -8,31 +8,31 @@ This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 Intern
 
 A seguid is an identifier that can be followed back to its origin with the help of a search engine. The origin can then be validated against the seguid itself. The first intended use case for seguids are as constant identifiers used to delineate a specific deployment of a cryptographic protocol. Follow the seguid, y'all!
 
-Short for Self-Documenting Globally Unique Identifier, seguids are designed for reverse engineering. It's not uncommon that an software engineer or security analyst struggles to find relevant documentation when reading or reviewing cryptographic code. Sometimes they aren't even directly aware this is a problem. These problem is especially acute when the code is a payload observed on a botnet.  Such payloads are often of unknown origin and may have an unclear purpose. Seguids are an attempt to improve these stories in the case of publicly-disclosed identifiers.  
+Short for Self-Documenting Globally Unique Identifier, seguids are designed for reverse engineering. It's not uncommon that an software engineer or security analyst struggles to find relevant documentation when reading or reviewing cryptographic code. Sometimes they aren't even directly aware this is a problem. These problem is especially acute when the code is a payload observed on a botnet.  Such payloads are often of unknown origin and may have an unclear purpose. Seguids are an attempt to improve these stories in the case of publicly-disclosed identifiers.
 
 The preferred way to generate seguids is to use the _Seguid Protocol_, which is a domain-specific cryptographic hash function that comes tightly bundled with strong opinions about how that hash function is intended to be applied and its results interpreted. Specifically, the inputs are intended to be Uniform Resource Identifiers (URIs) that point to relevant documentation and other artifacts. This hash function then outputs an identifier which is _transparently derived_, _self-documenting_, and _globally unique_ in cryptographically strong senses of these phrases.
 
-A seguid is _transparently derived_ in the sense that the inputs to the hash function are not intended to be secret, and are in fact intended to be published for the whole world to see. A seguid is _self-documenting_ in that these input parameters immutably attest to it's own official sources of documentation and other relevant artifacts via URIs. 
+A seguid is _transparently derived_ in the sense that the inputs to the hash function are not intended to be secret, and are in fact intended to be published for the whole world to see. A seguid is _self-documenting_ in that these input parameters immutably attest to it's own official sources of documentation and other relevant artifacts via URIs.
 
-Because the Seguid Protocol expects the use of a Uniform Resource Locator (URL) that points to a webpage where a creator will be publishing documentation relevant to their Seguid, the Internet's Domain Name System (DNS) as administered by ICANN is included in the cryptographic domain separation provided by the Seguid Protocol. 
+Because the Seguid Protocol expects the use of a Uniform Resource Locator (URL) that points to a webpage where a creator will be publishing documentation relevant to their Seguid, the Internet's Domain Name System (DNS) as administered by ICANN is included in the cryptographic domain separation provided by the Seguid Protocol.
 
 A seguid is _globally unique_ thanks to the preimage and collision resistance of the HKDF-SHA512 cryptographic hash function working in conjuction with the domain separation provided by the usage guidelines. Moreover, global uniqueness can be optionally be reinforced with additional strong randomization.
 
-Seguids are _indirectly_ self-documenting in the sense that if you are starting from nothing more than a literal bitstring, you will require a search engine to find the corresponding derivation of the seguid. By contrast, a _directly_ self-documenting constant cannot rely on external means to deliver its message.  
+Seguids are _indirectly_ self-documenting in the sense that if you are starting from nothing more than a literal bitstring, you will require a search engine to find the corresponding derivation of the seguid. By contrast, a _directly_ self-documenting constant cannot rely on external means to deliver its message.
 
 An example of a directly self-documenting constant used in this paper is the info parameter to HKDF-SHA512. Here we place URLs to the official documentation for the Seguid Protocol, so that anybody who is capable of computing the seguid hash function themselves must necessarily know the official documentation URL.
 
 This complementary notion is more usefully applied and more throughly explored in the companion document, "The Global Password Prehash Protocol G3P, a Case Study in Self-Documenting Cryptography". That proposal uses directly self-documenting constants to achieve domain separation between authentication services, thereby enhancing the traceability of stolen password hashes.  The G3P Protocol also serves as a case study in applying the Seguid Protocol.
 
-Though the Seguid Protocol is likely to prove useful in other contexts, this document has a specific emphasis on choosing constant, publicly-known salts for derivation protocols based off of keyed cryptographic hash functions.  This is useful not only for deploying the G3P, but also most key derivation protocols based on HKDF, many protocols based on HMAC, and all protocols that are compliant with NIST Special Publication 800-108. 
+Though the Seguid Protocol is likely to prove useful in other contexts, this document has a specific emphasis on choosing constant, publicly-known salts for derivation protocols based off of keyed cryptographic hash functions.  This is useful not only for deploying the G3P, but also most key derivation protocols based on HKDF, many protocols based on HMAC, and all protocols that are compliant with NIST Special Publication 800-108.
 
 ## Introduction to the Seguid Protocol
 
 The Seguid hash function accepts a list of arbitrary bitstrings as inputs.  The encoding used by this function ensures that one cannot trivially find collisions by say, moving bits between strings, by permuting the order in which the strings appear in the list, or even by deleting, adding, or moving empty bitstrings.  Moreover, varying the output length parameter completely changes the result as well, so there are no easy collisions there either.
 
 ```
-SEGUID-V1 : ( 
-    args : Vector<BitString>, 
+SEGUID-V1 : (
+    args : Vector<BitString>,
     bits : Integer{ 0 <= bits <= 130560 } = 512
   ) -> BitString
 ```
@@ -60,20 +60,20 @@ your-alternate-seguid = SEGUID-V1 (
   )
 ```
 
-These first two examples are _weakly_ self-documenting. Even though the derivations of these seguids specify one or more URLs at which official documentation can be found, the documentation behind these URLs can change over time.  By contrast, a _strongly_ self-documenting seguid attests to some unchangable, immutable version of its own documentation.  
+These first two examples are _weakly_ self-documenting. Even though the derivations of these seguids specify one or more URLs at which official documentation can be found, the documentation behind these URLs can change over time.  By contrast, a _strongly_ self-documenting seguid attests to some unchangable, immutable version of its own documentation.
 
 Yet it is important to be weak!  Weak self-documentation via mutable references seems to play an essential role in the Seguid Protocol that strong self-documentation via immutable references does not.  We need search engines to index our literal seguids, so that so that people who are starting from a literal seguid can easily find its official documentation.
 
 The strong documentation cannot itself publish the resulting seguid as a literal constant.  Because this documentation is used to derive the seguid, changing the documentation changes the seguid itself. Thus the strong documentation cannot publish what we need to publish.
 
-The InterPlanetary Name System (IPNS) is a mutable reference that is much more secure than an HTTPS URL, and provides with additional benefits. An IPNS Uniform Resource Identifier (URI) encodes a self-certified public key in the URI itself. The URI provides cryptographic evidence that somebody had the corresponding private key, at least once upon a time. 
+The InterPlanetary Name System (IPNS) is a mutable reference that is much more secure than an HTTPS URL, and provides with additional benefits. An IPNS Uniform Resource Identifier (URI) encodes a self-certified public key in the URI itself. The URI provides cryptographic evidence that somebody had the corresponding private key, at least once upon a time.
 
 An IPNS address that is under your control sets up a strongly authenticated channel for publishing information and updates about your seguid. Including such a URI also has the very nice benefit of strongly randomizing the resulting seguid, because the public key encoded in the address represents a level of entropy equal to the private key, which itself is supposed to be a high-entropy secret.
 
 ```
 your-strongly-randomized-seguid = SEGUID-V1 (
     [ "https://docs.your-domain.example/your-strongly-randomized-seguid",
-      "ipns://your-public-key-address-here" 
+      "ipns://your-public-key-address-here"
     ]
   )
 ```
@@ -101,7 +101,7 @@ For this reason, the Seguid Protocol asks creators to take care regarding copyri
 
 In the common case where the creator of a seguid holds any copyright interests in the documents referenced by a seguid's IPFS content identifer, the Seguid Protocol asks that the creator to openly license all such copyright interests to the general public under terms that allow for free redistribution.
 
-The Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License is one of the most restrictive licenses currently available that satisfies this requirement.  At the other extreme, a public-domain dedication, renouncing all copyright interests to the maximum extent allowed by law, is another alternative.  In between, there number of appropriate licensing options available, including a range of other Creative Commons licenses, the GNU Free Documentation license, and many standard licenses used by open-source software projects.  
+The Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License is one of the most restrictive licenses currently available that satisfies this requirement.  At the other extreme, a public-domain dedication, renouncing all copyright interests to the maximum extent allowed by law, is another alternative.  In between, there number of appropriate licensing options available, including a range of other Creative Commons licenses, the GNU Free Documentation license, and many standard licenses used by open-source software projects.
 
 Similarly, creators must take care that they respect the copyrights and licensing of third parties in any documentation or other artifacts they publish to IPFS. If you have doubt that you have the ability to grant free redistribution of a copyrightable asset to the general public, you should refer to the third-party asset by name, by URL, by URI, by ISBN, by DOI, and/or other appropriate indirect identifiers. If you wish to ensure that you are referencing a specific version of an asset, you could additionally include a cryptographic hash of it.
 
@@ -109,18 +109,18 @@ Of course, one can combine both IPFS and IPNS URIs to get the all benefits of st
 
 ```
 seguid-v2-salt = SEGUID-V1 (
-    [ 
+    [
       "https://docs.auth.global/seguid-v2",
       "ipfs://${self-cidv1}/docs.auth.global/seguid-v2/${self-hash}.md",
-      "ipns:// TODO: fill this in before the release of Version 2" 
+      "ipns:// TODO: fill this in before the release of Version 2"
     ], bits = 1024
   )
 
-SEGUID-V2 (args, bits = 512) = 
-  SEGUID-PROTOCOL-V0 ( 
-    salt = seguid-v2-salt, 
-    msgs = args, 
-    info = "https://docs.auth.global/seguid-v2", 
+SEGUID-V2 (args, bits = 512) =
+  SEGUID-PROTOCOL-V0 (
+    salt = seguid-v2-salt,
+    msgs = args,
+    info = "https://docs.auth.global/seguid-v2",
     bits = bits
   )
 ```
@@ -130,34 +130,34 @@ Version 1 of the global salt include both HTTPS and IPNS URIs, to get a strongly
 
 ```
 seguid-v1-salt = SEGUID-V0 (
-    [ 
+    [
       "https://docs.auth.global/seguid-v1",
       "ipns:// TODO: fill this in before any release at all",
       "git:/ TODO: fill this in after it's been generated"
     ], bits = 1024
   )
 
-SEGUID-V1 (args, bits = 512) = 
-  SEGUID-PROTOCOL-V0 ( 
+SEGUID-V1 (args, bits = 512) =
+  SEGUID-PROTOCOL-V0 (
     salt = seg
-    msgs = args, 
-    info = "https://docs.auth.global/seguid-v1", 
+    msgs = args,
+    info = "https://docs.auth.global/seguid-v1",
     bits = bits
   )
 ```
 
 Version 0 of the global salt, the _preinitialization salt_, is a _nothing-up-my-sleeve_ constant 128 bytes long, inspired from the initialization vectors of the SHA-2 family of functions.
 
-``` 
+```
 seguid-v0-salt = f(1) || ... || f(32)
 
 f(n) = the fractional part of the n^th prime integer to the 3/4 power, truncated to 32 bits
 
-SEGUID-V0 (args, bits = 512) = 
-  SEGUID-PROTOCOL-V0 ( 
+SEGUID-V0 (args, bits = 512) =
+  SEGUID-PROTOCOL-V0 (
     salt = seguid-v0-salt,
-    msgs = args, 
-    info = "https://docs.auth.global/seguid-v0", 
+    msgs = args,
+    info = "https://docs.auth.global/seguid-v0",
     bits = bits
   )
 ```
@@ -183,15 +183,15 @@ This application of HKDF-Expand simply makes the output length non-colliding by 
 
 ```
 HKDF-Expand-BitLength-Strict (prk, info, bits) =
-  if bits <= 0: 
+  if bits <= 0:
     return ""
   else:
     return HDKF-Expand-BitLength (prk, left_encode(bits) || info, bits)
 
-HDKF-Expand-BitLength (prk, info, bits) = 
-  if bits <= 0: 
+HDKF-Expand-BitLength (prk, info, bits) =
+  if bits <= 0:
     return ""
-  else: 
+  else:
     bytes-to-generate = (bits + 7) div 8  // i.e.  ceil(bits / 8)
     bits-to-truncate  = (- bits) mod 8    // must be in range 0..7
     bytes = HKDF-Expand (prk, info, bytes-to-generate)
@@ -205,7 +205,7 @@ I generally recommend 256-512 bit output lengths for most seguids. Beyond that r
 
 The goals of the previous section were to informally introduce the Seguid Protocol, to unambiguously define its hash function, and constrain the form that its initialization vector will ultimately take.  The goal of this section is to provide a more comprehensive description of how the hash function is intended to be used.
 
-The first bitstring argument to the Seguid hash function must be an RFC 3986-compliant Uniform Resource Identifier (URI) at which the creator will be posting documentation relevant to the derived seguid.  The content behind this URL should be indexable, and I strongly recommend using the `https://` or at least `ipns://` URI schemes. The webpage linked to by this URL must include the derived seguid literal itself, encoded as hexadecimal, and must include the bitstrings that generated it. This webpage should also include any relevant documentation, and any useful links to other publicly-available artifacts relevant to this seguid.  
+The first bitstring argument to the Seguid hash function must be an RFC 3986-compliant Uniform Resource Identifier (URI) at which the creator will be posting documentation relevant to the derived seguid.  The content behind this URL should be indexable, and I strongly recommend using the `https://` or at least `ipns://` URI schemes. The webpage linked to by this URL must include the derived seguid literal itself, encoded as hexadecimal, and must include the bitstrings that generated it. This webpage should also include any relevant documentation, and any useful links to other publicly-available artifacts relevant to this seguid.
 
 Subsequent bitstrings must also encode RFC 3986-compliant URIs, up until the occurrence of the first empty bitstring. These URIs should point at documentation and other relevant artifacts as well. In particular, the use of InterPlanetary File System (IPFS) and InterPlanetary Name System (IPNS) URIs is strongly encouraged.
 
@@ -225,17 +225,17 @@ When creating strongly documented seguids, in most (or all?) cases there seems t
 
 Rather, the document can simply assume the existence of one or more named constants such as `seguid-v2-salt` or `your-strongdoc-seguid`, and then describe how those named constants are intended to be used.  The immutable association is created when one or more literal seguid constants along with their derivation are published in the mutable locations specified by the inputs to the seguid hash function.  This fills in the named constants, and handles the self-reference necessary for strong documentation very naturally, in a way that can be easy to miss.[^letrec-scheme]
 
-Though this specification constrains the form the global salt will eventually take, it does not unambiguously specify the value the global salt will be. Even though this ambiguity is likely acceptable, I also expect it to be useful to constrain the form the derived seguid(s) will eventually take.  
+Though this specification constrains the form the global salt will eventually take, it does not unambiguously specify the value the global salt will be. Even though this ambiguity is likely acceptable, I also expect it to be useful to constrain the form the derived seguid(s) will eventually take.
 
 In the case of this document, the main ambiguity is the `${self-cidv1}` reference. In order for this document to provide a self-contained specification of a precise final value for the global salt, it would also have to specify the other files provided at that IPFS Content ID address.
 
 The Seguid Global Salt is strongly randomized. The IPNS address included in this document corresponds to a high-entropy private key generated uniformly at random by computers owned by the author and under his control. Strong randomization is particularly beneficial when choosing constant, publicly-known keys for HMAC-SHA256. Technically, the information-theoretic entropy of this document almost certainly dwarfs that of the IPNS address, however the entropy of this document can only be estimated, whereas the entropy of an IPNS address can be directly calculated.
 
-For example, RFC 5869 recommends choosing HKDF's salt uniformly at random if possible, which this proposal takes seriously. If you are using the seguid protocol to derive an constant, publicly known salt as the initialization vector for an HKDF-based key derivation protocol, you automatically benefit from the strong randomization built-in to the seguid protocol via this author's private key.  
+For example, RFC 5869 recommends choosing HKDF's salt uniformly at random if possible, which this proposal takes seriously. If you are using the seguid protocol to derive an constant, publicly known salt as the initialization vector for an HKDF-based key derivation protocol, you automatically benefit from the strong randomization built-in to the seguid protocol via this author's private key.
 
 Even better, you yourself can ensure strong randomization by generating your own IPNS address and including it in the derivation of your seguid.  Moreover, this also sets up an authenticated channel on which you can publish future material regarding your seguid.
 
-Cryptographers also prefer constants that have nothing up their sleeve. This notion is fundamentally incompatible with strong randomization. Seguids have at least one private key up their sleeve. However, seguids are also transparently derived from published inputs to HMAC-SHA256. Transparent derivation allows us to salvage the most salient aspects of the cryptographer's notion of _nothing-up-my-sleeve_ in this context.  
+Cryptographers also prefer constants that have nothing up their sleeve. This notion is fundamentally incompatible with strong randomization. Seguids have at least one private key up their sleeve. However, seguids are also transparently derived from published inputs to HMAC-SHA256. Transparent derivation allows us to salvage the most salient aspects of the cryptographer's notion of _nothing-up-my-sleeve_ in this context.
 
 In this context, choosing the `seguid-v1-salt` is a relatively low-stakes endeavor, cryptographically speaking. Even if I were a supervillian who directly specified the global salt in a somehow "nefarious" way, the seguid protocol is just one strong randomization away from foiling... whatever plot that was.  Moreover, although the seguid's notion of _transparent derivation_ is relaxed relative to the cryptographer's notion of _nothing-up-my-sleeve_, allowing transparently derived constants enables tangible benefits in return, enhancing domain separation and allowing for self-documentation, strong randomization, and setting up cryptographically authenticated channels for future publication.
 
@@ -251,7 +251,7 @@ For example, a confidence trickster could make use of unforgeable timestamps to 
 
 To be a more honest prediction, a speculator needs to reveal a hash before the event that commits them to a single prediction.  However this alone isn't quite sufficient: a variation of our confidence trickster might take this superficially more honest approach, but provides different predictions to different people.  Ultimately a few of the people will see some amazingly good predictions, and thus may become vulnernable to future depredations by the confidence trickster. So an even more honest sports speculator needs to make a commitment to a single prediction that the whole world can see.
 
-A primary goal of the Seguid Protocol itself is to help construct a more completely committed context for deploying seguids, and for easily transferring this onto new domain-specific hash protocols.  One of the oft-overlooked practical aspects of applied cryptography is how various constructions relate contexts to each other.  
+A primary goal of the Seguid Protocol itself is to help construct a more completely committed context for deploying seguids, and for easily transferring this onto new domain-specific hash protocols.  One of the oft-overlooked practical aspects of applied cryptography is how various constructions relate contexts to each other.
 
 My go-to example of this phenomenon is that the statement "message X has a valid digital signature, therefore message X is valid".  This might not be wrong, but is certainly extremely misleading. Rather, it's far more useful to emphasize that a valid signature connects the validity of a message X to the validity of the public key that verifies the signature, nothing more and nothing less.  Furthermore, the interpretation of a message with a valid signature depends on context.  Messages with valid signatures will often need to be subjected to further security validations and sanity checking, depending on whatever policies are appropriate for that context.
 
@@ -261,7 +261,8 @@ The Seguid Protocol aspires to be a reasonably general-purpose tool for creating
 
 ## History
 
-A fine example of a proto-seguid found at its origin.  
+
+[![A fine example of a proto-seguid found at its origin.](media/toronto-recursive-history.jpg)](https://readtheplaque.com/plaque/the-toronto-recursive-history-project)
 
 To invent seguids, break apart the concepts embodied in the self-referential sign of the Toronto Recursive History Project, and distill one of those concepts into a Y-like combinator.  Use the ideas behind "Y in Practical Programs" to weave some Merkle-tree cryptography into this fixpoint.  Add a generous helping of Programming Language Theory and a smidge of the Theory of Computation, and work and rework these basic ingredients until they form a cohesive and unified whole.  Finish with a protective glaze of numerology.
 
@@ -273,17 +274,17 @@ To provide grist for Feyerabend's slogan that _anything goes_, seguids drew sign
 
 This seed of an idea lay dormant for years. The basic notion to "use a cryptographic hash to catch a liar", say by putting extra hashes inside git commit messages that represent commitments to some (possibly sensitive) bit of private information that one suspects one might need to appeal to later, seems like seems like it should be obvious to those reasonably well versed in blockchain technologies and other forms of applied cryptographic hashing.  However these vague notions are very incomplete, with a lot of critically important detail left out. Moreover I wasn't specifically aware of a configuration parameter in the systems I worked on or was envisioning that seemed a plausible fit for the slightly more specific notion of a seguid.
 
-Eventually I came around to thinking about how to make stolen password hashes traceable or useless.  To set this historical context,  I had already come to understand that suffixing a tag to an externally-supplied input of SHA256 was a plausibly-secure plaintext tagging construction.   I was now researching how one might be able to best use this observation in a PBKDF2-based password prehashing scheme.  
+Eventually I came around to thinking about how to make stolen password hashes traceable or useless.  To set this historical context,  I had already come to understand that suffixing a tag to an externally-supplied input of SHA256 was a plausibly-secure plaintext tagging construction.   I was now researching how one might be able to best use this observation in a PBKDF2-based password prehashing scheme.
 
 In this context, I was introduced to Soatok's blog post on HKDF, which lead me to read RFC 5869 for the first time.  These two documents really nucleated a burst of creative insight into my research topics. Most interestingly, HKDF's salt parameter also gave me an obvious place to try to germinate the idea of a seguid, which would then turn into a second and complementary indirectly self-documenting cryptographic tag.
 
 Attempting to write my thoughts down clearly turned out to be far more difficult than I imagined.  At first I thought that seguids would be a minor section in the presentation of the G3P, but that section and presentation kept growing in scope.  I could more-or-less accurately describe what I wanted to happen, but had great difficulty justifying why.
 
-Eventually I broke that stubborn section out into it's own writing project, and started writing specifically on the topic of seguids. Once I took that step, it took about three weeks of ceaseless re-writing before the result started to make sense, which turned into the document you are now reading. Those early drafts sounded very much like the self-referential sign above. 
+Eventually I broke that stubborn section out into it's own writing project, and started writing specifically on the topic of seguids. Once I took that step, it took about three weeks of ceaseless re-writing before the result started to make sense, which turned into the document you are now reading. Those early drafts sounded very much like the self-referential sign above.
 
 Part of the difficulty is that it wasn't at all obvious to me how to organize an introduction that seemed approachable, especially because the concept employs self-reference in unusual ways that were new to me. How do you cut that knot and give yourself and your audience a place to start?
 
-There is almost certainly a better heuristic to finding a reasonable organization for this paper than the one I took. This involved a lot of repetitive trial-and-error writing, with the occasional insights gleaned informing the next draft. 
+There is almost certainly a better heuristic to finding a reasonable organization for this paper than the one I took. This involved a lot of repetitive trial-and-error writing, with the occasional insights gleaned informing the next draft.
 
 More than once the insight obtained from trying to answer the question "why" dramatically improved my preliminary answer to the question "how", and vice-versa. More than once I thought about lectures on quines by Larry Moss, and conversations about Scheme's `letrec` and scoping rules with Dan Friedman, Amr Sabry and others.
 
@@ -304,9 +305,11 @@ To Soatok, whose blog posts on HKDF provided a plausible context in which to ger
 TODO: Format this more properly
 
 NIST Special Publication 800-185
+
 NIST Special Publication 800-108r1
 
 https://tools.ietf.org/html/rfc3986
+
 https://tools.ietf.org/html/rfc5869
 
 https://soatok.blog/2021/11/17/understanding-hkdf/
