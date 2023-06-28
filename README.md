@@ -14,9 +14,9 @@ The G3P is self-documenting in the sense that password hashes are supposed to be
 
 The purpose is to point their conspirator in the correct direction to sell out the endeavor to Acme and report the hashes as stolen. In doing so, I hope to make it increasingly untenable to post meaningful password hashes where they can be widely seen without drawing the attention of relevant security departments.
 
-In the longer run, I hope that will disrupt the activities of the cybercriminal scene, even if the more profound change in behavior is ultimately the promotion of more antifragile attitudes and practices among security departments.
-
 Similarly, if a botnet is used to try to crack Acme's password hashes using stolen computing resources, then the G3P is designed to make it easy for a security analyst who observes this payload on the botnet to report the payload(s) and other observations back to Acme's security tip line.
+
+In the longer run, I hope that will disrupt the activities of the cybercriminal scene. That said, I expect the more profound change in behavior will ultimately the promotion of more antifragile attitudes and practices among security departments.
 
 The major design goals for the G3P were:
 
