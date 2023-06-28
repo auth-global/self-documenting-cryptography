@@ -1,3 +1,12 @@
+{- |
+
+An alternate implementation of HMAC in terms of cryptohash-sha256, because
+the HMAC implementation provided there doesn't support precomputed keys or
+streaming inputs.  TODO: prepare a patch for cryptohash-sha256.
+
+-}
+
+
 module Crypto.PHKDF.HMAC
   ( HmacCtx
   , HmacKey
@@ -17,8 +26,12 @@ import qualified Data.ByteString as B
 
 import           Crypto.PHKDF.HMAC.Subtle
 
+-- | Precompute an HMAC key for some literal HMAC key.
+
 hmacKey_init :: ByteString -> HmacKey
 hmacKey_init = HmacKey . hmacCtx_init
+
+-- | Initialize a new empty HMAC context from a literal HMAC key.
 
 hmacCtx_init :: ByteString -> HmacCtx
 hmacCtx_init key =
@@ -28,14 +41,23 @@ hmacCtx_init key =
     k1 = if B.length key > 64 then SHA256.hash key else key
     k2 = B.append k1 (B.replicate (64 - B.length k1) 0)
 
+-- | Initialize a new empty HMAC context from a precomputed HMAC key.
+
 hmacCtx_initFromHmacKey :: HmacKey -> HmacCtx
 hmacCtx_initFromHmacKey = hmacKey_run
+
+-- | Append a bytestring onto the end of the message argument to HMAC.
 
 hmacCtx_update ::  ByteString -> HmacCtx -> HmacCtx
 hmacCtx_update b (HmacCtx ic oc) = HmacCtx (SHA256.update ic b) oc
 
+-- | Append zero or more bytestrings onto the end of the message argument to
+--   HMAC.
+
 hmacCtx_updates :: [ByteString] -> HmacCtx -> HmacCtx
 hmacCtx_updates bs (HmacCtx ic oc) = HmacCtx (SHA256.updates ic bs) oc
+
+-- | Finish computing the final 32-byte hash for an HMAC context.
 
 hmacCtx_finalize :: HmacCtx -> ByteString
 hmacCtx_finalize (HmacCtx ic oc) = outer

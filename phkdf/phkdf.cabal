@@ -1,7 +1,16 @@
 name:                phkdf
 version:             0.0.0.0
-synopsis:            A Self-Documenting Key Derivation Function inspired by PBKDF2, HKDF, and TupleHash
--- description:
+synopsis:
+    A Self-Documenting Key Derivation Function inspired by PBKDF2, HKDF, and
+    TupleHash
+
+description:
+    This is primarily intended to be a highly reliable reference implementation
+    for the underlying PHKDF primitives. It is also aspires to be production
+    ready-ish. The main limitation is that it implemented without mutation,
+    meaning that potentially sensitive secrets persist in memory longer than
+    necessary.
+
 license:             Apache-2.0
 license-file:        LICENSE
 author:              Leon P Smith
