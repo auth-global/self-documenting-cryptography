@@ -4,11 +4,9 @@
 
 ## API documentation TODOs:
 
-1.  HMAC
+1.  HKDF
 
-2.  HKDF
-
-3.  seguid-protocol
+2.  seguid-protocol
 
 ## Testing TODOs:
 
