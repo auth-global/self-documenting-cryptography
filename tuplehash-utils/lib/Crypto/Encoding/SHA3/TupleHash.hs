@@ -176,20 +176,14 @@ lengthOfBareEncodeInteger n =
   case compare n 0 of
     LT -> Nothing
     EQ -> Just 1
-    GT -> case shiftR (integerLog2 n) 3 + 1 of
-           nSigBytes
-             | nSigBytes > 255 -> Nothing
-             | otherwise -> Just nSigBytes
+    GT -> Just (shiftR (integerLog2 n) 3 + 1)
 
 lengthOfBareEncodeIntegerFromBytes :: Integer -> Maybe Int
 lengthOfBareEncodeIntegerFromBytes n =
   case compare n 0 of
     LT -> Nothing
     EQ -> Just 1
-    GT -> case shiftR (integerLog2 n + 3) 3 + 1 of
-           nSigBytes
-             | nSigBytes > 255 -> Nothing
-             | otherwise -> Just nSigBytes
+    GT -> Just (shiftR (integerLog2 n + 3) 3 + 1)
 
 lengthOfLeftEncode :: (Integral b, FiniteBits b) => b -> Int
 lengthOfLeftEncode = (+1) . lengthOfBareEncode
@@ -198,7 +192,17 @@ lengthOfLeftEncodeFromBytes :: (Integral b, FiniteBits b) => b -> Int
 lengthOfLeftEncodeFromBytes = (+1) . lengthOfBareEncodeFromBytes
 
 lengthOfLeftEncodeInteger :: Integer -> Maybe Int
-lengthOfLeftEncodeInteger = fmap (+1) . lengthOfBareEncodeInteger
+lengthOfLeftEncodeInteger n =
+  case lengthOfBareEncodeInteger n of
+    Nothing -> Nothing
+    Just nSigBytes
+       | nSigBytes > 255 -> Nothing
+       | otherwise       -> Just (nSigBytes+1)
 
 lengthOfLeftEncodeIntegerFromBytes :: Integer -> Maybe Int
-lengthOfLeftEncodeIntegerFromBytes = fmap (+1) . lengthOfBareEncodeIntegerFromBytes
+lengthOfLeftEncodeIntegerFromBytes n =
+  case lengthOfBareEncodeIntegerFromBytes n of
+    Nothing -> Nothing
+    Just nSigBytes
+       | nSigBytes > 255 -> Nothing
+       | otherwise       -> Just (nSigBytes+1)
