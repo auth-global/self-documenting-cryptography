@@ -1,51 +1,100 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | The Global Password Prehash Protocol (G3P) is a slow, self-documenting
---   cryptographic hash function that is designed to be particularly well suited
---   to being deployed as a client-side prehash for password-based authentication
---   flows.
---
---   The G3P is self-documenting in the sense that its password hashes are
---   supposed to be traceable or useless after they have been stolen. This
---   secondary security goal seeks to make it impractically expensive to hide
---   the target of a password cracking attack from those providing the resources
---   to carry it out. In doing so, offline attacks on password hashes cannot
---   be outsourced without also knowing exactly where to report those password
---   hashes as stolen.
---
---   This initial version of the G3P employs a combination of PHKDF and bcrypt.
---   PHKDF serves as the primary self-documenting component, and bcrypt serves
---   as the primary key-stretching component of the G3P.  Both are secondarily
---   used in the alternate role as well, with the PHDKF adding a small bit of
---   key stretching and bcrypt providing additional self-documenting plaintext
---   repetitions.
---
---   1. Every bit of every parameter matters. Every boundary between
---      parameters matter. There isn't supposed to be any trivial collisions,
---      the only exception being null-extension collisions on the seguid.
---
---   2. Except for the tweaks, any change to any parameter requires restarting
---      the PHKDF key-stretching computation from somewhere in the very first
---      call to HMAC.
---
---   3. All input arguments are hardened against length-related timing side
---      channels in various different ways.
---
---      At one extreme, the username, password, and long tag have the most
---      aggressive length hardening in the conventional sense, exhibiting no
---      timing side channels except on multi-kilobyte inputs, after which
---      the timing impacts are minimzed.
---
---      At another extreme, the domain tag exhibits severe yet predictable
---      timing side channels transitioning from 19 to 20 bytes and every 64
---      bytes thereafter.  However, the domain tag is otherwise free of
---      timing-based side channels, so it too is hardened in its own way.
---
---   The design I converged upon employs fairly complicated data encoding
---   procedures. Unfortunately, this provides a fair bit of surface area
---   for subtly wrong implementations that work most of the time, but will
---   return garbage on certain lengths of inputs. I hope that this will
---   eventually be remediated with a more comprehensive suite of test vectors.
+{- |
+
+The Global Password Prehash Protocol (G3P) is a slow, self-documenting
+cryptographic hash function.  It is self-documenting in the sense that its
+password hashes are supposed to be /traceable/ or /useless/ after they have
+been /stolen/. This secondary security goal seeks to use /cryptoacoustics/
+to make it impractically expensive to hide the target of a password cracking
+attack from those providing the resources to carry it out. In doing so, offline
+attacks on password hashes cannot be outsourced without also knowing exactly
+where to report those password hashes as stolen.
+
+In order to do this, the G3P revisits the role of cryptographic salt. In a
+traditional password hash function, the salt is a random bytestring typically
+between 8 and 32 bytes long that identifies a unique hash function so that
+one cannot attempt to crack multiple password hashes with a single
+key-stretching computation.  Oftentimes this is implemented by storing a salt
+per user.
+
+However, in the context of a deployment of the G3P as a client-side prehash,
+the traditional salt design has the potential to leak whether or not an account
+exists, or ifa password has changed. The G3P eliminates these complications,
+because these random per-user salts have been replaced with the @seguid@, the
+@domainTag@ and other plaintext tags, and the @username@. We recommend a single
+64-byte (512-bit) seguid for the deployment, and deployment's choice of
+plaintext messages to be delivered via cryptoacoustic tags.
+
+If a deployment wants to add their own random per-user salt, the G3P always has
+room where more salt can be added. Theoretically, one could specify a G3P-based
+hash function that requires terabytes of salt to be hashed billions of times
+over. However it is unclear what purpose such an impractical specification
+might serve.
+
+This initial variant of the G3P employs a combination of PHKDF and bcrypt.
+PHKDF serves as the primary cryptoacoustic component, and bcrypt serves as the
+primary key-stretching component of the G3P. Both are secondarily used in the
+alternate role as well, with the PHDKF adding a tiny bit of key stretching and
+bcrypt providing significant additional cryptoacoustic plaintext repetitions.
+
+1.  Every bit of every parameter matters. Every boundary between parameters
+    matter. The presence and positioning of every empty string matters. There
+    aren't supposed to be any trivial collisions, the only exception being
+    null-byte extension collisions on the seguid, which serves as an
+    HMAC-SHA256 key.
+
+2.  Except for the tweaks, any change to any parameter requires restarting the
+    PHKDF key-stretching computation from somewhere in the very first call to
+    HMAC.
+
+3.  All input arguments are hardened against length-related timing side
+    channels in various different ways.
+
+    At one extreme, the username, password, and long tag have the most
+    aggressive length hardening in the conventional sense, exhibiting no timing
+    side channels except on multi-kilobyte inputs, after which the timing
+    impacts are minimzed.
+
+    At another extreme, the domain tag exhibits severe yet predictable
+    timing side channels transitioning from 19 to 20 bytes and every 64
+    bytes thereafter.  However, the domain tag is otherwise free of
+    timing-based side channels, so it too is hardened in its own way.
+
+The design I converged upon employs fairly complicated data encoding
+procedures. Unfortunately, this provides a fair bit of surface area for subtly
+wrong implementations that work most of the time, but will return garbage on
+certain lengths of inputs. I hope that this will eventually be remediated with
+a more comprehensive suite of test vectors.
+
+Note that the username, password, long-tag, and credentials vector are all
+/horn-loaded parameters/ in the sense that they are consumed a constant
+number of times near the beginning of the hashing protocol, and after each PHKDF
+round, the hash with the least key-stretching applied is discarded.
+
+This implies that particularly paranoid password-handling implementations can
+eliminate the password from memory even before key-stretching is complete.
+Additionally, assuming all the sensitive secrets are contained in horn-loaded
+parameters, this implies the key-stretching computation can be relocated at
+nearly any time with full credit for any key-stretching already performed.
+
+The cost associated with horn-loaded parameters is that collisions on these
+parameters over the entire G3P can be found by "only" colliding the first call
+to HMAC-SHA256, /G3Pb1 alfa/. If it were trivial to produce collisions on
+HMAC-SHA256, this would very likely make collisions on the horn-loaded
+parameters trivial. However such an attack would be unlikely to immediately
+extend to the overall G3P and be able to produce collisions that vary any of
+the other parameters. This is because all the other parameters are repeated
+elsewhere in the protocol, thus colliding /G3Pb1 alfa/ isn't enough to collide
+the final result.
+
+In the context of password-based authentication flows, this cost seems perfectly
+acceptable. After all, collision resistance and second preimage resistance is
+irrelevant in this context. What is crucially important is preimage resistance
+and maximizing the cost of parallelizing multiple key-stretching computations
+while minimizing the latency of a single key-stretching computation.
+
+-}
 
 module Crypto.G3P where
 
@@ -68,7 +117,8 @@ import           Crypto.G3P.BCrypt
 
 -- | These input parameters are grouped together because the envisioned use
 --   for them is that they are constants (or near-constants) specified by
---   a deployment. User-supplied inputs would typically not go here.
+--   a deployment. User-supplied inputs would typically not go here.  In this
+--   role, all these parameters function as salt.
 --
 --   The seguid parameter acts as a deployment-wide salt. Cryptographically
 --   speaking, the most important thing a deployment can do is specify a
@@ -83,17 +133,21 @@ import           Crypto.G3P.BCrypt
 --   null bytes onto the ends of seguids that are less than 64 bytes long
 --   should be the only source of trivial collisions in the entire protocol.
 --
---   The remaining string parameters are all directly-documenting plaintext
---   tags. A deployment can use these tags to encode a message into the password
---   hash function so that it must be known to whomever can compute it.
+--   The remaining string parameters are all directly-documenting,
+--   cryptoacoustic plaintext tags. A deployment can use these tags to encode
+--   a message into the password hash function so that it must be known to
+--   whomever can compute it.  There are a variety of different parameters
+--   because there are different lengths of messages that can be expressed
+--   for free, and there are different incremental costs for exceeding that
+--   limit.
 
 data G3PInputBlock = G3PInputBlock
   { g3pInputBlock_seguid :: !ByteString
     -- ^ HMAC-SHA256 key, usable as a high-repetition indirect tag via
     --   self-documenting globally unique identifiers (seguids).
   , g3pInputBlock_domainTag :: !ByteString
-    -- ^ plaintext tag with one repetition per round.  0-19 bytes are free,
-    --   20-83 bytes cost a additional sha256 block per round, with every
+    -- ^ plaintext tag with one repetition per PHKDF round. 0-19 bytes are
+    --   free, 20-83 bytes cost a additional sha256 block per round, with every
     --   64 bytes thereafter incurring a similar cost.
   , g3pInputBlock_longTag :: !ByteString
     -- ^ plaintext tag with 1x repetition, then cycled for roughly
@@ -109,7 +163,10 @@ data G3PInputBlock = G3PInputBlock
     --   19 bytes or less, plus a reasonably large but constant number of
     --   additional blocks. I recommend at least 20,000 rounds. You might
     --   consider adjusting that recommendation downward in the case of domain
-    --   tags that exceed 19 bytes in length.
+    --   tags that exceed 19 bytes in length: 15,000 rounds of PHKDF with
+    --   a domain tag that is 83 bytes long should cost about the same number
+    --   of SHA256 blocks as 20,000 rounds of PHKDF with a domain tag that
+    --   is 19 bytes long.
   , g3pInputBlock_bcryptRounds :: !Word32
     -- ^ How expensive will the bcrypt component be? 4000 rounds recommended,
     --   give or take a factor of 2 or so. Each bcrypt round is way more
