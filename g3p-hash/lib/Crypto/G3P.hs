@@ -11,26 +11,26 @@ attack from those providing the resources to carry it out. In doing so, offline
 attacks on password hashes cannot be outsourced without also knowing exactly
 where to report those password hashes as stolen.
 
-In order to do this, the G3P revisits the role of cryptographic salt. In a
-traditional password hash function, the salt is a random bytestring typically
-between 8 and 32 bytes long that identifies a unique hash function so that
-one cannot attempt to crack multiple password hashes with a single
-key-stretching computation.  Oftentimes this is implemented by storing a salt
-per user.
+The G3P revisits the role of cryptographic salt, in order to be both
+self-documenting and particularly well-suited to deployment as a client-side
+prehash function. In a traditional password hash function, the salt is a random
+bytestring typically between 8 and 32 bytes long. It identifies a unique hash
+function so that one cannot attempt to crack multiple password hashes with a
+single key-stretching computation.  Oftentimes this is implemented by storing
+a salt per user.
 
 However, in the context of a deployment of the G3P as a client-side prehash,
-the traditional salt design has the potential to leak whether or not an account
-exists, or ifa password has changed. The G3P eliminates these complications,
-because these random per-user salts have been replaced with the @seguid@, the
-@domainTag@ and other plaintext tags, and the @username@. We recommend a single
+storing a salt per user has the potential to leak whether or not an account
+exists, or if a password has changed. The G3P eliminates these complications,
+because these random per-user salts have been replaced with @username@, the
+@seguid@, and the @domainTag@ and other plaintext tags. We recommend a single
 64-byte (512-bit) seguid for the deployment, and deployment's choice of
 plaintext messages to be delivered via cryptoacoustic tags.
 
 If a deployment wants to add their own random per-user salt, the G3P always has
-room where more salt can be added. Theoretically, one could specify a G3P-based
-hash function that requires terabytes of salt to be hashed billions of times
-over. However it is unclear what purpose such an impractical specification
-might serve.
+room to do so. Theoretically, one could specify a G3P-based hash function that
+requires terabytes of salt to be hashed billions of times over. However it is
+unclear what purpose such an impractical specification might serve.
 
 This initial variant of the G3P employs a combination of PHKDF and bcrypt.
 PHKDF serves as the primary cryptoacoustic component, and bcrypt serves as the
@@ -39,7 +39,7 @@ alternate role as well, with the PHDKF adding a tiny bit of key stretching and
 bcrypt providing significant additional cryptoacoustic plaintext repetitions.
 
 1.  Every bit of every parameter matters. Every boundary between parameters
-    matter. The presence and positioning of every empty string matters. There
+    matter. The presence and position of every empty string matters. There
     aren't supposed to be any trivial collisions, the only exception being
     null-byte extension collisions on the seguid, which serves as an
     HMAC-SHA256 key.
@@ -140,6 +140,12 @@ import           Crypto.G3P.BCrypt
 --   because there are different lengths of messages that can be expressed
 --   for free, and there are different incremental costs for exceeding that
 --   limit.
+--
+--   It is particularly important to include some kind of actionable message
+--   in the @domainTag@, @longTag@, @bcryptTag@, and @bcryptSaltTag@
+--   parameters. Specifying an empty string in any of these parameters
+--   means that a significant quantity of cryptoacoustic messaging space will
+--   be filled with silence.
 
 data G3PInputBlock = G3PInputBlock
   { g3pInputBlock_seguid :: !ByteString
@@ -220,20 +226,21 @@ data G3PInputArgs = G3PInputArgs
 --   performance sensitive, we don't apply any length padding or side-channel
 --   hardening.  Instead we opt for maximizing free tagging space.  Thus we
 --   want to avoid incurring additional SHA256 block computations, one of the
---   favorite techniques employed by the key-stretching phase of 'phkdfPass'
+--   favorite techniques employed by the key-stretching phase of the G3P
 --   to harden against timing side-channels.
 --
 --   A deployment could conceivably harden this expansion phase against timing
 --   side channels themselves, if the were sufficiently inclined. There are
---   several techniques. For starters, a deployment could specify an additional
---   variable-length string in the role vector, used to control its relative
---   ending position inside the SHA256 buffer.
+--   several techniques. For starters, a deployment could ensure that these
+--   parameters themselves are constant-length.  Alternatively, a deployment
+--   could specify an additional variable-length string in the role vector,
+--   used to control the ending position relative to the SHA256 buffer.
 
 data G3PInputTweak = G3PInputTweak
   { g3pInputTweak_role :: !(Vector ByteString)
   , g3pInputTweak_tags :: !(Vector ByteString)
   } deriving (Eq, Ord, Show)
-
+=
 -- | A plain-old-data explicit representation of the intermediate 'g3pHash'
 --   computation after the 'G3PInputBlock' and 'G3PInputArgs' have been
 --   processed and key stretching has been completed, but before the tweaks
