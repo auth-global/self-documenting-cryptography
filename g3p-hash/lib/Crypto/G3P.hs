@@ -240,7 +240,7 @@ data G3PInputTweak = G3PInputTweak
   { g3pInputTweak_role :: !(Vector ByteString)
   , g3pInputTweak_tags :: !(Vector ByteString)
   } deriving (Eq, Ord, Show)
-=
+
 -- | A plain-old-data explicit representation of the intermediate 'g3pHash'
 --   computation after the 'G3PInputBlock' and 'G3PInputArgs' have been
 --   processed and key stretching has been completed, but before the tweaks
@@ -289,10 +289,6 @@ g3pHash_seedInit block args =
       g3pSeed_secret = secret
     }
   where
-    protoPad = cycleByteStringWithNull 52 "global-password-prehash-protocol seguid G3Pb1"
-    userProtoPad = "username\x00" <> protoPad
-    passProtoPad = "password\x00" <> protoPad
-
     -- Explicitly unpack everything for the unused variable warnings.
     -- i.e. It's relatively easy to check that we've unpacked every
     -- field, then we can rely on unused variable warnings to ensure
@@ -306,52 +302,77 @@ g3pHash_seedInit block args =
     bcryptTag = g3pInputBlock_bcryptTag block
     bcryptSaltTag = g3pInputBlock_bcryptSaltTag block
 
-    user = g3pInputArgs_username args
-    pass = g3pInputArgs_password args
-    creds = g3pInputArgs_credentials args
+    username = g3pInputArgs_username args
+    password = g3pInputArgs_password args
+    credentials = g3pInputArgs_credentials args
 
     phkdfTag = expandDomainTag domainTag
 
-    bcryptTagLen = encodedByteLength bcryptTag
-                 + encodedByteLength bcryptSaltTag
+    cycleBS = cycleByteStringWithNull
 
-    headerAlfa =
-      [ "G3Pb1 alfa"
-      , user, userProtoPad
-      , pass, passProtoPad
+    headerAlfa = [ "G3Pb1 alfa username", username ]
+
+    usernamePadding
+      =  cycleBS (a-32) domainTag
+      <> cycleBS    32  domainTag
+      where
+        al = encodedVectorByteLength headerAlfa
+        a = add64WhileLt (157 - al) 32
+
+    headerAlfaUsername = headerAlfa ++ [ usernamePadding ]
+
+    headerLongTag =
+      [ "global-password-prehash-protocol version G3Pb1"
       , bareEncodeFromBytes (B.length domainTag)
       , bareEncode phkdfRounds
       , bareEncode bcryptRounds
+      , longTag
       ]
 
-    -- FIXME: This briefly uses more memory than strictly necessary
-    -- (on the order of 8 kilobytes)
-    headerPadding =
-      [ longTag
-      , longPaddingBytes 8346 headerAlfa longTag
-      ]
-
-    headerBravo = "G3Pb1 bravo\x00" <> domainTag
+    longPadding
+      =  cycleBS (c-32) longTag
+      <> cycleBS    32  domainTag
+      where
+        al = encodedVectorByteLength headerLongTag
+        a  = add64WhileLt (8413 - al) 3293
+        bl = encodedVectorByteLength headerAlfaUsername
+        b  = add64WhileLt (a - bl) 146
+        cl = encodedByteLength password
+        c  = add64WhileLt (b - cl) 32
 
     bcryptHeader = [bcryptTag, bcryptSaltTag]
 
-    credsPadding = cycleByteStringWithNull padLen domainTag
+    bcryptPadding
+      =  cycleBS (a-32) domainTag
+      <> cycleBS    32  domainTag
       where
-        bcryptHeaderLen = sum (map encodedByteLength bcryptHeader)
-        extent = add64WhileLt (253 - bcryptHeaderLen) 135
-        credsLen = encodedVectorByteLength creds
-        padLen = add64WhileLt (extent - credsLen) 32
+        al = encodedVectorByteLength bcryptHeader
+        a  = add64WhileLt (189 - al) 32
+
+    credentialsPadding
+      =  cycleBS (a-29) domainTag
+      <> cycleBS    29  domainTag
+      where
+        al = encodedVectorByteLength credentials
+        a  = add64WhileLt (122 - al) 32
+
+    headerBravo = "G3Pb1 bravo\x00" <> domainTag
 
     seguidKey = hmacKey_init seguid
 
     secretStream =
         phkdfCtx_initFromHmacKey seguidKey &
-        phkdfCtx_addArgs headerAlfa &
-        phkdfCtx_addArgs headerPadding &
-        phkdfCtx_assertBufferPosition' 29 &
+        phkdfCtx_addArgs headerAlfaUsername &
+        phkdfCtx_assertBufferPosition' 32 &
+        phkdfCtx_addArg  password &
+        phkdfCtx_addArgs headerLongTag &
+        phkdfCtx_addArg  longPadding &
+        phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArgs bcryptHeader &
-        phkdfCtx_addArgs creds &
-        phkdfCtx_addArg  credsPadding &
+        phkdfCtx_addArg  bcryptPadding &
+        phkdfCtx_assertBufferPosition' 32 &
+        phkdfCtx_addArgs credentials &
+        phkdfCtx_addArg  credentialsPadding &
         phkdfCtx_assertBufferPosition' 29 &
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &

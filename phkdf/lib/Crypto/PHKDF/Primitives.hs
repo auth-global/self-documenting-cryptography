@@ -43,7 +43,7 @@ output blocks. These blocks can be divvied up into non-overlapping pieces that
 may be revealed independently of each other.
 
 Thus @phkdfStream@ is actually a much lower-level hash function than @hkdf@. As
-such has it's own modes of operation, which provide various different answers
+such has it's own /modes of operation/, which provide various different answers
 for this issue of output stream predictability. Building a proper replacement
 for @hkdf@ requires combining two or more calls to @phkdfStream@ in different
 modes of operation.
@@ -118,7 +118,7 @@ self-documenting domain seperation constants.
 Thus phkdf's slow extraction function calls @phkdfStream@ to generate a stream
 that is allowed to be predictable, but at an unpredictable starting point.
 This stream remains secret, and is immediately consumed by a second call to
-@phkdfStream@. After @rounds + 2@ blocks have been produced and consumed, the
+@phkdfStream@. After @rounds + 1@ blocks have been produced and consumed, the
 second call to @phkdfStream@ has an opportunity to add some additional
 post-key-stretching tweaks before the output stream is finalized.
 
@@ -130,9 +130,9 @@ phkdfSlowExtract ::
   -> ByteString -> Word32 -> [BitString] -> Stream ByteString
 phkdfSlowExtract key args counter tag fnName rounds tweaks = out
   where
-    blocks = take (rounds + 2) $ phkdfStream key args counter tag
+    blocks = take (rounds + 1) $ phkdfStream key args counter tag
     header = [makePadding fnName rounds, makeLongString blocks]
-    out = phkdfStream key (header ++ tweaks) (counter + rounds + 2) tag
+    out = phkdfStream key (header ++ tweaks) (counter + rounds + 1) tag
 @
 
 Again, assuming key, counter, rounds, and tag are all publicly known, which is
@@ -319,10 +319,10 @@ phkdfSlowCtx_extract counter tag fnName rounds ctx0 = out
 
     fillerTag = cycleByteStringWithNull 32 tag
 
-    go n !ctx (Cons block stream)
+    go n !ctx ~(Cons block stream)
       | n <= 0 = PhkdfSlowCtx {
-         phkdfSlowCtx_phkdfCtx = phkdfCtx_unsafeFeed [block] ctx,
-         phkdfSlowCtx_counter = counter + rounds + 2,
+         phkdfSlowCtx_phkdfCtx = phkdfCtx_unsafeFeed [fillerTag] ctx,
+         phkdfSlowCtx_counter = counter + rounds + 1,
          phkdfSlowCtx_tag = tag
         }
       | otherwise = go (n-1) (phkdfCtx_unsafeFeed [fillerTag, block] ctx) stream

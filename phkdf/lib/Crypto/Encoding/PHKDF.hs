@@ -59,7 +59,7 @@ defaultLongPaddingBytes = 8312
 
 {--
 
-FIXME: as written, this only works on signed arithmetic, unless the modulus
+FIXME: as written, this only works on signed arithmetic, unless the modulus @a@
 is a power of 2, such as 64
 
 -- | @addWhileLt a b c@ is equivalent to  @while (b < c) { b += a }; return b@
@@ -69,6 +69,8 @@ addWhileLt a b c
    | otherwise = c + ((b - c) `mod` a)
 
 --}
+
+-- | @addWhileLt b c@ is equivalent to  @while (b < c) { b += 64 }; return b@
 
 add64WhileLt :: (Ord a, Num a, Bits a) => a -> a -> a
 add64WhileLt b c
