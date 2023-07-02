@@ -104,12 +104,16 @@ import qualified Data.ByteString as B
 import           Data.Function((&))
 import           Data.Word
 import           Data.Stream (Stream(..))
-import qualified Data.Stream as Stream
 import           Data.Vector (Vector)
 import qualified Data.Vector as V
 import           Network.ByteOrder (word32)
 
 import           Crypto.Encoding.PHKDF
+                    ( add64WhileLt
+                    , cycleByteStringWithNull
+                    , expandDomainTag
+                    , encodedVectorByteLength
+                    )
 import           Crypto.Encoding.SHA3.TupleHash
 import           Crypto.PHKDF.Primitives
 import           Crypto.PHKDF.Primitives.Assert
@@ -153,16 +157,24 @@ data G3PInputBlock = G3PInputBlock
     --   self-documenting globally unique identifiers (seguids).
   , g3pInputBlock_domainTag :: !ByteString
     -- ^ plaintext tag with one repetition per PHKDF round. 0-19 bytes are
-    --   free, 20-83 bytes cost a additional sha256 block per round, with every
-    --   64 bytes thereafter incurring a similar cost.
+    --   free, 20-83 bytes cost a additional sha256 block /per PHKDF round/,
+    --   with every 64 bytes thereafter incurring a similar cost.
+    --
+    --   Tags up to 83 or maybe even 147 bytes long might be reasonable,
+    --   however in the case of longer domain tags, it is strategically
+    --   advantageous to ensure that the first 32 bytes are highly actionable.
   , g3pInputBlock_longTag :: !ByteString
     -- ^ plaintext tag with 1x repetition, then cycled for roughly
     --   8 kilobytes.  Constant time on inputs up to nearly 5 kilobytes.
+    --
+    --   Overages incur one sha256 block per 64 bytes.
   , g3pInputBlock_tags :: !(Vector ByteString)
     -- ^ plaintext tag with 3x repetition. Constant-time on 0-63 encoded bytes,
     --   which includes the length encoding of each string. Thus 60 of those
     --   free bytes are usable if the tags vector is a single string, or less if
     --   it contains two or more strings.
+    --
+    --   Overages incur three sha256 blocks per 64 bytes.
   , g3pInputBlock_phkdfRounds :: !Word32
     -- ^ How expensive will the PHKDF component be? An optimal implementation
     --   computes exactly three SHA256 blocks per round if the domain tag is
@@ -182,10 +194,14 @@ data G3PInputBlock = G3PInputBlock
     -- ^ One repetition of the first 56 bytes per bcrypt round, plus one
     --   repetition of the full tag in PHKDF. When combined with the
     --   @bcryptSaltTag@, 0-118 encoded bytes are constant-time in PHKDF.
+    --
+    --   Overages incur one sha256 block per 64 bytes.
   , g3pInputBlock_bcryptSaltTag :: !ByteString
     -- ^ One repetition of the first 56 bytes per bcrypt round, plus one
     --   repetition of the full tag in PHKDF. When combined with the
     --   @bcryptTag@, 0-118 encoded bytes are constant-time in PHKDF.
+    --
+    --   Overages incur one sha256 block per 64 bytes.
   } deriving (Eq, Ord, Show)
 
 -- | The username and password are grouped together because they are normally
@@ -197,8 +213,8 @@ data G3PInputBlock = G3PInputBlock
 --
 --   A deployment can also specify additional constant tags as part of the
 --   credentials vector.  As the plaintext of these tags is only ever hashed
---   into the output a single time, this is the least expensive
---   pay-as-you-go option for plaintext tagging.
+--   into the output a single time, this alongside the bcrypt tags are the
+--   least expensive pay-as-you-go options for plaintext tagging.
 --
 --   Note that the username and password are subjected to additional length
 --   hardening. The G3P operates in a constant number of SHA256 blocks so long
@@ -206,7 +222,11 @@ data G3PInputBlock = G3PInputBlock
 --   3 kiB,  or the combined length of the username, password, and long tag is
 --   less than about 8 kiB. The actual numbers are somewhat less in both cases,
 --   but this is a reasonable approximation. Note that the bcrypt tags can
---   subtract up to 118 bytes from this total.
+--   subtract up to 118 bytes from the 8 kiB total, and don't effect the 3 kiB
+--   total.
+--
+--   In the case of all of the inputs in this record, longer values incur one
+--   SHA256 block per 64 bytes.
 
 data G3PInputArgs = G3PInputArgs
   { g3pInputArgs_username :: !ByteString
@@ -214,10 +234,9 @@ data G3PInputArgs = G3PInputArgs
   , g3pInputArgs_password :: !ByteString
   -- ^ constant time on 0-101 bytes, or if any of the other conditions are met.
   , g3pInputArgs_credentials :: !(Vector ByteString)
-  -- ^ constant time on 0-92 encoded bytes, incurring one additional SHA256
-  -- block every 64 bytes thereafter. This includes a variable-length field
-  -- that encodes the bit length of each string; this field itself requires
-  -- two or more bytes per string.
+  -- ^ constant time on 0-92 encoded bytes. This includes a variable-length
+  -- field that encodes the bit length of each string; this field itself
+  -- requires two or more bytes per string.
   } deriving (Eq, Ord, Show)
 
 -- | These parameters are used to tweak the final output, without redoing any

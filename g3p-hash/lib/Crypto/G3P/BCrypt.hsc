@@ -46,7 +46,6 @@ import qualified Data.ByteString.Unsafe as B
 import           Data.Word
 
 import           Foreign.C.String
-import           Foreign.C
 import           System.IO.Unsafe
 
 foreign import capi "bcrypt_raw.h bcrypt_raw" c_bcrypt_raw :: CString -> Word32 -> CString -> Word32 -> CString -> Word32 -> IO ()
@@ -83,7 +82,7 @@ bcryptRaw (f -> key) (f -> salt) rounds
             c_bcrypt_raw keyPtr (len key) saltPtr (len salt) outPtr rounds
             return output
   where
-    len key = fromIntegral (min 72 (B.length key))
+    len x = fromIntegral (min 72 (B.length x))
 
 f :: ByteString -> ByteString
 f key = if B.null key then B.replicate 72 0 else key

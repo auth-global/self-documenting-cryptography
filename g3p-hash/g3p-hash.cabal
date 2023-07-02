@@ -27,4 +27,5 @@ library
   c-sources:         csrc/bcrypt_raw.c
                      csrc/blowfish.c
   include-dirs:      csrc
+  ghc-options:       -Wall
   default-language:  Haskell2010
