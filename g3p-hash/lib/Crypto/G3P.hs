@@ -200,21 +200,24 @@ data G3PInputBlock = G3PInputBlock
 --   into the output a single time, this is the least expensive
 --   pay-as-you-go option for plaintext tagging.
 --
---   The credentials vector is constant time on 0-100 encoded bytes, incurring
---   one additional SHA256 block every 64 bytes thereafter. This includes
---   a variable-length field that encodes the bit length of each string; this
---   field itself requires 2 or more bytes.
---
---   The username and password are constant time as long as their encoded
---   lengths add up to less than roughly 3 kilobytes, or the username,
---   password, and domain tag add up to less than roughly 8 kilobytes.
---   The actual numbers are somewhat less in both cases, but this is a
---   good approximation.
+--   Note that the username and password are subjected to additional length
+--   hardening. The G3P operates in a constant number of SHA256 blocks so long
+--   as the combined length of the username and password is less than about
+--   3 kiB,  or the combined length of the username, password, and long tag is
+--   less than about 8 kiB. The actual numbers are somewhat less in both cases,
+--   but this is a reasonable approximation. Note that the bcrypt tags can
+--   subtract up to 118 bytes from this total.
 
 data G3PInputArgs = G3PInputArgs
   { g3pInputArgs_username :: !ByteString
+  -- ^ constant time on 0-101 bytes, or if any of the other conditions are met.
   , g3pInputArgs_password :: !ByteString
+  -- ^ constant time on 0-101 bytes, or if any of the other conditions are met.
   , g3pInputArgs_credentials :: !(Vector ByteString)
+  -- ^ constant time on 0-92 encoded bytes, incurring one additional SHA256
+  -- block every 64 bytes thereafter. This includes a variable-length field
+  -- that encodes the bit length of each string; this field itself requires
+  -- two or more bytes per string.
   } deriving (Eq, Ord, Show)
 
 -- | These parameters are used to tweak the final output, without redoing any
@@ -321,36 +324,35 @@ g3pHash_seedInit block args =
 
     headerAlfaUsername = headerAlfa ++ [ usernamePadding ]
 
-    headerLongTag =
-      [ "global-password-prehash-protocol version G3Pb1"
-      , bareEncodeFromBytes (B.length domainTag)
-      , bareEncode phkdfRounds
-      , bareEncode bcryptRounds
-      , longTag
-      ]
-
-    longPadding
-      =  cycleBS (c-32) longTag
-      <> cycleBS    32  domainTag
-      where
-        al = encodedVectorByteLength headerLongTag
-        a  = add64WhileLt (8413 - al) 3293
-        bl = encodedVectorByteLength headerAlfaUsername
-        b  = add64WhileLt (a - bl) 146
-        cl = encodedByteLength password
-        c  = add64WhileLt (b - cl) 32
+    -- password will go here
 
     bcryptHeader = [bcryptTag, bcryptSaltTag]
 
-    bcryptPadding
-      =  cycleBS (a-32) domainTag
+    headerLongTag =
+      [ longTag
+      , B.concat
+        [ "global-password-prehash-protocol version G3Pb1"
+        , leftEncodeFromBytes (B.length domainTag)
+        , leftEncode phkdfRounds
+        , bareEncode bcryptRounds
+        ]
+      ]
+
+    longPadding
+      =  cycleBS (d-32) longTag
       <> cycleBS    32  domainTag
       where
         al = encodedVectorByteLength bcryptHeader
-        a  = add64WhileLt (189 - al) 32
+        a  = add64WhileLt (8413 - al) 8295
+        bl = encodedVectorByteLength headerLongTag
+        b  = add64WhileLt (a - bl) 3239
+        cl = encodedVectorByteLength headerAlfaUsername
+        c  = add64WhileLt (b - cl) 139
+        dl = encodedByteLength password
+        d  = add64WhileLt (c - dl) 32
 
     credentialsPadding
-      =  cycleBS (a-29) domainTag
+      =  cycleBS (a-29) bcryptTag
       <> cycleBS    29  domainTag
       where
         al = encodedVectorByteLength credentials
@@ -365,11 +367,9 @@ g3pHash_seedInit block args =
         phkdfCtx_addArgs headerAlfaUsername &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArg  password &
+        phkdfCtx_addArgs bcryptHeader &
         phkdfCtx_addArgs headerLongTag &
         phkdfCtx_addArg  longPadding &
-        phkdfCtx_assertBufferPosition' 32 &
-        phkdfCtx_addArgs bcryptHeader &
-        phkdfCtx_addArg  bcryptPadding &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArgs credentials &
         phkdfCtx_addArg  credentialsPadding &
