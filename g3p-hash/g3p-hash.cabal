@@ -10,6 +10,7 @@ copyright:           Auth Global
 category:            Cryptography
 build-type:          Simple
 extra-source-files:  ChangeLog.md
+                     g3p-test-vectors.json
 cabal-version:       >=1.10
 
 library
@@ -29,3 +30,21 @@ library
   include-dirs:      csrc
   ghc-options:       -Wall
   default-language:  Haskell2010
+
+test-suite test
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    test
+  main-is:           Main.hs
+
+  other-modules:     G3P
+
+  build-depends:     base
+                   , aeson >= 2
+                   , base16
+                   , bytestring
+                   , g3p-hash
+                   , Stream
+                   , tasty
+                   , tasty-hunit
+                   , text
+                   , vector

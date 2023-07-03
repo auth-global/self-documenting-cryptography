@@ -1,0 +1,150 @@
+[{
+    "name":"prehash first light",
+    "args": {
+        "username":"Yuri",
+        "password":"default remote access code",
+        "long-tag":"Please leave the location of America's nuclear wessels after the beep.",
+        "domain-tag":"1-800-CALL-SPY",
+        "phkdf-rounds":1998,
+        "bcrypt-rounds":7
+    },
+    "results":{
+        "G3Pb1":"6775698c77b908f227ffa9f804eab8e35262a7a12bfa9ccc5c4a735d37d3003f19ded7240763e3b7c0eb3b6699133225d222ab12222a25409acc9ac5340084738f1a139abdee0d0478c314088cbad67c73b0ffdc31be32b1538a71ebcca283f7134e5b58977468d464243459ba67065284b23d758ea2e0fcf406aa6729c5ace3"
+    }
+},{
+    "name":"prehash first light, elaborated",
+    "args": {
+        "username":"Yuri",
+        "password":"default remote access code",
+        "credentials":["The Indiana Academy for Science, Mathematics, and the Humanities"],
+        "long-tag":"Please leave the location of America's nuclear wessels after the beep.",
+        "domain-tag":"1-800-CALL-SPY",
+        "seed-tags":["United States Army Counterintelligence Tip Line"],
+        "role":["prankster"],
+        "echo-tags":["Star Trek IV: The Voyage Home","https://www.youtube.com/watch?v=MdSJFrhb-HM"],
+        "phkdf-rounds":1998,
+        "bcrypt-rounds":7
+    },
+    "results":{
+        "G3Pb1":"e56650bd8a2fe74b0140298160136a5ac7bacbae5c1cc7b9fcb86c4135986c88b949e786c2574c35cc406a700951de6c88b0fa5bd90aa7ba992033cdeb05332ad9da6fb5a22edf71f4dca96e19c58663bd110a95629a7cc28646f80c68b65d705af80c591d8ea10be8966c4f7f85ac5566614059d005c41c70a5b704066bee7e"
+    }
+},{
+    "name":"prehash unicode test, inset naval story with a reference",
+    "args": {
+        "username":"Р-360 «Нептун»",
+        "password":"Русский военный корабль, иди на хуй",
+        "seed-tags":["Державне Київське конструкторське бюро «Луч»"],
+        "echo-tags":["Збройні Cили України «ЗСУ»"],
+        "domain-tag":"Україна",
+        "phkdf-rounds":2022,
+        "bcrypt-rounds":9
+    },
+    "results":[
+        {"G3Pb1":"1cc3b11f25cabf90e7f09cfc10cf2c156b24eb6355bd82611cbaa7941172ffde86fbfdd235997b826ed7f99e9e5316f852c8536dfa68101c0da027504ed5a1b5cd391f84c7f48d0cc7bc7e9c64f4a006074e98f5a8d10822ca4c3ba315957bb2681011834aeba44abd749c218bda36a3d1ca9bac343e7a75437fdaf5de51ea0a"},
+        {"args":{"bcrypt-tag":"Державне Київське конструкторське бюро «Луч»",
+                 "bcrypt-salt-tag":"Збройні Cили України «ЗСУ»"},
+         "G3Pb1":"ceafec0b492b0a519c14f28d8db06cb3c72a3836ba2ac6fb3d76bfe97efad4233763f53ebbd933a9e9dfeb5c27fd68d7944413e9f23ba0f8c92d50d444f8a64780a29e44a56d61e82e45e63ae0ee603cb99ab22d45db9a6ccbcf03bd40b62d8276643ee190a68e1ea8d5140f6d75c6b9075020641bed24438eb03d4e94828ef9"}
+    ]
+},{
+    "name":"prehash unicode test, lightly extended on top",
+    "args": {
+        "username":"Лев Николаевич Толстой",
+        "password":"Книга моя, как я и ожидал, была задержана русской цензурой, но отчасти вследствие моей репутации как писателя, отчасти потому, что она заинтересовала людей, книга эта распространилась в рукописях и литографиях в России и в переводах за границей и вызвала, с одной стороны, от людей, разделяющих мои мысли, ряд сведений о сочинениях, писанных об этом же предмете, с другой стороны, ряд критик на мысли, высказанные в самой книге.",
+        "domain-tag":"Царство Божие внутри вас",
+        "long-tag":"В другой брошюре, под заглавием: «Сколько нужно людей, чтобы преобразить злодейство в праведность», Адина Баллу говорит: «Один человек не должен убивать. Если он убил, он преступник, он убийца. Два, десять, сто человек, если они делают это, — они убийцы. Но государство или народ может убивать, сколько он хочет, и это не будет убийство, а хорошее, доброе дело. Только собрать побольше народа, и бойня десятков тысяч людей становится невинным делом. Но сколько именно нужно людей для этого? Вот в чем вопрос. Один не может красть, грабить, но целый народ может. Но сколько именно нужно для этого? Почему 1, 10, 100 человек не должны нарушать закона бога, а очень много могут?»",
+        "tags":["Мы будем стараться распространять свои взгляды среди всех людей, к каким бы народам, исповеданиям и слоям общества они ни принадлежали. Для этой цели мы будем устраивать публичные чтения, распространять печатные объявления и брошюры, составлять общества и подавать прошения во всякие правительственные учреждения. Вообще будем стремиться всеми доступными для нас средствами к достижению коренного переворота во взглядах, чувствах и действиях нашего общества относительно греховности насилия по отношению к внешним и внутренним врагам. Принимаясь за это великое дело, мы вполне сознаем, что наша искренность может быть подвергнута жестоким испытаниям. Наша задача может навлечь на нас оскорбления, обиды, страдания и даже смерть. Нас ожидает непонимание, ложное толкование и клевета. Против нас должна подняться буря. Гордость и фарисейство, честолюбие и жестокость, правители и власти, — всё это может соединиться, чтоб уничтожить нас. Таким образом поступали с мессией, которому мы стремимся подражать по мере сил своих. Но нас не пугают эти ужасы. Мы надеемся не на людей, а на всемогущего господа. Если мы отказались от человеческого заступничества, что же может поддержать нас, как не одна вера, побеждающая мир? Мы не будем удивляться тем испытаниям, которым мы подвергнемся, а будем радоваться тому, что удостоимся разделить страдания Христа.","Вильям Ллойд Гаррисон"],
+        "phkdf-rounds":1894,
+        "bcrypt-rounds":66
+    },
+    "results":{
+        "G3Pb1":"cb6b1f5f3703328b9bf05d24a5ac6fbccbb66a8a8dfadffece596308d05a7ec61f35326bf6d5670324034f8fb5f69d606d566940ddc4df69f66fe12548afffbd5f038ab621b20483a307c9bc18bb742419857e5983503bf017c0eb7de34aace7ba491099d0342f4f25f181ce946c0d103fe689c3e7a739ee39957d0aadcc9fc5"
+    }
+},{
+    "name":"xkcd account problems",
+    "args":{
+        "username":"Cueball",
+        "password":{"hex":"7061737300776f7264"},
+        "credentials":["input method not included"],
+        "domain-tag":"https://xkcd.com/2700/",
+        "phkdf-rounds":2022,
+        "bcrypt-rounds":16
+    },
+    "results":{
+        "G3Pb1":"ff3791d454748b8a5c64418b878ec1f5bd1ee23860d312df9ee4733cab641979b06fc4faaa5907dde093ccc955806212d6ab9978d1af81a2907334ae6d7739b1a9c7877cfaa9e3bf78698a11a57fc5f3ea8c8c85817b15c1a279fbf6baff32d69d2fcf1f82872156e56ee42496c59cf95cf46c319d9534e96ba686f76cb18316"
+    }
+},{
+    "name":"xkcd password strength #1",
+    "args":{
+        "username":"Anonymous Coward",
+        "password":"Tr0ub4dor&3",
+        "domain-tag":"https://xkcd.com/936/",
+        "phkdf-rounds":2011,
+        "bcrypt-rounds":5
+    },
+    "results":{
+        "G3Pb1":"40ee1badf2c4e7f7e2fbf23947196b31c101349ec1587df6f325b3066609eb0c8f89da53198516957764529d547a388793d258bfab55dbb911c189add0ebc7b4c52bb4d98bee3a793e82c8b8798442c346f062d0a447721addf8e35329ced513dfbcb8087becba9e52d0bd79bd82202369f55b209edca59371898f7fd4a965a5"
+    }
+},{
+    "name":"xkcd password strength #2",
+    "args":{
+        "username":"Randall Munroe",
+        "password":"correct horse battery staple",
+        "tags":[
+            "Diceware","https://theworld.com/~reinhold/diceware.html","Arnold Reinhold",
+            "https://www.eff.org/dice","Electronic Frontier Foundation"
+        ],
+        "domain-tag":"https://xkcd.com/936/",
+        "phkdf-rounds":65536,
+        "bcrypt-rounds":256
+    },
+    "results":[
+        {"G3Pb1":"97f375482c66da80a151f516c9741916ee115ad620e595811552a16132bbdaf4856ea0909b2eed41409f4e30576c955ad1d211c72d9fe49f8a3ef88d6929207cc4d5e50d0868e35e4d465f4f6babb7404240b5ce0c103f683c05405252c20fca78e99ebdac13aeb972474a892e140999a0e225ce4c2cacf4cfc7b4faf1457ab7"},
+        {"args":{"phkdf-rounds":65535,
+                 "bcrypt-rounds":255},
+         "G3Pb1":"ad571618c07393c1412df901ccfc7dbf761f7ae0c286eead88b473649b8da93863fffed56a564e1d53c3cff73e54aff1315efb6f71b0d4870eb4d7358242c34d6824747459f0ced14838f8e599ef68e88f22ac2be1a3e91c8f380fbbd11cba8448e56c0e90d6389b452a3b24d09c4e80a252e8f35537cdcfa6fd14d53333c378"}
+    ]
+},{
+    "name":"xkcd password reuse #1",
+    "args":{
+        "username":"Imperfect User",
+        "password":"Password reuse between multiple deployments of the G3P can be safe(-ish), but adds risk and fragility, often meaningfully so. See https://xkcd.com/792/",
+        "domain-tag":"Every authentication service provider inherently has offline cracking attacks against its own password database, even if PAKE is used. When you set a password, you are inherently providing that service with the means to verify your password. If a password is reused and its entropy is low enough to be cracked, access to the right authentication database can be used to bootstrap attacks on other accounts.",
+        "phkdf-rounds":2010,
+        "bcrypt-rounds":5
+    },
+    "results":{
+        "G3Pb1":"70f9a90d1340f4a689ef8b16ddd8d92bc079b4160e5126ec4481fc68261f063d8b7b94122b39f9f33db4c122b09ac459d6258d5fd778220cc9a31c8f066a0faf88c8de2404cea9b72618c10a790e31aae4d82e31f556aed7c127e0c7ee1f3a84b554389389f701fcd0ad6b9a35216610349a16be45e17f410870de045cec314d"
+    }
+},{
+    "name":"xkcd password reuse #2",
+    "args":{
+        "username":"Imperfect User",
+        "password":"Password reuse between multiple deployments of the G3P can be safe(-ish), but adds risk and fragility, often meaningfully so. See https://xkcd.com/792/",
+        "domain-tag":"How do you know that your password is really being prehashed on your own device? Even if this does indeed happen, how do you know that it happens every single time? In the context of a webapp, it's relatively easy to covertly inject arbitrary code into selected page loads. Thus it is possible that the first 99 times you log into a webpage, you get a completely legitimate login page that properly prehashes your password in your browser. But on that 100th login, maybe you are instead presented with a webpage that steals your password in addition to its normal login functionality. It would be relatively easy to make such an attack covertly in such a way that is likely to turn surreptitious, leaving no trace that the attack ever happened. This is easiest to accomplish if the attacker is providing the webapp, or has the cooperation of those who do. However this isn't always necessary. At the start of the Arab Spring, Facebook's login page was not delivered over a TLS-authenticated channel. This oversight allowed state actors to steal user's passwords by injecting their own malicious code into Facebook's login page as it traversed Internet Service Providers inside their respective countries. Installed applications can be somewhat more resistant to selective-pageload style attacks, but more generally, malware on endpoints is a significant attack vector to be concerned about. Shoulder-surfing attacks upon password entry are another. Consider these things carefully when making decisions with security implications, such as whether or not to reuse a password and in what context(s).",
+        "phkdf-rounds":2010,
+        "bcrypt-rounds":5
+    },
+    "results":{
+        "G3Pb1":"0e7983148fc0d02714637d01bc7eb84aafdce8c69bcea6d1b9eb5a79835213ceb635b1ccd526df17aa594056ece5150ac3f9a4294527d027f79e722b7879bc3f0a55c812f077fee0b0b15772fa8a4892e1cc4bbbeea2b4420fd9566d446bcff5741341441307baf55eb3c50abaed7329cfe47e6e937ad78b8fce32f4a4e17196"
+    }
+},{
+    "name":"trivial inputs",
+    "args":{
+        "username":"",
+        "password":"",
+        "credentials":[],
+        "seguid":"",
+        "domain-tag":"",
+        "long-tag":"",
+        "echo-tags":[],
+        "phkdf-rounds":0,
+        "bcrypt-rounds":0,
+        "bcrypt-tag":"",
+        "bcrypt-salt-tag":"",
+        "role":[],
+        "seed-tags":[]
+    },
+    "results":{
+        "G3Pb1":"1ba6ea371aefb233c8fd02ab8782a0dab3fd8fb7b0a732aadb6884eff9f3949d358ea820fe368744891a11a63ec68fcad3989005b74daee06bae4758bfaff054857ce8839ebd9eb71c7a0e01712156f108eca39cd301c49b0b6bc1c5d09b9dfc22d8bd9662e64976e16798449f1111d08329407ed88f8e4611e6e0f1fb8aa6a5"
+    }
+}]
