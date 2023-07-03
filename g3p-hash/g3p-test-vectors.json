@@ -117,10 +117,10 @@
         "password":"Password reuse between multiple deployments of the G3P can be safe(-ish), but adds risk and fragility, often meaningfully so. See https://xkcd.com/792/",
         "domain-tag":"Every authentication service provider inherently has offline cracking attacks against its own password database, even if PAKE is used. When you set a password, you are inherently providing that service with the means to verify your password. If a password is reused and its entropy is low enough to be cracked, access to the right authentication database can be used to bootstrap attacks on other accounts.",
         "phkdf-rounds":2010,
-        "bcrypt-rounds":5
+        "bcrypt-rounds":4
     },
     "results":{
-        "G3Pb1":"70f9a90d1340f4a689ef8b16ddd8d92bc079b4160e5126ec4481fc68261f063d8b7b94122b39f9f33db4c122b09ac459d6258d5fd778220cc9a31c8f066a0faf88c8de2404cea9b72618c10a790e31aae4d82e31f556aed7c127e0c7ee1f3a84b554389389f701fcd0ad6b9a35216610349a16be45e17f410870de045cec314d"
+        "G3Pb1":"c10d360407a06c37157c21545492d654bcbf96a4906043be8b9564a20b4f8af37f5b0b99255b00b5888a76b64f473ec19cdc6bb77316a0e9ad42b74a1898d20ee18e5e0f1e843a5461313de8047f3a1b630a058964fb440d9a3077c2d744dcc444a10a6241d2ff64a55c7e1b954722a8d67bfe533575b66c41ee37cfd474ca0a"
     }
 },{
     "name":"xkcd password reuse #2",
@@ -129,10 +129,10 @@
         "password":"Password reuse between multiple deployments of the G3P can be safe(-ish), but adds risk and fragility, often meaningfully so. See https://xkcd.com/792/",
         "domain-tag":"How do you know that your password is really being prehashed on your own device? Even if this does indeed happen, how do you know that it happens every single time? In the context of a webapp, it's relatively easy to covertly inject arbitrary code into selected page loads. Thus it is possible that the first 99 times you log into a webpage, you get a completely legitimate login page that properly prehashes your password in your browser. But on that 100th login, maybe you are instead presented with a webpage that steals your password in addition to its normal login functionality. It would be relatively easy to make such an attack covertly in such a way that is likely to turn surreptitious, leaving no trace that the attack ever happened. This is easiest to accomplish if the attacker is providing the webapp, or has the cooperation of those who do. However this isn't always necessary. At the start of the Arab Spring, Facebook's login page was not delivered over a TLS-authenticated channel. This oversight allowed state actors to steal user's passwords by injecting their own malicious code into Facebook's login page as it traversed Internet Service Providers inside their respective countries. Installed applications can be somewhat more resistant to selective-pageload style attacks, but more generally, malware on endpoints is a significant attack vector to be concerned about. Shoulder-surfing attacks upon password entry are another. Consider these things carefully when making decisions with security implications, such as whether or not to reuse a password and in what context(s).",
         "phkdf-rounds":2010,
-        "bcrypt-rounds":5
+        "bcrypt-rounds":4
     },
     "results":{
-        "G3Pb1":"0e7983148fc0d02714637d01bc7eb84aafdce8c69bcea6d1b9eb5a79835213ceb635b1ccd526df17aa594056ece5150ac3f9a4294527d027f79e722b7879bc3f0a55c812f077fee0b0b15772fa8a4892e1cc4bbbeea2b4420fd9566d446bcff5741341441307baf55eb3c50abaed7329cfe47e6e937ad78b8fce32f4a4e17196"
+        "G3Pb1":"325d8588ab2d1c4a265c12a436e74d99cf992863403ea3f00946b8607dd89eec9e4e5e2edc2afe6b3e7c6714d3e483fb51a589612bf08fbda447e394cf582dfc759754378a79db0a2052a73f79e917bcd8ee7f434512d76304f81b00ff7c650eb6c0d1f7377a6e19a71e998e72e89e7d3335e93fe85ccfb02279425e50747730"
     }
 },{
     "name":"trivial inputs",
