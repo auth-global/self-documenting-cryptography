@@ -16,7 +16,7 @@
     "args": {
         "username":"Yuri",
         "password":"default remote access code",
-        "credentials":["The Indiana Academy for Science, Mathematics, and the Humanities"],
+        "credentials":["The Indiana Academy for Science, Mathematics, and Humanities"],
         "long-tag":"Please leave the location of America's nuclear wessels after the beep.",
         "domain-tag":"1-800-CALL-SPY",
         "seed-tags":["United States Army Counterintelligence Tip Line"],
@@ -26,11 +26,11 @@
         "bcrypt-rounds":7
     },
     "results":[
-        {"G3Pb1":"e56650bd8a2fe74b0140298160136a5ac7bacbae5c1cc7b9fcb86c4135986c88b949e786c2574c35cc406a700951de6c88b0fa5bd90aa7ba992033cdeb05332ad9da6fb5a22edf71f4dca96e19c58663bd110a95629a7cc28646f80c68b65d705af80c591d8ea10be8966c4f7f85ac5566614059d005c41c70a5b704066bee7e"},
+        {"G3Pb1":"7ac89a79f49447fafd11cb71f74b025359ea2207fdbbef408079a8934bd680a40d314b73e61981ecec5f773b3477d2d8a711bfe1da28b7a50921f8b2e896f9738422c7e3a210e60ba1d9975b0d3396319fd90329adb9cbfb395407a4ed70e82411cd40b79e390367985c7df1db9aba85963a98e7acd07284c21d7aaec2415a37"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40"}},
-         "G3Pb1":"e72305e46c61a4ce69e44e612caa03a53cf9979f040fd2e3065f4cfc2d1e2278adce039a4acd675d46a87b353a514bbaa04aa12bcbd011bbcc5d198bc6396825a1a517700412b8055517269e5759f1c255dc15fad3e884537a1026bf8d516052ffda650f3d8d858b5d6fcceba07eec1b30dccd2ecea1e91cf1e8a3d4211981d0"},
+         "G3Pb1":"4e3b2069403084ee888a4ee26b1b7f372c234422cbb6286310d4f710921b2b2dcec1165d5a82a36cf6113adfa50f6ed5342de4ec1fb4492dde33eff5d1d0a57e520fa444c7ed870df4e597dc1166f434fe0e8757430813343fc7ee1922dc780a1b82326bae4a04abeee036fb64e5728e881e33872768c256020c6ba280e4a716"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f4041"}},
-         "G3Pb1":"d6ba68d53009fcd9f4368a32f59f8d65bee9abc179fb1c057643f3f8b7add19eed6daf61077d5929268b2f3240e4f2441eb36d9ee5d68c9ddf9b81992b1ba1a5736c6c46d918c64d0be796ec75d73fafa2948e15754cd65b23fc1307844068ecd2220cc5595791f8f62742fb0afcb41617bea224bc7c94021db46db71885b757"}
+         "G3Pb1":"7a8fc8875fb9d3d0b0ab28cd674a5901cbbae72ae02e0c09c390b0446520eee7c23ade994afec55c36226d00c576f1c299354ee866612a50602c54c351550262f66df763ac5b7f2fae82d2079d1159197d59d6cadb1b48efe6c7f70874b722a63f4c1adae94d97f42e3b4bdac34a87a25dbba040c3cf757559775ca04ff48e9f"}
     ]
 },{
     "name":"prehash unicode test, inset naval story with a reference",
