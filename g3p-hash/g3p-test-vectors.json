@@ -108,7 +108,10 @@
          "G3Pb1":"97f375482c66da80a151f516c9741916ee115ad620e595811552a16132bbdaf4856ea0909b2eed41409f4e30576c955ad1d211c72d9fe49f8a3ef88d6929207c"},
         {"args":{"phkdf-rounds":65535,
                  "bcrypt-rounds":255},
-         "G3Pb1":"ad571618c07393c1412df901ccfc7dbf761f7ae0c286eead88b473649b8da93863fffed56a564e1d53c3cff73e54aff1315efb6f71b0d4870eb4d7358242c34d"}
+         "G3Pb1":"ad571618c07393c1412df901ccfc7dbf761f7ae0c286eead88b473649b8da93863fffed56a564e1d53c3cff73e54aff1315efb6f71b0d4870eb4d7358242c34d"},
+        {"args":{"phkdf-rounds":20240,
+                 "bcrypt-rounds":4095},
+         "G3Pb1":"e503ca5fa7947dae2a6ca0ce10f348a7fdbed0ac206a09abecc0ebb362b0cde7efa18252d6d9a6c7ae715f16ece811e48ab6bffc21d23e1a1d574bbe9e7f998d"}
     ]
 },{
     "name":"xkcd password reuse #1",
