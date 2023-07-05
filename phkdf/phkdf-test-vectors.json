@@ -16,7 +16,7 @@
     "args": {
         "username":"Yuri",
         "password":"default remote access code",
-        "credentials":["The Indiana Academy for Science, Mathematics, and the Humanities"],
+        "credentials":["The Indiana Academy for Science, Mathematics, and Humanities"],
         "long-tag":"Please leave the location of America's nuclear wessels after the beep.",
         "domain-tag":"1-800-CALL-SPY",
         "seed-tags":["United States Army Counterintelligence Tip Line"],
@@ -25,8 +25,8 @@
         "rounds":1998
     },
     "results":{
-        "phkdf-pass":"8ed7e2da6f0d32a4a0a90960e956eee2f5bcc9d34fc6acdacba42a44a3eeb7f4dd6a4d98b0f7b62161c5fa146fa98413a7833abbfac3355262f283f7985be6ee",
-        "phkdf-simple":"89cd6c32f2fff4e1e6555999430924c22c147e6ec0f79d921bd14d790476b4b53ca7629a9febd786cac713b392a4a0226090f07bbe0e9d11e19ccf3c7f73f6df"
+        "phkdf-pass":"cce50c5fc018f5a8b5c161fe8bd97fb7f0e0036fde49b3076ca1ce18fed80d34e69bdca1483ec946aded7476a16f1fefc2542c7d41ca82d47cf5ede64b664a37",
+        "phkdf-simple":"d0e14669c8a12aa4a3385990cbf3864cbb7339b82b30f6eaec64e5f075cb87c268de93d974593ee3d9a92d13252dcb8d379795d1977554a2ede54c9b498ff6b8"
     }
 },{
     "name":"phkdf unicode test, inset naval story with a reference",
