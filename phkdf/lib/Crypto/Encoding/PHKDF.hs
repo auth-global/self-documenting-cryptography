@@ -41,22 +41,6 @@ expandDomainTag tag = if n <= 19 then tag else tag'
     x = (19 - n) `mod` 64
     tag' = cycleByteStringWithNull (n+x) tag
 
-longPaddingAll :: Foldable f => Int -> Int -> Int -> f ByteString -> ByteString -> ByteString
-longPaddingAll minlen minext bytes msgs longTag =
-    cycleByteStringWithNull padLen longTag
-  where
-    extent = add64WhileLt (bytes - encodedByteLength longTag) minext
-    padLen = add64WhileLt (extent - encodedVectorByteLength msgs) minlen
-
-longPaddingBytes :: Foldable f => Int -> f ByteString -> ByteString -> ByteString
-longPaddingBytes = longPaddingAll 32 3072
-
-longPadding :: Foldable f => f ByteString -> ByteString -> ByteString
-longPadding = longPaddingBytes defaultLongPaddingBytes
-
-defaultLongPaddingBytes :: Int
-defaultLongPaddingBytes = 8312
-
 {--
 
 FIXME: as written, this only works on signed arithmetic, unless the modulus @a@

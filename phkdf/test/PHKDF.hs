@@ -158,7 +158,7 @@ runTest key map goldenOutput
 
 compareAu :: String -> ByteString -> Stream ByteString -> Assertion
 compareAu name bs outStream
-  | B.null bs = assertFailure ("\"" ++ name ++ "\":\"" ++ concatMap toHex (S.take 4 outStream) ++ "\"")
+  | B.null bs = assertFailure ("\"" ++ name ++ "\":\"" ++ concatMap toHex (S.take 2 outStream) ++ "\"")
   | otherwise = B.encodeBase16 (takeBytes (B.length bs) outStream) @?= B.encodeBase16 bs
   where
     toHex = T.unpack . B.encodeBase16

@@ -167,6 +167,7 @@ module Crypto.PHKDF.Primitives
   , phkdfCtx_reset
   , phkdfCtx_addArg
   , phkdfCtx_addArgs
+  , phkdfCtx_addArgsBy
   , phkdfCtx_finalize
   , phkdfCtx_finalizeHmac
   , phkdfCtx_finalizeHmacCtx

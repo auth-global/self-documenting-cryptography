@@ -38,7 +38,7 @@ what purpose such an impractical specification might serve.
 This initial variant of the G3P employs a combination of PHKDF and bcrypt.
 PHKDF serves as the primary cryptoacoustic component, and bcrypt serves as the
 primary key-stretching component of the G3P. Both are secondarily used in the
-alternate role as well, with the PHDKF adding a tiny bit of key stretching and
+alternate role as well, with the PHKDF adding a tiny bit of key stretching and
 bcrypt providing significant additional cryptoacoustic plaintext repetitions.
 
 1.  Every bit of every parameter matters. Every boundary between parameters
@@ -221,10 +221,10 @@ data G3PInputBlock = G3PInputBlock
 --   Note that the username and password are subjected to additional length
 --   hardening. The G3P operates in a constant number of SHA256 blocks so long
 --   as the combined length of the username and password is less than about
---   3 kiB,  or the combined length of the username, password, and long tag is
---   less than about 8 kiB. The actual numbers are somewhat less in both cases,
+--   3 KiB,  or the combined length of the username, password, and long tag is
+--   less than about 8 KiB. The actual numbers are somewhat less in both cases,
 --   but this is a reasonable approximation. Note that the bcrypt tags can
---   subtract up to 114 bytes from the 8 kiB total, and don't effect the 3 kiB
+--   subtract up to 114 bytes from the 8 KiB total, and don't effect the 3 KiB
 --   total.
 --
 --   In the case of all of the inputs in this record, longer values incur one
@@ -390,6 +390,7 @@ g3pHash_seedInit block args =
         phkdfCtx_addArg  password &
         phkdfCtx_addArgs bcryptHeader &
         phkdfCtx_addArgs headerLongTag &
+        -- FIXME: fusing addArg and longPadding can save ~ 8 KiB RAM
         phkdfCtx_addArg  longPadding &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArgs credentials &

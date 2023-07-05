@@ -220,10 +220,6 @@ data PhkdfSeed = PhkdfSeed
 phkdfSimple :: PhkdfInputBlock -> PhkdfInputArgs -> Stream ByteString
 phkdfSimple block args = echo
   where
-    protoPad = cycleByteStringWithNull 52 "phkdf-simple-v0 password-hash-key-derivation-function"
-    userProtoPad = "username\x00" <> protoPad
-    passProtoPad = "password\x00" <> protoPad
-
     -- Explicitly unpack everything for the unused variable warnings.
     -- i.e. It's relatively easy to check that we've unpacked every
     -- field, then we can rely on unused variable warnings to ensure
@@ -234,45 +230,77 @@ phkdfSimple block args = echo
     tags = phkdfInputBlock_tags block
     rounds = phkdfInputBlock_rounds block
 
-    user = phkdfInputArgs_username args
-    pass = phkdfInputArgs_password args
-    creds = phkdfInputArgs_credentials args
+    username = phkdfInputArgs_username args
+    password = phkdfInputArgs_password args
+    credentials = phkdfInputArgs_credentials args
 
     phkdfTag = expandDomainTag domainTag
 
-    headerExtract =
-      [ "phkdf-simple-v0 extract"
-      , user, userProtoPad
-      , pass, passProtoPad
-      , bareEncodeFromBytes (B.length domainTag)
-      , bareEncode rounds
+    cycleBS = cycleByteStringWithNull
+
+    headerExtract = [ "phkdf-simple0 username", username ]
+
+    usernamePadding
+      =  cycleBS (a-32) domainTag
+      <> cycleBS    32  domainTag
+      where
+        al = encodedVectorByteLength headerExtract
+        a = add64WhileLt (157 - al) 32
+
+    headerExtractUsername = headerExtract ++ [ usernamePadding ]
+
+    -- password field goes here
+
+    headerLongTag =
+      [ longTag
+      , B.concat
+        [ "password-hash-key-derivation-function phkdf-simple0\x00"
+        , leftEncodeFromBytes (B.length domainTag)
+        , bareEncode rounds
+        ]
       ]
 
-    -- FIXME: fusing addArg and longPadding would save 8 kB memory
-    headerPadding =
-      [ longTag
-      , longPadding headerExtract longTag
-      ]
+    longPadding
+      =  cycleBS (c-32) longTag
+      <> cycleBS    32  domainTag
+      where
+        al = encodedVectorByteLength headerLongTag
+        a  = add64WhileLt (8413 - al) 3239
+        bl = encodedVectorByteLength headerExtractUsername
+        b  = add64WhileLt (a - bl) 139
+        cl = encodedByteLength password
+        c  = add64WhileLt (b - cl) 32
+
+    credentialsPadding
+      =  cycleBS (a-29) longTag
+      <> cycleBS    29  domainTag
+      where
+        al = encodedVectorByteLength credentials
+        a  = add64WhileLt (122 - al) 32
 
     secretKey =
         phkdfCtx_init seguid &
-        phkdfCtx_addArgs headerExtract &
-        phkdfCtx_addArgs headerPadding &
-        phkdfCtx_assertBufferPosition 59 &
-        phkdfCtx_addArgs creds &
-        phkdfCtx_addArg (shortPadding creds domainTag) &
+        phkdfCtx_addArgs headerExtractUsername &
+        phkdfCtx_assertBufferPosition 32 &
+        phkdfCtx_addArg  password &
+        phkdfCtx_addArgs headerLongTag &
+        -- FIXME: fusing addArg and longPadding can save ~ 8 KiB RAM
+        phkdfCtx_addArg  longPadding &
+        phkdfCtx_assertBufferPosition 32 &
+        phkdfCtx_addArgs credentials &
+        phkdfCtx_addArg  credentialsPadding &
         phkdfCtx_assertBufferPosition 29 &
         phkdfCtx_addArgs tags &
         phkdfCtx_addArg (bareEncode (V.length tags)) &
         phkdfSlowCtx_extract
             (word32 "go\x00\x00" + 2023) phkdfTag
-            ("phkdf-simple-v0 compact\x00" <> domainTag) rounds &
+            ("phkdf-simple0 compact\x00" <> domainTag) rounds &
         phkdfSlowCtx_assertBufferPosition 32 &
         phkdfSlowCtx_addArgs tags &
         phkdfSlowCtx_finalize
 
     -- Harden the tags vector against length-based timing side-channels
-    echoHeader = cycleByteStringWithNull 30 "phkdf-simple-v0 expand echo"
+    echoHeader = cycleByteStringWithNull 30 "phkdf-simple0 expand echo"
 
     echo = phkdfCtx_init secretKey &
            phkdfCtx_addArg echoHeader &
@@ -308,45 +336,73 @@ phkdfPass_seedInit block args =
       phkdfSeed_secret = secret
     }
   where
-    protoPad = cycleByteStringWithNull 52 "phkdf-pass-v0 password-hash-key-derivation-function"
-    userProtoPad = "username\x00" <> protoPad
-    passProtoPad = "password\x00" <> protoPad
-
     domainTag = phkdfInputBlock_domainTag block
     seguid = phkdfInputBlock_seguid block
     longTag = phkdfInputBlock_longTag block
     seedTags = phkdfInputBlock_tags block
     rounds = phkdfInputBlock_rounds block
 
-    user = phkdfInputArgs_username args
-    pass = phkdfInputArgs_password args
-    creds = phkdfInputArgs_credentials args
+    username = phkdfInputArgs_username args
+    password = phkdfInputArgs_password args
+    credentials = phkdfInputArgs_credentials args
 
     phkdfTag = expandDomainTag domainTag
 
-    headerExtract =
-      [ "phkdf-pass-v0 extract"
-      , user, userProtoPad
-      , pass, passProtoPad
-      , bareEncodeFromBytes (B.length domainTag)
-      , bareEncode rounds
+    cycleBS = cycleByteStringWithNull
+
+    headerExtract = [ "phkdf-pass-v0 username", username ]
+
+    usernamePadding
+      =  cycleBS (a-32) domainTag
+      <> cycleBS    32  domainTag
+      where
+        al = encodedVectorByteLength headerExtract
+        a = add64WhileLt (157 - al) 32
+
+    headerExtractUsername = headerExtract ++ [ usernamePadding ]
+
+    -- password field goes here
+
+    headerLongTag =
+      [ longTag
+      , B.concat
+        [ "password-hash-key-derivation-function phkdf-pass-v0\x00"
+        , leftEncodeFromBytes (B.length domainTag)
+        , bareEncode rounds
+        ]
       ]
 
-    -- FIXME: fusing addArg and longPadding would save 8 kB memory
-    headerPadding =
-      [ longTag
-      , longPadding headerExtract longTag
-      ]
+    longPadding
+      =  cycleBS (c-32) longTag
+      <> cycleBS    32  domainTag
+      where
+        al = encodedVectorByteLength headerLongTag
+        a  = add64WhileLt (8413 - al) 3239
+        bl = encodedVectorByteLength headerExtractUsername
+        b  = add64WhileLt (a - bl) 139
+        cl = encodedByteLength password
+        c  = add64WhileLt (b - cl) 32
+
+    credentialsPadding
+      =  cycleBS (a-29) longTag
+      <> cycleBS    29  domainTag
+      where
+        al = encodedVectorByteLength credentials
+        a  = add64WhileLt (122 - al) 32
 
     seguidKey = hmacKey_init seguid
 
     secret =
         phkdfCtx_initFromHmacKey seguidKey &
-        phkdfCtx_addArgs headerExtract &
-        phkdfCtx_addArgs headerPadding &
-        phkdfCtx_assertBufferPosition 59 &
-        phkdfCtx_addArgs creds &
-        phkdfCtx_addArg (shortPadding creds domainTag) &
+        phkdfCtx_addArgs headerExtractUsername &
+        phkdfCtx_assertBufferPosition 32 &
+        phkdfCtx_addArg  password &
+        -- FIXME: fusing addArg and longPadding can save ~ 8 KiB RAM
+        phkdfCtx_addArgs headerLongTag &
+        phkdfCtx_addArg  longPadding &
+        phkdfCtx_assertBufferPosition 32 &
+        phkdfCtx_addArgs credentials &
+        phkdfCtx_addArg  credentialsPadding &
         phkdfCtx_assertBufferPosition 29 &
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
