@@ -42,7 +42,7 @@ alternate role as well, with the PHKDF adding a tiny bit of key stretching and
 bcrypt providing significant additional cryptoacoustic plaintext repetitions.
 
 1.  Every bit of every parameter matters. Every boundary between parameters
-    matter. The presence and position of every empty string matters. There
+    matters. The presence and position of every empty string matters. There
     aren't supposed to be any trivial collisions, the only exception being
     null-byte extension collisions on the seguid, which serves as an
     HMAC-SHA256 key.
@@ -91,7 +91,7 @@ repeated elsewhere in the protocol, thus colliding /G3Pb1 alfa/ isn't enough
 to collide the final output of the G3P.
 
 This "cost" seems acceptable in the context of password-based authentication
-flows, where collision resistance and second preimage resistance is not
+flows, where collision resistance and second preimage resistance are not
 directly relevant. What is crucially important is preimage resistance and
 maximizing the cost of parallelizing multiple key-stretching computations while
 minimizing the latency of a single key-stretching computation.

@@ -57,6 +57,7 @@ test-suite test
                    , aeson >= 2
                    , base16
                    , bytestring
+                   , containers
                    , phkdf
                    , Stream
                    , tasty

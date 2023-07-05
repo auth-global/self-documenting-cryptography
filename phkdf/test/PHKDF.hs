@@ -14,6 +14,9 @@ import qualified Data.Aeson.KeyMap as KM
 import Data.ByteString(ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Base16 as B
+import Data.Function(fix)
+import Data.Map.Strict(Map)
+import qualified Data.Map.Strict as Map
 import Data.Maybe(fromMaybe)
 import Data.Text(Text)
 import qualified Data.Text as T
@@ -43,11 +46,28 @@ data Result = Result
 
 data TestVector = TestVector
    { testVector_name :: !Text
-   , testVector_args :: !Args
+   , testVector_arguments :: !Args
    , testVector_results :: !(Vector Result)
    }
 
+data TestId = TestId
+  { testId_name :: !Text
+  , testId_index :: !Int
+  , testId_algorithm :: !Text
+  } deriving (Eq, Ord)
+
+data SimpleTestVector = SimpleTestVector
+   { simpleTestVector_id        :: !TestId
+   , simpleTestVector_arguments :: !Args
+   , simpleTestVector_result    :: !ByteString
+   }
+
 type TestVectors = Vector TestVector
+
+type SimpleTestVectors = Vector SimpleTestVector
+
+-- This map is strict, and the necessary laziness is provided by Either
+type ResultEnv = Map TestId (Either String (Stream ByteString))
 
 blankResult :: Result
 blankResult = Result
@@ -55,17 +75,70 @@ blankResult = Result
   , result_hashes = KM.fromList [ ("phkdf-pass",""),("phkdf-simple","") ]
   }
 
-genTestCases :: TestVectors -> [ TestTree ]
-genTestCases tvs =
-    [ testCase testName $ runTest alg args outHash
+flattenTestVectors :: TestVectors -> SimpleTestVectors
+flattenTestVectors tvs =
+  V.fromList $
+    [ SimpleTestVector
+        { simpleTestVector_id =
+            TestId { testId_name = testVector_name tv
+                   , testId_index = i
+                   , testId_algorithm = alg
+                   }
+        , simpleTestVector_arguments = args
+        , simpleTestVector_result = outHash
+        }
     | tv <- V.toList tvs
     , (i, res) <- zip [0..]  (seedEmpty (V.toList (testVector_results tv)))
-    , let args = KM.union (result_args res) (testVector_args tv)
-    , (alg, outHash) <- KM.toAscList (result_hashes res)
-    , let testName = T.unpack (testVector_name tv) ++ " | " ++ K.toString alg ++ " " ++ show i
+    , let args = KM.union (result_args res) (testVector_arguments tv)
+    , (K.toText -> alg, outHash) <- KM.toAscList (result_hashes res)
     ]
   where
-    seedEmpty xs = if null xs then [blankResult] else xs
+    seedEmpty xs
+      | null xs = [blankResult]
+      | otherwise = map addBlankResult xs
+    addBlankResult x
+      | null (result_hashes x) = x { result_hashes = result_hashes blankResult }
+      | otherwise = x
+
+genResultEnv :: SimpleTestVectors -> ResultEnv
+genResultEnv tvs =
+  -- FIXME? The resulting scoping rules in the test vector file is analogous
+  -- to Haskell or scheme's letrec, whereas I really want let* here
+  fix $ \resultEnv ->
+    Map.fromList $
+      [ (simpleTestVector_id tv, interpret tv resultEnv)
+      | tv <- V.toList tvs
+      ]
+  where
+    interpret tv resultEnv
+      | alg == "phkdf-pass" =
+          case getPhkdfPassInputs args of
+            Just inputs -> Right (uncurry3 phkdfPass inputs)
+            Nothing -> Left "arguments not parsed"
+      | alg == "phkdf-simple" =
+          case getPhkdfSimpleInputs args of
+            Just inputs -> Right (uncurry phkdfSimple inputs)
+            Nothing -> Left "arguments not parsed"
+      | otherwise = Left "algorithm name not recognized"
+      where
+        alg  = testId_algorithm $ simpleTestVector_id tv
+        args = simpleTestVector_arguments tv
+
+genSimpleTestCases :: SimpleTestVectors -> ResultEnv -> [ TestTree ]
+genSimpleTestCases tvs resultEnv =
+   [ testCase testName $ runTest tv resultEnv
+   | tv <- V.toList tvs
+   , let testId = simpleTestVector_id tv
+         name = T.unpack (testId_name testId)
+         idx = show (testId_index testId)
+         alg = T.unpack (testId_algorithm testId)
+         testName = name ++ " | " ++ idx ++ " " ++ alg
+   ]
+
+genTestCases :: TestVectors -> [ TestTree ]
+genTestCases tvs = genSimpleTestCases stvs (genResultEnv stvs)
+  where
+    stvs = flattenTestVectors tvs
 
 uncurry3 :: (a -> b -> c -> d) -> (a,b,c) -> d
 uncurry3 f (a,b,c) = f a b c
@@ -144,17 +217,15 @@ testFile (fileName, mTestVectors) =
   where
     testName = "testfile: " ++ fileName
 
-runTest :: Key -> KeyMap Val -> ByteString -> Assertion
-runTest key map goldenOutput
-  | key == "phkdf-pass"
-  = case getPhkdfPassInputs map of
-      Just inputs -> compareAu "phkdf-pass" goldenOutput (uncurry3 phkdfPass inputs)
-      Nothing -> assertFailure "arguments not parsed"
-  | key == "phkdf-simple"
-  = case getPhkdfSimpleInputs map of
-      Just inputs -> compareAu "phkdf-simple" goldenOutput (uncurry phkdfSimple inputs)
-      Nothing -> assertFailure "arguments not parsed"
-  | otherwise = assertFailure "algorithm name not recognized"
+runTest :: SimpleTestVector -> ResultEnv -> Assertion
+runTest tv resultEnv =
+  case Map.lookup (simpleTestVector_id tv) resultEnv of
+    Nothing -> assertFailure "test result not found (this shouldn't be possible)"
+    Just (Left err) -> assertFailure err
+    Just (Right result) -> compareAu alg goldenOutput result
+  where
+    alg = T.unpack . testId_algorithm $ simpleTestVector_id tv
+    goldenOutput = simpleTestVector_result tv
 
 compareAu :: String -> ByteString -> Stream ByteString -> Assertion
 compareAu name bs outStream
@@ -163,12 +234,13 @@ compareAu name bs outStream
   where
     toHex = T.unpack . B.encodeBase16
 
-    takeBytes n stream = B.concat (go n stream)
-      where
-        go n ~(Cons out outStream')
-          | n <= 0 = []
-          | n <= B.length out = [B.take n out]
-          | otherwise = out : go (n - B.length out) outStream'
+takeBytes :: Int -> Stream ByteString -> ByteString
+takeBytes n stream = B.concat (go n stream)
+  where
+    go n ~(Cons out outStream')
+      | n <= 0 = []
+      | n <= B.length out = [B.take n out]
+      | otherwise = out : go (n - B.length out) outStream'
 
 -- FIXME? Allow computation of tweaks without recomputing seed
 
