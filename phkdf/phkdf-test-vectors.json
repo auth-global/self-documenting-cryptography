@@ -166,11 +166,60 @@
         "username":"tests with very long inputs",
         "password":"back references",
         "domain-tag":"your-domain-name-here.example",
-        "long-tag":{"ref":"phkdf first light","len":6000},
-        "rounds":2023
+        "long-tag":{"ref":"phkdf first light","len":5114},
+        "rounds":255
     },
-    "results":{
-        "phkdf-pass":"636de26b72501fda86254268f2cb8dd2b957546c2e312b502bb45dfce03232f8",
-        "phkdf-simple":"dac7ef3219092db2afa1827ce69ccb4962633b9cb2f13cf8f4b84dbcf073a20f"
-    }
+    "results":[
+        {"phkdf-pass":"b2db70faf07ac016da2e3595b05ec4f0e2600bce03ee46c8ac08854ab25006f1",
+         "phkdf-simple":"bc16ee152ad7fe5dece5f5c564bc54444c5c32ce1f3a445a968d009c875fd587"},
+        {"args":{"long-tag":{"ref":"phkdf first light","len":5115}},
+         "phkdf-pass":"c302d16cee97f33ae724500ca85899f48dc31432987d4ea626a8b2d62902db58",
+         "phkdf-simple":"606f593753270695ea0573075ca6617ffc21c488a3197edd412ec31564ef4f13"},
+        {"args":{
+            "username":{
+                "ref":"phkdf unicode test, lightly extended on top",
+                "len":3074, 
+                "algorithm":"phkdf-simple"
+            }},
+         "phkdf-pass":"704d9217c2d0b092a521807e499c7131a03b1dc0cee6afcd275516c385af9d5a",
+         "phkdf-simple":"ee9e9e432671639d65a89053ff01fad57c57a77872c8248684e98603d33fbe66"
+        },
+        {"args":{
+            "username":{
+                "ref":"phkdf unicode test, lightly extended on top",
+                "len":3075,
+                "algorithm":"phkdf-simple"
+            }},
+         "phkdf-pass":"32cc3f7581d96535e139f24b20065b7d317cabbcee986affa940cc1de4ba2231",
+         "phkdf-simple":"742143e04207403976d7860326ba7ee75043ba430c4f748eeaa0ad62b1fbb532"
+        },
+        {"args":{
+            "username":{
+                "ref":"phkdf unicode test, lightly extended on top",
+                "len":3074,
+                "algorithm":"phkdf-simple"
+            },
+            "password":{
+                "ref":"phkdf unicode test, inset naval story with a reference",
+                "len":96,
+                "index":1
+            }},
+         "phkdf-pass":"6a595c1af832db394ec1b347b7089528ea999c3e2953a11d774a0df24370f232",
+         "phkdf-simple":"4f6633378f2bb95d8fc7c34cdd934f8fa3e4029ffe84f62b0a4a5de0a16b450d"
+        },
+        {"args":{
+            "username":{
+                "ref":"phkdf unicode test, lightly extended on top",
+                "len":3074,
+                "algorithm":"phkdf-simple"
+            },
+            "password":{
+                "ref":"phkdf unicode test, inset naval story with a reference",
+                "len":97,
+                "index":1
+            }},
+         "phkdf-pass":"e874521bde36b9d5b8df8e801cbd029e1d5f9f29d147a9d6b14f99fa890d6374",
+         "phkdf-simple":"e46410ae09b4c831f5e891dc9ff9656efa30b7b79c901590e8f864b9fee513f7"
+        }
+    ]
 }]
