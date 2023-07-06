@@ -265,9 +265,9 @@ phkdfSimple block args = echo
       <> cycleBS    32  domainTag
       where
         al = encodedVectorByteLength headerLongTag
-        a  = add64WhileLt (8413 - al) 3239
+        a  = add64WhileLt (8413 - al) 3238
         bl = encodedVectorByteLength headerExtractUsername
-        b  = add64WhileLt (a - bl) 139
+        b  = add64WhileLt (a - bl) 134
         cl = encodedByteLength password
         c  = add64WhileLt (b - cl) 32
 
@@ -377,9 +377,9 @@ phkdfPass_seedInit block args =
       <> cycleBS    32  domainTag
       where
         al = encodedVectorByteLength headerLongTag
-        a  = add64WhileLt (8413 - al) 3239
+        a  = add64WhileLt (8413 - al) 3238
         bl = encodedVectorByteLength headerExtractUsername
-        b  = add64WhileLt (a - bl) 139
+        b  = add64WhileLt (a - bl) 134
         cl = encodedByteLength password
         c  = add64WhileLt (b - cl) 32
 

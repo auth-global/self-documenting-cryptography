@@ -170,19 +170,19 @@
         "rounds":255
     },
     "results":[
-        {"phkdf-pass":"b2db70faf07ac016da2e3595b05ec4f0e2600bce03ee46c8ac08854ab25006f1",
-         "phkdf-simple":"bc16ee152ad7fe5dece5f5c564bc54444c5c32ce1f3a445a968d009c875fd587"},
+        {"phkdf-pass":"1e7e1642f35c7f02a1f78d88816b6257d76485fde6a9f11372c47e9fdcdc8874",
+         "phkdf-simple":"881108b5937b4929dec4feb063c181b35c1593a0a78e9f0af04598fea8eda1b9"},
         {"args":{"long-tag":{"ref":"phkdf first light","len":5115}},
          "phkdf-pass":"c302d16cee97f33ae724500ca85899f48dc31432987d4ea626a8b2d62902db58",
          "phkdf-simple":"606f593753270695ea0573075ca6617ffc21c488a3197edd412ec31564ef4f13"},
         {"args":{
             "username":{
                 "ref":"phkdf unicode test, lightly extended on top",
-                "len":3074, 
+                "len":3074,
                 "algorithm":"phkdf-simple"
             }},
-         "phkdf-pass":"704d9217c2d0b092a521807e499c7131a03b1dc0cee6afcd275516c385af9d5a",
-         "phkdf-simple":"ee9e9e432671639d65a89053ff01fad57c57a77872c8248684e98603d33fbe66"
+         "phkdf-pass":"d6f1761f42528063010f0d246ba86b832db4d34c13debb73dd0d6bd39623a28e",
+         "phkdf-simple":"ab32da82d7ae70c1eb8b9b828c32b454d2f56b8e97a1d3c11ad766bc2291c641"
         },
         {"args":{
             "username":{
@@ -190,8 +190,8 @@
                 "len":3075,
                 "algorithm":"phkdf-simple"
             }},
-         "phkdf-pass":"32cc3f7581d96535e139f24b20065b7d317cabbcee986affa940cc1de4ba2231",
-         "phkdf-simple":"742143e04207403976d7860326ba7ee75043ba430c4f748eeaa0ad62b1fbb532"
+         "phkdf-pass":"37edc7f645732d326e60d15ac4bae69cd8fb621651cbfc3fa6c691d61be8641b",
+         "phkdf-simple":"d11704959ed6a634ddcb4f7a3477cbed092b3fddfedc97ad0d203f67a9a54348"
         },
         {"args":{
             "username":{
@@ -204,8 +204,8 @@
                 "len":96,
                 "index":1
             }},
-         "phkdf-pass":"6a595c1af832db394ec1b347b7089528ea999c3e2953a11d774a0df24370f232",
-         "phkdf-simple":"4f6633378f2bb95d8fc7c34cdd934f8fa3e4029ffe84f62b0a4a5de0a16b450d"
+         "phkdf-pass":"7d5a5deb6c358bff1fed12dcc1f1e40bd1cf15a8b242d008a7d91eda6ddba8fe",
+         "phkdf-simple":"eaa576b3ef1a55776260e4a8b9138c3813ecff7e31c687f2ed94f2f50ac6a6dd"
         },
         {"args":{
             "username":{
@@ -218,8 +218,8 @@
                 "len":97,
                 "index":1
             }},
-         "phkdf-pass":"e874521bde36b9d5b8df8e801cbd029e1d5f9f29d147a9d6b14f99fa890d6374",
-         "phkdf-simple":"e46410ae09b4c831f5e891dc9ff9656efa30b7b79c901590e8f864b9fee513f7"
+         "phkdf-pass":"aa0b8c7855be0adddb86b9712a11252a0d90af4f3a7832110aa8af9e4b9e5fee",
+         "phkdf-simple":"d2c6ff0318f5af28bbb42e1a09f488116d1d70452d92fdcce0af58c752923222"
         }
     ]
 }]
