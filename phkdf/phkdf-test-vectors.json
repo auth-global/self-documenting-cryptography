@@ -160,4 +160,17 @@
         "phkdf-pass":"e9858b5f2dc13ca2d2f06c00f68de623a9a7a80cbdcee0e1f7fd541ed58ac6b59a4c9a3a1f074b93921df83dcd9af84dc30ef073298e9c6090309cab2ac4b740",
         "phkdf-simple":"a8e37851b0dda24717b555af6e7364dfd0442fcd6bccd4e3829a4a334f7a3590026b89b70f1168c9f74a215c88a79f9af576aca9ef1d6f1ba014568bff0bb875"
     }
+},{
+    "name":"ref example",
+    "args":{
+        "username":"tests with very long inputs",
+        "password":"back references",
+        "domain-tag":"your-domain-name-here.example",
+        "long-tag":{"ref":"phkdf first light","len":6000},
+        "rounds":2023
+    },
+    "results":{
+        "phkdf-pass":"636de26b72501fda86254268f2cb8dd2b957546c2e312b502bb45dfce03232f8",
+        "phkdf-simple":"dac7ef3219092db2afa1827ce69ccb4962633b9cb2f13cf8f4b84dbcf073a20f"
+    }
 }]

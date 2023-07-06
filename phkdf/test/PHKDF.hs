@@ -15,8 +15,8 @@ import Data.ByteString(ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Base16 as B
 import Data.Function(fix)
-import Data.Map.Strict(Map)
-import qualified Data.Map.Strict as Map
+import Data.Map(Map)
+import qualified Data.Map as Map
 import Data.Maybe(fromMaybe)
 import Data.Text(Text)
 import qualified Data.Text as T
@@ -26,6 +26,8 @@ import Data.Stream(Stream(..))
 import qualified Data.Stream as S
 import Data.Vector(Vector, (!))
 import qualified Data.Vector as V
+
+import Debug.Trace
 
 import Crypto.PHKDF
 import Test.Tasty
@@ -38,6 +40,8 @@ data Val
    | Str !ByteString
    | Vec !(Vector ByteString)
    | Nul
+   | Ref !TestId !Int
+     deriving (Show)
 
 data Result = Result
    { result_args :: !Args
@@ -54,7 +58,7 @@ data TestId = TestId
   { testId_name :: !Text
   , testId_index :: !Int
   , testId_algorithm :: !Text
-  } deriving (Eq, Ord)
+  } deriving (Eq, Ord, Show)
 
 data SimpleTestVector = SimpleTestVector
    { simpleTestVector_id        :: !TestId
@@ -112,11 +116,11 @@ genResultEnv tvs =
   where
     interpret tv resultEnv
       | alg == "phkdf-pass" =
-          case getPhkdfPassInputs args of
+          case getPhkdfPassInputs resultEnv args of
             Just inputs -> Right (uncurry3 phkdfPass inputs)
             Nothing -> Left "arguments not parsed"
       | alg == "phkdf-simple" =
-          case getPhkdfSimpleInputs args of
+          case getPhkdfSimpleInputs resultEnv args of
             Just inputs -> Right (uncurry phkdfSimple inputs)
             Nothing -> Left "arguments not parsed"
       | otherwise = Left "algorithm name not recognized"
@@ -148,7 +152,8 @@ instance Aeson.FromJSON Val where
         (Int <$> parseJSON val) <|>
         (Str <$> parseJSONByteString val) <|>
         (Vec <$> parseJSONVectorByteString val) <|>
-        (Nul <$ (parseJSON val :: Parser ()))
+        (parseRef val) <|>
+        (parseNul val)
 
 instance Aeson.FromJSON Result where
     parseJSON = \case
@@ -164,6 +169,24 @@ instance Aeson.FromJSON TestVector where
         <$> v .: "name"
         <*> v .: "args"
         <*> parseResults v
+
+parseRef :: Value -> Parser Val
+parseRef = \case
+  Object obj -> do
+    ref <- obj .: "ref"
+    len <- obj .: "len"
+    mAlg <- obj .:? "algorithm"
+    mIdx <- obj .:? "index"
+    let alg = fromMaybe "phkdf-pass" mAlg
+        idx = fromMaybe 0 mIdx
+        testId = TestId ref idx alg
+    return $ Ref testId len
+  _ -> empty
+
+parseNul :: Value -> Parser Val
+parseNul = \case
+  Null -> return Nul
+  _ -> empty
 
 parseJSONByteString :: Value -> Parser ByteString
 parseJSONByteString = \case
@@ -244,44 +267,49 @@ takeBytes n stream = B.concat (go n stream)
 
 -- FIXME? Allow computation of tweaks without recomputing seed
 
-getPhkdfPassInputs :: KeyMap Val -> Maybe (PhkdfInputBlock, PhkdfInputArgs, PhkdfInputTweak)
-getPhkdfPassInputs
-  (getPhkdfPassBlock -> Just (block,
-   getPhkdfPassArgs -> Just (args,
-   getPhkdfPassTweak -> Just (tweak,
+-- I initially liked this ViewPattern approach to high-level parsing, but now
+-- I don't, because of error messages and ResultEnv handling
+
+-- TODO: Rewrite getPhkdf*Inputs and their helpers
+
+getPhkdfPassInputs :: ResultEnv -> KeyMap Val -> Maybe (PhkdfInputBlock, PhkdfInputArgs, PhkdfInputTweak)
+getPhkdfPassInputs env = \case
+  (getPhkdfPassBlock env -> Just (block,
+   getPhkdfPassArgs env -> Just (args,
+   getPhkdfPassTweak env -> Just (tweak,
    args')))) | KM.null args'
-  = Just (block, args, tweak)
-getPhkdfPassInputs _ = Nothing
+    -> Just (block, args, tweak)
+  _ -> Nothing
 
-getPhkdfSimpleInputs :: KeyMap Val -> Maybe (PhkdfInputBlock, PhkdfInputArgs)
-getPhkdfSimpleInputs
-  (getPhkdfSimpleBlock -> Just (block,
-   getPhkdfSimpleArgs -> Just (args,
+getPhkdfSimpleInputs :: ResultEnv -> KeyMap Val -> Maybe (PhkdfInputBlock, PhkdfInputArgs)
+getPhkdfSimpleInputs env = \case
+  (getPhkdfSimpleBlock env -> Just (block,
+   getPhkdfSimpleArgs env -> Just (args,
    args'))) | KM.null args'
-  = Just (block, args)
-getPhkdfSimpleInputs _ = Nothing
+    -> Just (block, args)
+  _ -> Nothing
 
-getPhkdfPassArgs :: KeyMap Val -> Maybe (PhkdfInputArgs, KeyMap Val)
-getPhkdfPassArgs
-  (matchKey "username" -> (Just (Str phkdfInputArgs_username),
-   matchKey "password" -> (Just (Str phkdfInputArgs_password),
-   matchKey "credentials" -> (
+getPhkdfPassArgs :: ResultEnv -> KeyMap Val -> Maybe (PhkdfInputArgs, KeyMap Val)
+getPhkdfPassArgs env = \case
+  (matchKey env "username" -> (Just (Str phkdfInputArgs_username),
+   matchKey env "password" -> (Just (Str phkdfInputArgs_password),
+   matchKey env "credentials" -> (
      getByteStringVector_defaultEmpty -> Just phkdfInputArgs_credentials,
    args'))))
-  = Just (PhkdfInputArgs {..}, args')
-getPhkdfPassArgs _ = Nothing
+    -> Just (PhkdfInputArgs {..}, args')
+  _ -> Nothing
 
-getPhkdfSimpleArgs :: KeyMap Val -> Maybe (PhkdfInputArgs, KeyMap Val)
-getPhkdfSimpleArgs
-  (getPhkdfPassArgs -> Just (inputArgs,
-   matchKey "role" -> (getByteStringVector_defaultEmpty -> Just role,
+getPhkdfSimpleArgs :: ResultEnv -> KeyMap Val -> Maybe (PhkdfInputArgs, KeyMap Val)
+getPhkdfSimpleArgs env = \case
+  (getPhkdfPassArgs env -> Just (inputArgs,
+   matchKey env "role" -> (getByteStringVector_defaultEmpty -> Just role,
    args')))
-  = Just (inputArgs' , args')
-  where
-    inputArgs' = inputArgs {
-      phkdfInputArgs_credentials = phkdfInputArgs_credentials inputArgs <> role
-    }
-getPhkdfSimpleArgs _ = Nothing
+    -> let creds = phkdfInputArgs_credentials inputArgs
+           inputArgs' = inputArgs {
+               phkdfInputArgs_credentials = creds <> role
+             }
+        in Just (inputArgs' , args')
+  _ -> Nothing
 
 getByteStringVector_defaultEmpty :: Maybe Val -> Maybe (Vector ByteString)
 getByteStringVector_defaultEmpty = \case
@@ -307,42 +335,49 @@ getMaybeByteString = \case
   Nothing -> Just Nothing
   _ -> Nothing
 
-getPhkdfPassBlock :: KeyMap Val -> Maybe (PhkdfInputBlock, KeyMap Val)
-getPhkdfPassBlock
-  (matchKey "domain-tag" -> (Just (Str phkdfInputBlock_domainTag),
-   matchKey "seguid" -> (getByteString_defaultEmpty -> Just phkdfInputBlock_seguid,
-   matchKey "long-tag" -> (getMaybeByteString -> Just mLongTag,
-   matchKey' "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
-   matchKey "seed-tags" -> (getByteStringVector_defaultEmpty -> Just seedTags,
-   matchKey "rounds" -> (Just (Int (fromIntegral -> phkdfInputBlock_rounds)),
+getPhkdfPassBlock :: ResultEnv -> KeyMap Val -> Maybe (PhkdfInputBlock, KeyMap Val)
+getPhkdfPassBlock env = \case
+  (matchKey env "domain-tag" -> (Just (Str phkdfInputBlock_domainTag),
+   matchKey env "seguid" -> (getByteString_defaultEmpty -> Just phkdfInputBlock_seguid,
+   matchKey env "long-tag" -> (getMaybeByteString -> Just mLongTag,
+   matchKey' env "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
+   matchKey env "seed-tags" -> (getByteStringVector_defaultEmpty -> Just seedTags,
+   matchKey env "rounds" -> (Just (Int (fromIntegral -> phkdfInputBlock_rounds)),
    args')))))))
-  = let phkdfInputBlock_tags = tags <> seedTags
-        phkdfInputBlock_longTag = fromMaybe phkdfInputBlock_domainTag mLongTag
-     in Just (PhkdfInputBlock {..}, args')
-getPhkdfPassBlock _ = Nothing
+    -> let phkdfInputBlock_tags = tags <> seedTags
+           phkdfInputBlock_longTag = fromMaybe phkdfInputBlock_domainTag mLongTag
+        in Just (PhkdfInputBlock {..}, args')
+  _ -> Nothing
 
-getPhkdfSimpleBlock :: KeyMap Val -> Maybe (PhkdfInputBlock, KeyMap Val)
-getPhkdfSimpleBlock
-  (getPhkdfPassBlock -> Just (block,
-   matchKey "echo-tags" -> (getByteStringVector_defaultEmpty -> Just echoTags,
-   args')))
-  = Just (block', KM.delete "tags" args')
-  where
-    block' = block {
-      phkdfInputBlock_tags = phkdfInputBlock_tags block <> echoTags
-    }
-getPhkdfSimpleBlock _ = Nothing
+getPhkdfSimpleBlock :: ResultEnv -> KeyMap Val -> Maybe (PhkdfInputBlock, KeyMap Val)
+getPhkdfSimpleBlock env = \case
+  (getPhkdfPassBlock env -> Just (block,
+   matchKey env "echo-tags" -> (getByteStringVector_defaultEmpty -> Just echoTags,
+    args')))
+    -> let block' = block {
+               phkdfInputBlock_tags = phkdfInputBlock_tags block <> echoTags
+             }
+        in Just (block', KM.delete "tags" args')
+  _ -> Nothing
 
-getPhkdfPassTweak :: KeyMap Val -> Maybe (PhkdfInputTweak, KeyMap Val)
-getPhkdfPassTweak
-  (matchKey "role" -> (getByteStringVector_defaultEmpty -> Just phkdfInputTweak_role,
-   matchKey "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
-   matchKey "echo-tags" -> (getByteStringVector_defaultEmpty -> Just echoTags,
+getPhkdfPassTweak :: ResultEnv -> KeyMap Val -> Maybe (PhkdfInputTweak, KeyMap Val)
+getPhkdfPassTweak env = \case
+  (matchKey env "role" -> (getByteStringVector_defaultEmpty -> Just phkdfInputTweak_role,
+   matchKey env "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
+   matchKey env "echo-tags" -> (getByteStringVector_defaultEmpty -> Just echoTags,
    args'))))
-  = let phkdfInputTweak_tags = tags <> echoTags
-     in Just (PhkdfInputTweak{..}, args')
-getPhkdfPassTweak _ = Nothing
+    -> let phkdfInputTweak_tags = tags <> echoTags
+        in Just (PhkdfInputTweak{..}, args')
+  _ -> Nothing
 
-matchKey, matchKey' :: Key -> KeyMap a -> (Maybe a, KeyMap a)
-matchKey key map = (KM.lookup key map, KM.delete key map)
-matchKey' key map = (KM.lookup key map, map)
+matchKey, matchKey' :: ResultEnv -> Key -> KeyMap Val -> (Maybe Val, KeyMap Val)
+matchKey env key map = (interpRefs env (KM.lookup key map), KM.delete key map)
+matchKey' env key map = (interpRefs env (KM.lookup key map), map)
+
+interpRefs :: ResultEnv -> Maybe Val -> Maybe Val
+interpRefs env (Just ref@(Ref testId bytes)) =
+  case Map.lookup testId env of
+    Nothing -> Just ref
+    Just (Left _) -> Just ref
+    Just (Right echo) -> Just (Str (takeBytes bytes echo))
+interpRefs _   val = val
