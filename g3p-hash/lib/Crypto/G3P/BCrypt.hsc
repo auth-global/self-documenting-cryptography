@@ -82,7 +82,7 @@ bcryptRaw (f -> key) (f -> salt) rounds
             c_bcrypt_raw keyPtr (len key) saltPtr (len salt) outPtr rounds
             return output
   where
-    len x = fromIntegral (min 72 (B.length x))
+    len x = fromIntegral (min bcrytpRaw_maxInputLength (B.length x))
 
 f :: ByteString -> ByteString
-f key = if B.null key then B.replicate 72 0 else key
+f key = if B.null key then B.replicate bcryptRaw_maxInputLength 0 else key
