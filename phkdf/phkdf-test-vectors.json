@@ -161,7 +161,7 @@
         "phkdf-simple":"a8e37851b0dda24717b555af6e7364dfd0442fcd6bccd4e3829a4a334f7a3590026b89b70f1168c9f74a215c88a79f9af576aca9ef1d6f1ba014568bff0bb875"
     }
 },{
-    "name":"ref example",
+    "name":"long padding",
     "args":{
         "username":"tests with very long inputs",
         "password":"back references",
