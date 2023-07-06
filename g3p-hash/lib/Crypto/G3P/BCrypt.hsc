@@ -60,9 +60,9 @@ bcryptRaw_maxInputLength = (#const BCRYPT_RAW_MAX_INPUT_LENGTH)
 bcryptRaw_outputLength :: Int
 bcryptRaw_outputLength = (#const BCRYPT_RAW_OUTPUT_LENGTH)
 
--- | @bcryptRaw key salt rounds@ Be aware that key and salts that are longer than
---   72 bytes long do get truncated must be exactly 72 bytes long. This binding
---   will return a hash that is exactly 24 bytes long.
+-- | @bcryptRaw key salt rounds@ Be aware that keys and salts that are longer
+--   than 72 bytes do get truncated to exactly 72 bytes. This binding will
+--   return a hash that is exactly 24 bytes long.
 --
 --   Note the rounds parameter is one less than the number of rounds to be
 --   computed. Thus if you want something equivalent to the traditional bcrypt
