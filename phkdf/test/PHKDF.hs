@@ -70,7 +70,6 @@ type TestVectors = Vector TestVector
 
 type SimpleTestVectors = Vector SimpleTestVector
 
--- This map is strict, and the necessary laziness is provided by Either
 type ResultEnv = Map TestId (Either String (Stream ByteString))
 
 blankResult :: Result
@@ -340,6 +339,7 @@ getPhkdfPassBlock env = \case
   (matchKey env "domain-tag" -> (Just (Str phkdfInputBlock_domainTag),
    matchKey env "seguid" -> (getByteString_defaultEmpty -> Just phkdfInputBlock_seguid,
    matchKey env "long-tag" -> (getMaybeByteString -> Just mLongTag,
+   -- use matchKey' to leave the "tags" argument behind for getPhkdfPassTweak
    matchKey' env "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
    matchKey env "seed-tags" -> (getByteStringVector_defaultEmpty -> Just seedTags,
    matchKey env "rounds" -> (Just (Int (fromIntegral -> phkdfInputBlock_rounds)),

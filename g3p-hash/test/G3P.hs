@@ -14,6 +14,9 @@ import qualified Data.Aeson.KeyMap as KM
 import Data.ByteString(ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Base16 as B
+import Data.Function(fix)
+import Data.Map(Map)
+import qualified Data.Map as Map
 import Data.Maybe(fromMaybe)
 import Data.Text(Text)
 import qualified Data.Text as T
@@ -35,6 +38,7 @@ data Val
    | Str !ByteString
    | Vec !(Vector ByteString)
    | Nul
+   | Ref !TestId !Int
      deriving (Show)
 
 data Result = Result
@@ -44,11 +48,27 @@ data Result = Result
 
 data TestVector = TestVector
    { testVector_name :: !Text
-   , testVector_args :: !Args
+   , testVector_arguments :: !Args
    , testVector_results :: !(Vector Result)
    }
 
+data TestId = TestId
+  { testId_name :: !Text
+  , testId_index :: !Int
+  , testId_algorithm :: !Text
+  } deriving (Eq, Ord, Show)
+
+data SimpleTestVector = SimpleTestVector
+   { simpleTestVector_id        :: !TestId
+   , simpleTestVector_arguments :: !Args
+   , simpleTestVector_result    :: !ByteString
+   }
+
 type TestVectors = Vector TestVector
+
+type SimpleTestVectors = Vector SimpleTestVector
+
+type ResultEnv = Map TestId (Either String (Stream ByteString))
 
 blankResult :: Result
 blankResult = Result
@@ -56,17 +76,66 @@ blankResult = Result
   , result_hashes = KM.fromList [ ("G3Pb1","") ]
   }
 
-genTestCases :: TestVectors -> [ TestTree ]
-genTestCases tvs =
-    [ testCase testName $ runTest alg args outHash
+flattenTestVectors :: TestVectors -> SimpleTestVectors
+flattenTestVectors tvs =
+  V.fromList $
+    [ SimpleTestVector
+        { simpleTestVector_id =
+            TestId { testId_name = testVector_name tv
+                   , testId_index = i
+                   , testId_algorithm = alg
+                   }
+        , simpleTestVector_arguments = args
+        , simpleTestVector_result = outHash
+        }
     | tv <- V.toList tvs
     , (i, res) <- zip [0..]  (seedEmpty (V.toList (testVector_results tv)))
-    , let args = KM.union (result_args res) (testVector_args tv)
-    , (alg, outHash) <- KM.toAscList (result_hashes res)
-    , let testName = T.unpack (testVector_name tv) ++ " | " ++ K.toString alg ++ " " ++ show i
+    , let args = KM.union (result_args res) (testVector_arguments tv)
+    , (K.toText -> alg, outHash) <- KM.toAscList (result_hashes res)
     ]
   where
-    seedEmpty xs = if null xs then [blankResult] else xs
+    seedEmpty xs
+      | null xs = [blankResult]
+      | otherwise = map addBlankResult xs
+    addBlankResult x
+      | null (result_hashes x) = x { result_hashes = result_hashes blankResult }
+      | otherwise = x
+
+genResultEnv :: SimpleTestVectors -> ResultEnv
+genResultEnv tvs =
+  -- FIXME? The resulting scoping rules in the test vector file is analogous
+  -- to Haskell or scheme's letrec, whereas I really want let* here
+  fix $ \resultEnv ->
+    Map.fromList $
+      [ (simpleTestVector_id tv, interpret tv resultEnv)
+      | tv <- V.toList tvs
+      ]
+  where
+    interpret tv resultEnv
+      | alg == "G3Pb1" =
+          case getG3PInputs resultEnv args of
+            Just inputs -> Right (uncurry3 g3pHash inputs)
+            Nothing -> Left "arguments not parsed"
+      | otherwise = Left "algorithm name not recognized"
+      where
+        alg  = testId_algorithm $ simpleTestVector_id tv
+        args = simpleTestVector_arguments tv
+
+genSimpleTestCases :: SimpleTestVectors -> ResultEnv -> [ TestTree ]
+genSimpleTestCases tvs resultEnv =
+   [ testCase testName $ runTest tv resultEnv
+   | tv <- V.toList tvs
+   , let testId = simpleTestVector_id tv
+         name = T.unpack (testId_name testId)
+         idx = show (testId_index testId)
+         alg = T.unpack (testId_algorithm testId)
+         testName = name ++ " | " ++ idx ++ " " ++ alg
+   ]
+
+genTestCases :: TestVectors -> [ TestTree ]
+genTestCases tvs = genSimpleTestCases stvs (genResultEnv stvs)
+  where
+    stvs = flattenTestVectors tvs
 
 uncurry3 :: (a -> b -> c -> d) -> (a,b,c) -> d
 uncurry3 f (a,b,c) = f a b c
@@ -76,7 +145,8 @@ instance Aeson.FromJSON Val where
         (Int <$> parseJSON val) <|>
         (Str <$> parseJSONByteString val) <|>
         (Vec <$> parseJSONVectorByteString val) <|>
-        (Nul <$ (parseJSON val :: Parser ()))
+        (parseRef val) <|>
+        (parseNul val)
 
 instance Aeson.FromJSON Result where
     parseJSON = \case
@@ -92,6 +162,32 @@ instance Aeson.FromJSON TestVector where
         <$> v .: "name"
         <*> v .: "args"
         <*> parseResults v
+
+takeBytes :: Int -> Stream ByteString -> ByteString
+takeBytes n stream = B.concat (go n stream)
+  where
+    go n ~(Cons out outStream')
+      | n <= 0 = []
+      | n <= B.length out = [B.take n out]
+      | otherwise = out : go (n - B.length out) outStream'
+
+parseRef :: Value -> Parser Val
+parseRef = \case
+  Object obj -> do
+    ref <- obj .: "ref"
+    len <- obj .: "len"
+    mAlg <- obj .:? "algorithm"
+    mIdx <- obj .:? "index"
+    let alg = fromMaybe "G3Pb1" mAlg
+        idx = fromMaybe 0 mIdx
+        testId = TestId ref idx alg
+    return $ Ref testId len
+  _ -> empty
+
+parseNul :: Value -> Parser Val
+parseNul = \case
+  Null -> return Nul
+  _ -> empty
 
 parseJSONByteString :: Value -> Parser ByteString
 parseJSONByteString = \case
@@ -145,13 +241,15 @@ testFile (fileName, mTestVectors) =
   where
     testName = "testfile: " ++ fileName
 
-runTest :: Key -> KeyMap Val -> ByteString -> Assertion
-runTest key map goldenOutput
-  | key == "G3Pb1"
-  = case getG3PInputs map of
-      Just inputs -> compareAu "G3Pb1" goldenOutput (uncurry3 g3pHash inputs)
-      Nothing -> assertFailure "arguments not parsed"
-  | otherwise = assertFailure "algorithm name not recognized"
+runTest :: SimpleTestVector -> ResultEnv -> Assertion
+runTest tv resultEnv =
+  case Map.lookup (simpleTestVector_id tv) resultEnv of
+    Nothing -> assertFailure "test result not found (this shouldn't be possible)"
+    Just (Left err) -> assertFailure err
+    Just (Right result) -> compareAu alg goldenOutput result
+  where
+    alg = T.unpack . testId_algorithm $ simpleTestVector_id tv
+    goldenOutput = simpleTestVector_result tv
 
 compareAu :: String -> ByteString -> Stream ByteString -> Assertion
 compareAu name bs outStream
@@ -160,33 +258,26 @@ compareAu name bs outStream
   where
     toHex = T.unpack . B.encodeBase16
 
-    takeBytes n stream = B.concat (go n stream)
-      where
-        go n ~(Cons out outStream')
-          | n <= 0 = []
-          | n <= B.length out = [B.take n out]
-          | otherwise = out : go (n - B.length out) outStream'
-
 -- FIXME? Allow computation of tweaks without recomputing seed
 
-getG3PInputs :: KeyMap Val -> Maybe (G3PInputBlock, G3PInputArgs, G3PInputTweak)
-getG3PInputs
-  (getG3PBlock -> Just (block,
-   getG3PArgs -> Just (args,
-   getG3PTweak -> Just (tweak,
+getG3PInputs :: ResultEnv -> KeyMap Val -> Maybe (G3PInputBlock, G3PInputArgs, G3PInputTweak)
+getG3PInputs env = \case
+  (getG3PBlock env -> Just (block,
+   getG3PArgs env -> Just (args,
+   getG3PTweak env -> Just (tweak,
    args')))) | KM.null args'
-  = Just (block, args, tweak)
-getG3PInputs _ = Nothing
+    -> Just (block, args, tweak)
+  _ -> Nothing
 
-getG3PArgs :: KeyMap Val -> Maybe (G3PInputArgs, KeyMap Val)
-getG3PArgs
-  (matchKey "username" -> (Just (Str g3pInputArgs_username),
-   matchKey "password" -> (Just (Str g3pInputArgs_password),
-   matchKey "credentials" -> (
+getG3PArgs :: ResultEnv -> KeyMap Val -> Maybe (G3PInputArgs, KeyMap Val)
+getG3PArgs env = \case
+  (matchKey env "username" -> (Just (Str g3pInputArgs_username),
+   matchKey env "password" -> (Just (Str g3pInputArgs_password),
+   matchKey env "credentials" -> (
      getByteStringVector_defaultEmpty -> Just g3pInputArgs_credentials,
    args'))))
-  = Just (G3PInputArgs {..}, args')
-getG3PArgs _ = Nothing
+    -> Just (G3PInputArgs {..}, args')
+  _ -> Nothing
 
 getByteStringVector_defaultEmpty :: Maybe Val -> Maybe (Vector ByteString)
 getByteStringVector_defaultEmpty = \case
@@ -212,36 +303,44 @@ getMaybeByteString = \case
   Nothing -> Just Nothing
   _ -> Nothing
 
-getG3PBlock :: KeyMap Val -> Maybe (G3PInputBlock, KeyMap Val)
-getG3PBlock
-  (matchKey "domain-tag" -> (Just (Str g3pInputBlock_domainTag),
-   matchKey "seguid" -> (getByteString_defaultEmpty -> Just g3pInputBlock_seguid,
-   matchKey "long-tag" -> (getMaybeByteString -> Just mLongTag,
+getG3PBlock :: ResultEnv -> KeyMap Val -> Maybe (G3PInputBlock, KeyMap Val)
+getG3PBlock env = \case
+  (matchKey env "domain-tag" -> (Just (Str g3pInputBlock_domainTag),
+   matchKey env "seguid" -> (getByteString_defaultEmpty -> Just g3pInputBlock_seguid,
+   matchKey env "long-tag" -> (getMaybeByteString -> Just mLongTag,
    -- use matchKey' to leave the "tags" argument behind for getG3PTweak
-   matchKey' "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
-   matchKey "seed-tags" -> (getByteStringVector_defaultEmpty -> Just seedTags,
-   matchKey "phkdf-rounds" -> (Just (Int (fromIntegral -> g3pInputBlock_phkdfRounds)),
-   matchKey "bcrypt-rounds" -> (Just (Int (fromIntegral -> g3pInputBlock_bcryptRounds)),
-   matchKey "bcrypt-tag" -> (getMaybeByteString -> Just mBcryptTag,
-   matchKey "bcrypt-salt-tag" -> (getMaybeByteString -> Just mBcryptSaltTag,
+   matchKey' env "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
+   matchKey env "seed-tags" -> (getByteStringVector_defaultEmpty -> Just seedTags,
+   matchKey env "phkdf-rounds" -> (Just (Int (fromIntegral -> g3pInputBlock_phkdfRounds)),
+   matchKey env "bcrypt-rounds" -> (Just (Int (fromIntegral -> g3pInputBlock_bcryptRounds)),
+   matchKey env "bcrypt-tag" -> (getMaybeByteString -> Just mBcryptTag,
+   matchKey env "bcrypt-salt-tag" -> (getMaybeByteString -> Just mBcryptSaltTag,
    args'))))))))))
-  = let g3pInputBlock_tags = tags <> seedTags
-        g3pInputBlock_longTag = fromMaybe g3pInputBlock_domainTag mLongTag
-        g3pInputBlock_bcryptTag = fromMaybe g3pInputBlock_domainTag mBcryptTag
-        g3pInputBlock_bcryptSaltTag = fromMaybe g3pInputBlock_bcryptTag mBcryptSaltTag
-     in Just (G3PInputBlock {..}, args')
-getG3PBlock _ = Nothing
+   -> let g3pInputBlock_tags = tags <> seedTags
+          g3pInputBlock_longTag = fromMaybe g3pInputBlock_domainTag mLongTag
+          g3pInputBlock_bcryptTag = fromMaybe g3pInputBlock_domainTag mBcryptTag
+          g3pInputBlock_bcryptSaltTag = fromMaybe g3pInputBlock_bcryptTag mBcryptSaltTag
+       in Just (G3PInputBlock {..}, args')
+  _ -> Nothing
 
-getG3PTweak :: KeyMap Val -> Maybe (G3PInputTweak, KeyMap Val)
-getG3PTweak
-  (matchKey "role" -> (getByteStringVector_defaultEmpty -> Just g3pInputTweak_role,
-   matchKey "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
-   matchKey "echo-tags" -> (getByteStringVector_defaultEmpty -> Just echoTags,
+getG3PTweak :: ResultEnv -> KeyMap Val -> Maybe (G3PInputTweak, KeyMap Val)
+getG3PTweak env = \case
+  (matchKey env "role" -> (getByteStringVector_defaultEmpty -> Just g3pInputTweak_role,
+   matchKey env "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
+   matchKey env "echo-tags" -> (getByteStringVector_defaultEmpty -> Just echoTags,
    args'))))
-  = let g3pInputTweak_tags = tags <> echoTags
-     in Just (G3PInputTweak{..}, args')
-getG3PTweak _ = Nothing
+   -> let g3pInputTweak_tags = tags <> echoTags
+       in Just (G3PInputTweak{..}, args')
+  _ -> Nothing
 
-matchKey, matchKey' :: Key -> KeyMap a -> (Maybe a, KeyMap a)
-matchKey key map = (KM.lookup key map, KM.delete key map)
-matchKey' key map = (KM.lookup key map, map)
+matchKey, matchKey' :: ResultEnv -> Key -> KeyMap Val -> (Maybe Val, KeyMap Val)
+matchKey env key map = (interpRefs env (KM.lookup key map), KM.delete key map)
+matchKey' env key map = (interpRefs env (KM.lookup key map), map)
+
+interpRefs :: ResultEnv -> Maybe Val -> Maybe Val
+interpRefs env (Just ref@(Ref testId bytes)) =
+  case Map.lookup testId env of
+    Nothing -> Just ref
+    Just (Left _) -> Just ref
+    Just (Right echo) -> Just (Str (takeBytes bytes echo))
+interpRefs _   val = val

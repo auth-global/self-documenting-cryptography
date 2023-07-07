@@ -42,6 +42,7 @@ test-suite test
                    , aeson >= 2
                    , base16
                    , bytestring
+                   , containers
                    , g3p-hash
                    , Stream
                    , tasty
