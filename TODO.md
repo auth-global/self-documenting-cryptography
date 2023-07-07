@@ -2,31 +2,13 @@
 
 1. Finish the seguid-protocol-v1 initialization vector & standard public interface
 
-2.  Parameterize "OrpheanBeholderScryDoubt" in the bcrypt binding?
-
-    `bcrypt\_pbkdf` uses "OxychromaticBlowfishSwatDynamite".  Need to check
-    that parameterizing this string really would result in a binding that could
-    conceivably be used to implement both standard bcrypt and this variant.
-
-    Although the G3P could choose a longer string, perhaps
-    "GlobalPasswordPrehashProtocolG3P", any high-level protocol should
-    specify a constant plaintext string. This is because allowing this string
-    to be chosen after seeing the other inputs allows collisions to be trivially
-    constructed. An opaquely-chosen parameter allows the chooser to plant an
-    "easter egg", a single (possibly secret) value for which the resulting
-    hash function returns whatever the chooser wants. Thus this parameter
-    needs to be a sufficiently "nothing up my sleeve" value that doesn't
-    repeat any sequence of 8 aligned bytes.
-
-    This string does seem to have some cryptoacoustic properties, but not
-    strong enough to concern oneself about turning into a parameterizable
-    tag, especially in light of the gotchas above.
-
-## API documentation TODOs:
+## API Documentation TODOs:
 
 1.  HKDF
 
 2.  seguid-protocol
+
+3.  update design documents to reflect new (and likely final) padding design
 
 ## Testing TODOs:
 
@@ -40,7 +22,7 @@
 
 3.  Write a test suite for Crypto.G3P.BCrypt
 
-4.  Test cases for G3P and PHKDF are very incomplete
+4.  Test cases for G3P are very incomplete, PHKDF could use more as well.
 
     The quality of common implementations will limit how robust the G3P will ultimately prove to be in practice. Given the data format complexity exhibited by this design, a comprehensive, carefully curated test suite is very much required.
 
