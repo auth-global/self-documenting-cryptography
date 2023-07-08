@@ -8,6 +8,7 @@ module Crypto.Encoding.SHA3.TupleHash
   , leftEncodeFromBytes
   , encodeString
   , encodedByteLength
+  , encodedVectorByteLength
   , bareEncodeZero
   , bareEncodeInteger
   , bareEncodeIntegerFromBytes
@@ -27,6 +28,7 @@ import Data.Monoid((<>))
 import Data.ByteString(ByteString)
 import qualified Data.ByteString as B
 import Data.Bits
+import Data.List(foldl')
 import Data.Word
 import Math.NumberTheory.Logarithms(integerLog2)
 
@@ -116,6 +118,8 @@ encodeString bytes
 encodedByteLength :: ByteString -> Int
 encodedByteLength (B.length -> n) = lengthOfLeftEncode n + n
 
+encodedVectorByteLength :: Foldable f => f ByteString -> Int
+encodedVectorByteLength = foldl' (\a x -> a + encodedByteLength x) 0
 
 {--
 encodeBitString :: Word8 -> ByteString -> [ByteString]

@@ -5,7 +5,7 @@ module Crypto.Encoding.PHKDF where
 import Data.Monoid((<>))
 import Data.Bits(Bits, (.&.))
 import Data.ByteString(ByteString)
-import Data.Foldable(Foldable, foldl')
+import Data.Foldable(Foldable)
 import qualified Data.ByteString as B
 import Crypto.Encoding.SHA3.TupleHash
 
@@ -54,17 +54,40 @@ addWhileLt a b c
 
 --}
 
--- | @addWhileLt b c@ is equivalent to  @while (b < c) { b += 64 }; return b@
+-- | @add64WhileLt b c@ is equivalent to  @while (b < c) { b += 64 }; return b@
 
 add64WhileLt :: (Ord a, Num a, Bits a) => a -> a -> a
 add64WhileLt b c
    | b >= c = b
    | otherwise = c + ((b - c) .&. 63)
 
-shortPadding :: Foldable f => f ByteString -> ByteString -> ByteString
-shortPadding creds = cycleByteStringWithNull n
-  where encLen = encodedVectorByteLength creds
-        n = 95 - (encLen `mod` 64)
+usernamePadding :: Foldable f => f ByteString -> ByteString -> ByteString
+usernamePadding headerExtract domainTag
+  =  cycleByteStringWithNull (a-32) domainTag
+  <> cycleByteStringWithNull    32  domainTag
+  where
+    al = encodedVectorByteLength headerExtract
+    a  = add64WhileLt (157 - al) 32
 
-encodedVectorByteLength :: Foldable f => f ByteString -> Int
-encodedVectorByteLength = foldl' (\a x -> a + encodedByteLength x) 0
+passwordPaddingBytes :: Foldable f => Int -> f ByteString -> f ByteString -> ByteString -> ByteString -> ByteString -> ByteString
+passwordPaddingBytes bytes headerUsername headerLongTag longTag domainTag password
+  =  cycleByteStringWithNull (c-32) longTag
+  <> cycleByteStringWithNull    32  domainTag
+  where
+    al = encodedVectorByteLength headerLongTag
+    a  = add64WhileLt (bytes - al) 3238
+    bl = encodedVectorByteLength headerUsername
+    b  = add64WhileLt (a - bl) 134
+    cl = encodedByteLength password
+    c  = add64WhileLt (b - cl) 32
+
+passwordPadding :: Foldable f => f ByteString -> f ByteString -> ByteString -> ByteString -> ByteString -> ByteString
+passwordPadding = passwordPaddingBytes 8413
+
+credentialsPadding :: Foldable f => f ByteString -> ByteString -> ByteString -> ByteString
+credentialsPadding credentials longTag domainTag
+  =  cycleByteStringWithNull (a-29) longTag
+  <> cycleByteStringWithNull    29  domainTag
+  where
+    al = encodedVectorByteLength credentials
+    a  = add64WhileLt (122 - al) 32

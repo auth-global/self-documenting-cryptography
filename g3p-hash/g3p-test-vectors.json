@@ -157,4 +157,78 @@
     "results":{
         "G3Pb1":"1ba6ea371aefb233c8fd02ab8782a0dab3fd8fb7b0a732aadb6884eff9f3949d358ea820fe368744891a11a63ec68fcad3989005b74daee06bae4758bfaff054"
     }
+},{
+    "name":"password padding",
+    "args":{
+        "username":"tests with very long inputs",
+        "password":"back references",
+        "domain-tag":"your-domain-name-here.example",
+        "long-tag":{"ref":"prehash first light, elaborated","len":5114},
+        "phkdf-rounds":255,
+        "bcrypt-rounds":15,
+        "bcrypt-tag":"",
+        "bcrypt-salt-tag":""
+    },
+    "results":[
+        {"G3Pb1":"16d74ecc78efab04d0ce7e7d455a80582c35dd19b9970c2e450e5d65aafe525e"
+        },
+        {"args":{"long-tag":{"ref":"prehash first light, elaborated","len":5115}},
+         "G3Pb1":"5c2b7f742efd51b5bb2b4a13565b9fb0f89b3d5d96a578490d7b64e3f123a341"
+        },
+        {"args":{
+            "username":{
+                "ref":"prehash unicode test, lightly extended on top",
+                "len":3077
+            }},
+         "G3Pb1":"4c7cfe84466018cdfa5cd8c80fa8cec1d045b84577afb443b63f95690c87b054"
+        },
+        {"args":{
+            "username":{
+                "ref":"prehash unicode test, lightly extended on top",
+                "len":3078
+            }},
+         "G3Pb1":"c39c79a635f0da26098982b8d2c2b8b6209b62dc5b4f82ab6e543a97fb44efd8"
+        },
+        {"args":{
+            "username":{
+                "ref":"prehash unicode test, lightly extended on top",
+                "len":3077
+            },
+            "password":{
+                "ref":"prehash unicode test, inset naval story with a reference",
+                "len":96,
+                "index":1
+            }},
+         "G3Pb1":"a0b22d52117209c9146da5a8615624d583a87a5d89f09f65b45dddfad725047d"
+        },
+        {"args":{
+            "username":{
+                "ref":"prehash unicode test, lightly extended on top",
+                "len":3077
+            },
+            "password":{
+                "ref":"prehash unicode test, inset naval story with a reference",
+                "len":97,
+                "index":1
+            }},
+         "G3Pb1":"c41554c9fd9d426f9425c0c6f5df349c41fd55a80d649c37b03908aae9fcd4b6"
+        },
+        {"args":{
+            "long-tag":{"ref":"prehash first light, elaborated","len":5051},
+            "username":{
+                "ref":"prehash unicode test, lightly extended on top",
+                "len":3141
+            }},
+         "G3Pb1":"5c66656d9d7aeaa36df229134d8129318737b947035e6ff6bab7936aaf3f8c0b"
+        },
+        {"args":{
+            "long-tag":{"ref":"prehash first light, elaborated","len":5051},
+            "username":{
+                "ref":"prehash unicode test, lightly extended on top",
+                "len":3142
+            }},
+         "G3Pb1":"3868f1b6fa1f37c6f141870adc0ed4a6ec5cf86fe1dd410daa49eff04a49d0b6"
+        }
+
+    ]
 }]

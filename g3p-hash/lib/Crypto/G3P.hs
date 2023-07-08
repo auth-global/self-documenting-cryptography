@@ -114,7 +114,9 @@ import           Crypto.Encoding.PHKDF
                     ( add64WhileLt
                     , cycleByteStringWithNull
                     , expandDomainTag
-                    , encodedVectorByteLength
+                    , usernamePadding
+                    , passwordPaddingBytes
+                    , credentialsPadding
                     )
 import           Crypto.Encoding.SHA3.TupleHash
 import           Crypto.PHKDF.Primitives
@@ -332,18 +334,9 @@ g3pHash_seedInit block args =
 
     phkdfTag = expandDomainTag domainTag
 
-    cycleBS = cycleByteStringWithNull
-
     headerAlfa = [ "G3Pb1 alfa username", username ]
 
-    usernamePadding
-      =  cycleBS (a-32) domainTag
-      <> cycleBS    32  domainTag
-      where
-        al = encodedVectorByteLength headerAlfa
-        a = add64WhileLt (157 - al) 32
-
-    headerAlfaUsername = headerAlfa ++ [ usernamePadding ]
+    headerUsername = headerAlfa ++ [ usernamePadding headerAlfa domainTag ]
 
     -- password will go here
 
@@ -359,25 +352,11 @@ g3pHash_seedInit block args =
         ]
       ]
 
-    longPadding
-      =  cycleBS (d-32) longTag
-      <> cycleBS    32  domainTag
+    longPadding = passwordPaddingBytes
+        bytes headerUsername headerLongTag longTag domainTag password
       where
-        al = encodedVectorByteLength bcryptHeader
-        a  = add64WhileLt (8413 - al) 8295
-        bl = encodedVectorByteLength headerLongTag
-        b  = add64WhileLt (a - bl) 3239
-        cl = encodedVectorByteLength headerAlfaUsername
-        c  = add64WhileLt (b - cl) 139
-        dl = encodedByteLength password
-        d  = add64WhileLt (c - dl) 32
-
-    credentialsPadding
-      =  cycleBS (a-29) bcryptTag
-      <> cycleBS    29  domainTag
-      where
-        al = encodedVectorByteLength credentials
-        a  = add64WhileLt (122 - al) 32
+        bl = encodedVectorByteLength bcryptHeader
+        bytes  = add64WhileLt (8413 - bl) 8295
 
     headerBravo = "G3Pb1 bravo\x00" <> domainTag
 
@@ -385,7 +364,7 @@ g3pHash_seedInit block args =
 
     secretStream =
         phkdfCtx_initFromHmacKey seguidKey &
-        phkdfCtx_addArgs headerAlfaUsername &
+        phkdfCtx_addArgs headerUsername &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArg  password &
         phkdfCtx_addArgs bcryptHeader &
@@ -394,7 +373,7 @@ g3pHash_seedInit block args =
         phkdfCtx_addArg  longPadding &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArgs credentials &
-        phkdfCtx_addArg  credentialsPadding &
+        phkdfCtx_addArg (credentialsPadding credentials bcryptTag domainTag) &
         phkdfCtx_assertBufferPosition' 29 &
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &

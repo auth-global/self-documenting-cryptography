@@ -236,19 +236,9 @@ phkdfSimple block args = echo
 
     phkdfTag = expandDomainTag domainTag
 
-    cycleBS = cycleByteStringWithNull
-
     headerExtract = [ "phkdf-simple0 username", username ]
 
-    usernamePadding
-      =  cycleBS (a-32) domainTag
-      <> cycleBS    32  domainTag
-      where
-        al = encodedVectorByteLength headerExtract
-        a = add64WhileLt (157 - al) 32
-
-    headerExtractUsername = headerExtract ++ [ usernamePadding ]
-
+    headerUsername = headerExtract ++ [ usernamePadding headerExtract domainTag ]
     -- password field goes here
 
     headerLongTag =
@@ -260,35 +250,17 @@ phkdfSimple block args = echo
         ]
       ]
 
-    longPadding
-      =  cycleBS (c-32) longTag
-      <> cycleBS    32  domainTag
-      where
-        al = encodedVectorByteLength headerLongTag
-        a  = add64WhileLt (8413 - al) 3238
-        bl = encodedVectorByteLength headerExtractUsername
-        b  = add64WhileLt (a - bl) 134
-        cl = encodedByteLength password
-        c  = add64WhileLt (b - cl) 32
-
-    credentialsPadding
-      =  cycleBS (a-29) longTag
-      <> cycleBS    29  domainTag
-      where
-        al = encodedVectorByteLength credentials
-        a  = add64WhileLt (122 - al) 32
-
     secretKey =
         phkdfCtx_init seguid &
-        phkdfCtx_addArgs headerExtractUsername &
+        phkdfCtx_addArgs headerUsername &
         phkdfCtx_assertBufferPosition 32 &
         phkdfCtx_addArg  password &
         phkdfCtx_addArgs headerLongTag &
-        -- FIXME: fusing addArg and longPadding can save ~ 8 KiB RAM
-        phkdfCtx_addArg  longPadding &
+        -- FIXME: fusing addArg and passwordPadding can save ~ 8 KiB RAM
+        phkdfCtx_addArg (passwordPadding headerUsername headerLongTag longTag domainTag password) &
         phkdfCtx_assertBufferPosition 32 &
         phkdfCtx_addArgs credentials &
-        phkdfCtx_addArg  credentialsPadding &
+        phkdfCtx_addArg (credentialsPadding credentials longTag domainTag) &
         phkdfCtx_assertBufferPosition 29 &
         phkdfCtx_addArgs tags &
         phkdfCtx_addArg (bareEncode (V.length tags)) &
@@ -348,18 +320,9 @@ phkdfPass_seedInit block args =
 
     phkdfTag = expandDomainTag domainTag
 
-    cycleBS = cycleByteStringWithNull
-
     headerExtract = [ "phkdf-pass-v0 username", username ]
 
-    usernamePadding
-      =  cycleBS (a-32) domainTag
-      <> cycleBS    32  domainTag
-      where
-        al = encodedVectorByteLength headerExtract
-        a = add64WhileLt (157 - al) 32
-
-    headerExtractUsername = headerExtract ++ [ usernamePadding ]
+    headerUsername = headerExtract ++ [ usernamePadding headerExtract domainTag ]
 
     -- password field goes here
 
@@ -372,37 +335,19 @@ phkdfPass_seedInit block args =
         ]
       ]
 
-    longPadding
-      =  cycleBS (c-32) longTag
-      <> cycleBS    32  domainTag
-      where
-        al = encodedVectorByteLength headerLongTag
-        a  = add64WhileLt (8413 - al) 3238
-        bl = encodedVectorByteLength headerExtractUsername
-        b  = add64WhileLt (a - bl) 134
-        cl = encodedByteLength password
-        c  = add64WhileLt (b - cl) 32
-
-    credentialsPadding
-      =  cycleBS (a-29) longTag
-      <> cycleBS    29  domainTag
-      where
-        al = encodedVectorByteLength credentials
-        a  = add64WhileLt (122 - al) 32
-
     seguidKey = hmacKey_init seguid
 
     secret =
         phkdfCtx_initFromHmacKey seguidKey &
-        phkdfCtx_addArgs headerExtractUsername &
+        phkdfCtx_addArgs headerUsername &
         phkdfCtx_assertBufferPosition 32 &
         phkdfCtx_addArg  password &
         -- FIXME: fusing addArg and longPadding can save ~ 8 KiB RAM
         phkdfCtx_addArgs headerLongTag &
-        phkdfCtx_addArg  longPadding &
+        phkdfCtx_addArg  (passwordPadding headerUsername headerLongTag longTag domainTag password) &
         phkdfCtx_assertBufferPosition 32 &
         phkdfCtx_addArgs credentials &
-        phkdfCtx_addArg  credentialsPadding &
+        phkdfCtx_addArg (credentialsPadding credentials longTag domainTag) &
         phkdfCtx_assertBufferPosition 29 &
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
