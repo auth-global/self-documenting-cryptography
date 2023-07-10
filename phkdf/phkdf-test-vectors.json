@@ -166,60 +166,101 @@
         "username":"tests with very long inputs",
         "password":"back references",
         "domain-tag":"your-domain-name-here.example",
-        "long-tag":{"ref":"phkdf first light","len":5114},
+        "long-tag":{"ref":"phkdf first light","len":5112},
         "rounds":255
     },
     "results":[
-        {"phkdf-pass":"1e7e1642f35c7f02a1f78d88816b6257d76485fde6a9f11372c47e9fdcdc8874",
-         "phkdf-simple":"881108b5937b4929dec4feb063c181b35c1593a0a78e9f0af04598fea8eda1b9"},
-        {"args":{"long-tag":{"ref":"phkdf first light","len":5115}},
-         "phkdf-pass":"c302d16cee97f33ae724500ca85899f48dc31432987d4ea626a8b2d62902db58",
-         "phkdf-simple":"606f593753270695ea0573075ca6617ffc21c488a3197edd412ec31564ef4f13"},
+        {"phkdf-pass":"ef9919af56a107bd7b859213d9059e1fc1fd789acf5403d2eec2dfbdb310db20",
+         "phkdf-simple":"0e57417b241d403417e25863471a078def0ca3c574958c8ebb027fe16c2402f0"},
+        {"args":{"long-tag":{"ref":"phkdf first light","len":5113}},
+         "phkdf-pass":"d870c816505224bcf512baba069bf33a0accafc8da4f97cb740ab66baef89603",
+         "phkdf-simple":"c7044db80a295e16383e6dd7b2052625908333e25dd6ef673d443d9c3bd46863"},
         {"args":{
             "username":{
                 "ref":"phkdf unicode test, lightly extended on top",
-                "len":3074,
+                "len":3042,
                 "algorithm":"phkdf-simple"
             }},
-         "phkdf-pass":"d6f1761f42528063010f0d246ba86b832db4d34c13debb73dd0d6bd39623a28e",
-         "phkdf-simple":"ab32da82d7ae70c1eb8b9b828c32b454d2f56b8e97a1d3c11ad766bc2291c641"
+         "phkdf-pass":"1830f46f06ffb86c46652dae0e70346544abef7771e998266df6ae99b3aee055",
+         "phkdf-simple":"8246d3b474f3232e6e6672cceff7e2ffaa48588b125819f360f4f2a5eaf4f270"
         },
         {"args":{
             "username":{
                 "ref":"phkdf unicode test, lightly extended on top",
-                "len":3075,
+                "len":3043,
                 "algorithm":"phkdf-simple"
             }},
-         "phkdf-pass":"37edc7f645732d326e60d15ac4bae69cd8fb621651cbfc3fa6c691d61be8641b",
-         "phkdf-simple":"d11704959ed6a634ddcb4f7a3477cbed092b3fddfedc97ad0d203f67a9a54348"
+         "phkdf-pass":"fb0610e934cd7c2d75364f72fa5ffd21cd0f87c3e57d16c2e74079e8b2fc84dc",
+         "phkdf-simple":"65acc9e33e126284b948bebc20aeed841743e1d9746e70f3b18dc6fca9e4e0f1"
         },
         {"args":{
             "username":{
                 "ref":"phkdf unicode test, lightly extended on top",
-                "len":3074,
+                "len":3042,
                 "algorithm":"phkdf-simple"
             },
             "password":{
                 "ref":"phkdf unicode test, inset naval story with a reference",
-                "len":96,
+                "len":101,
                 "index":1
             }},
-         "phkdf-pass":"7d5a5deb6c358bff1fed12dcc1f1e40bd1cf15a8b242d008a7d91eda6ddba8fe",
-         "phkdf-simple":"eaa576b3ef1a55776260e4a8b9138c3813ecff7e31c687f2ed94f2f50ac6a6dd"
+         "phkdf-pass":"9c9548e5a4f0738753da6c47e18118b06fc18ccdaaa688a854c38f4a6ac2e899",
+         "phkdf-simple":"fb1ef65457398de981df644c2402749e31fac6be291f988a757a086b2ff82a4f"
         },
         {"args":{
             "username":{
                 "ref":"phkdf unicode test, lightly extended on top",
-                "len":3074,
+                "len":3042,
                 "algorithm":"phkdf-simple"
             },
             "password":{
                 "ref":"phkdf unicode test, inset naval story with a reference",
-                "len":97,
+                "len":102,
                 "index":1
             }},
-         "phkdf-pass":"aa0b8c7855be0adddb86b9712a11252a0d90af4f3a7832110aa8af9e4b9e5fee",
-         "phkdf-simple":"d2c6ff0318f5af28bbb42e1a09f488116d1d70452d92fdcce0af58c752923222"
+         "phkdf-pass":"a9ed9707a1bb7ebe399fe538331ff787156699c1d7673280988ed50b1499ce76",
+         "phkdf-simple":"a64035fd366f5eb04e6db1ecded19675c23952fbf6c8055809c968988334b0a8"
+        },
+        {"args":{
+            "long-tag":{"ref":"phkdf first light, elaborated","len":5049},
+            "username":{
+                "ref":"phkdf unicode test, lightly extended on top",
+                "len":3106,
+                "algorithm":"phkdf-simple"
+            }
+           },
+         "phkdf-pass":"216b3d9e1672c1be68c88b232ec965e5976b8549754c1ebb00fda697efda185c",
+         "phkdf-simple":"2b9bb05f8049dab85727f0c1b41ffe6c1e1c9dd4e144636bdb97538a7c87a454"
+        },
+        {"args":{
+            "long-tag":{"ref":"phkdf first light, elaborated","len":5049},
+            "username":{
+                "ref":"phkdf unicode test, lightly extended on top",
+                "len":3106,
+                "algorithm":"phkdf-simple"
+            },
+            "password":{
+                "ref":"phkdf unicode test, inset naval story with a reference",
+                "len":164,
+                "index":1
+            }},
+         "phkdf-pass":"427e4994fcd44c155acabfa2fc4f55a1fe5e6f9b8dd7a2da7fcaf3ad06c7a795",
+         "phkdf-simple":"fe764427d4399f6026d11af966b6fe3cbc1106d62b851d3c7b0bf09be818dbbe"
+        },
+        {"args":{
+            "long-tag":{"ref":"phkdf first light, elaborated","len":5049},
+            "username":{
+                "ref":"phkdf unicode test, lightly extended on top",
+                "len":3106,
+                "algorithm":"phkdf-simple"
+            },
+            "password":{
+                "ref":"phkdf unicode test, inset naval story with a reference",
+                "len":165,
+                "index":1
+            }},
+         "phkdf-pass":"e079486ca839ba0a32e2254d2eb1edd78d434d9332f8874ab88c86bc963a66dd",
+         "phkdf-simple":"f06a54c150f73ce1ecc45ed796a84843bd2661ca84bf5006cba2f13bdc1f2cba"
         }
     ]
 }]

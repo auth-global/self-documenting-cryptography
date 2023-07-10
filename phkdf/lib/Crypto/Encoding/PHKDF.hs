@@ -9,6 +9,8 @@ import Data.Foldable(Foldable)
 import qualified Data.ByteString as B
 import Crypto.Encoding.SHA3.TupleHash
 
+import Debug.Trace
+
 -- FIXME: several functions in here have opportunites for optimization
 
 cycleByteStringToList :: Int -> ByteString -> [ByteString]
@@ -61,6 +63,12 @@ add64WhileLt b c
    | b >= c = b
    | otherwise = c + ((b - c) .&. 63)
 
+add64WhileLt' :: (Ord a, Num a, Bits a, Show a) => a -> a -> a
+add64WhileLt' b c
+   | b >= c = b
+   | otherwise = let d = c + ((b - c) .&. 63)
+                  in trace (show b ++ " -> " ++ show d) d
+
 usernamePadding :: Foldable f => f ByteString -> ByteString -> ByteString
 usernamePadding headerExtract domainTag
   =  cycleByteStringWithNull (a-32) domainTag
@@ -75,9 +83,9 @@ passwordPaddingBytes bytes headerUsername headerLongTag longTag domainTag passwo
   <> cycleByteStringWithNull    32  domainTag
   where
     al = encodedVectorByteLength headerLongTag
-    a  = add64WhileLt (bytes - al) 3238
+    a  = add64WhileLt (bytes - al) 3240
     bl = encodedVectorByteLength headerUsername
-    b  = add64WhileLt (a - bl) 134
+    b  = add64WhileLt (a - bl) 136
     cl = encodedByteLength password
     c  = add64WhileLt (b - cl) 32
 

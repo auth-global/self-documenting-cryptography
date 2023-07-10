@@ -163,71 +163,79 @@
         "username":"tests with very long inputs",
         "password":"back references",
         "domain-tag":"your-domain-name-here.example",
-        "long-tag":{"ref":"prehash first light, elaborated","len":5114},
+        "long-tag":{"ref":"prehash first light, elaborated","len":5112},
         "phkdf-rounds":255,
         "bcrypt-rounds":15,
         "bcrypt-tag":"",
         "bcrypt-salt-tag":""
     },
     "results":[
-        {"G3Pb1":"16d74ecc78efab04d0ce7e7d455a80582c35dd19b9970c2e450e5d65aafe525e"
+        {"G3Pb1":"e967793d28f8fd53c29766bd7b786b8e244c7ab8115f76ca6a0aba904c4f00c9"
         },
-        {"args":{"long-tag":{"ref":"prehash first light, elaborated","len":5115}},
-         "G3Pb1":"5c2b7f742efd51b5bb2b4a13565b9fb0f89b3d5d96a578490d7b64e3f123a341"
+        {"args":{"long-tag":{"ref":"prehash first light, elaborated","len":5113}},
+         "G3Pb1":"e3dc549010e7082e2349e60b51e2124462077a6fa105840f7de507dc263bfc7b"
         },
         {"args":{
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3077
+                "len":3045
             }},
-         "G3Pb1":"4c7cfe84466018cdfa5cd8c80fa8cec1d045b84577afb443b63f95690c87b054"
+         "G3Pb1":"058e0286614d24b39d7e7b805abb49b931dd0584150ed44c807a11b967691384"
         },
         {"args":{
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3078
+                "len":3046
             }},
-         "G3Pb1":"c39c79a635f0da26098982b8d2c2b8b6209b62dc5b4f82ab6e543a97fb44efd8"
+         "G3Pb1":"3f97ae12ba8bb530ff542c06fcdaf529c685a751438425420aef7df47dbc9f4f"
         },
         {"args":{
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3077
+                "len":3045
             },
             "password":{
                 "ref":"prehash unicode test, inset naval story with a reference",
-                "len":96,
+                "len":101,
                 "index":1
             }},
-         "G3Pb1":"a0b22d52117209c9146da5a8615624d583a87a5d89f09f65b45dddfad725047d"
+         "G3Pb1":"722dc391994103c9580f7909e76163c2017dfcb3106f384b4e8feb6c21cb8996"
         },
         {"args":{
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3077
+                "len":3045
             },
             "password":{
                 "ref":"prehash unicode test, inset naval story with a reference",
-                "len":97,
+                "len":102,
                 "index":1
             }},
-         "G3Pb1":"c41554c9fd9d426f9425c0c6f5df349c41fd55a80d649c37b03908aae9fcd4b6"
+         "G3Pb1":"c9ec77d4a75fdd71adfbf56f3e3d0c4c2941d782205d3737ff51fb421e2b42b3"
         },
         {"args":{
-            "long-tag":{"ref":"prehash first light, elaborated","len":5051},
+            "long-tag":{"ref":"prehash first light, elaborated","len":5049},
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3141
+                "len":3109
+            },
+            "password":{
+                "ref":"prehash unicode test, inset naval story with a reference",
+                "len":164
             }},
-         "G3Pb1":"5c66656d9d7aeaa36df229134d8129318737b947035e6ff6bab7936aaf3f8c0b"
+         "G3Pb1":"9bc27aada706b3f0e226e85f2edfc6a73ccb3df2bcc0454a077817636c9fee97"
         },
         {"args":{
-            "long-tag":{"ref":"prehash first light, elaborated","len":5051},
+            "long-tag":{"ref":"prehash first light, elaborated","len":5049},
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3142
+                "len":3109
+            },
+            "password":{
+                "ref":"prehash unicode test, inset naval story with a reference",
+                "len":165
             }},
-         "G3Pb1":"3868f1b6fa1f37c6f141870adc0ed4a6ec5cf86fe1dd410daa49eff04a49d0b6"
+         "G3Pb1":"dc17acf59ee1f72a84c40d7a0382a92bc2008a5abe3478c81f9aa9b935cefd9d"
         }
 
     ]
