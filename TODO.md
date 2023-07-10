@@ -22,7 +22,7 @@
 
 3.  Write a test suite for Crypto.G3P.BCrypt
 
-4.  Test cases for G3P are very incomplete, PHKDF could use more as well.
+4.  Test cases for G3P and PHKDF are incomplete
 
     The quality of common implementations will limit how robust the G3P will ultimately prove to be in practice. Given the data format complexity exhibited by this design, a comprehensive, carefully curated test suite is very much required.
 
@@ -30,7 +30,7 @@
 
     Go through the design.  Any time there's conditionals, modular arithmetic, encoding of nonnegative integers, etc, make sure there's reasonably comprehensive test coverage on every code location. Fortunately the G3P never ever makes a decision based on anything more than the length of the parameters, so this is largely a matter of choosing the right lengths for the right parameters to achieve the test coverage desired.
 
-    For this reason, we should probably add something along the lines of cycleByteString to the json syntax of the test suite
+    For this reason, I added backreferences to allow large input lengths to be compactly specified.  I've started to include reasonable test vector coverage of the password padding function. There's more to do. Also curious how difficult it would be to use AFL-like fuzzing technologies to evolve a more complete, compact collection of test vectors.
 
 5.  Write the API documentation into a test suite
 
