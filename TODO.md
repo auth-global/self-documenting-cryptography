@@ -10,6 +10,8 @@
 
 3.  edit and polish design documents
 
+    * finish section on deployment considerations
+
 ## Testing TODOs:
 
 (roughly in ascending order of difficulty)
