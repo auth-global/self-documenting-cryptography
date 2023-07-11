@@ -8,7 +8,7 @@
 
 2.  seguid-protocol
 
-3.  update design documents to reflect new (and likely final) padding design
+3.  edit and polish design documents
 
 ## Testing TODOs:
 
