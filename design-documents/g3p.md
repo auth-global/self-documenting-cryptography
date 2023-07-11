@@ -222,7 +222,7 @@ In our context, the security goal of a tagging construction is this: if an obser
 
 Our security model comes into play only after a password hash has been _stolen_. If an observer is a legitimate user, the benefits of these tagging constructions are far more robust. Deploying a hypothetical tag obscuration attack against a legitimate user would provide nonexistent, dubious, or minor secondary benefits to an attacker. This is because an attacker who can alter the user's authenticator will be able to lie about the tag, and won't need a cryptographic attack to do so! In many common cases it would also be trivial to simply steal the plaintext password directly.  Passwords are replayable if you get close enough to the source!
 
-All of but one of the self-documenting constructions in this paper revolve around the following two plausible understandings of HMAC. The exception is the last self-documenting construction introduced, which depends on the plausible understanding that every bit of bcrypt's fixed-length input parameters is a directly self-documenting tag, assuming a sufficient number of input bits are somehow derived from observer input.
+The self-documenting constructions used in this paper primarily revolve around the following plausible understanding of the cryptoacoustic properties of HMAC:
 
 ```
 HMAC-SHA256 (
@@ -231,18 +231,41 @@ HMAC-SHA256 (
        || derived-from-observer-input
        || long-tag
   )
+```
 
+Tags that appear after user input are plausibly secure plaintext tags with no caveats. One of these long tags is capable of directly conveying an arbitrarily long plaintext message to an observer without relying on external means, because we are encoding our message into the cryptographic state changes of the standard algorithm that computes SHA256.
+
+In order for an attacker to defeat a long tag, they would have to provide a virtual black-box obfuscated algorithm to an observer that enables `SHA256 (x || long-tag)` to be computed for arbitrary `x` chosen by the observer, using any compatible hardware of the observer's choice and under their direct control, while securely hiding the plaintext of the `long-tag` from the observer. This implementation would have to provide quite an exotic algorithm for computing SHA256, because observing the internal workings of the standard algorithm trivially reveals the plaintext of the tags our attacker wishes to obscure.
+
+This observation applies not only to the entire the SHA-2 family of functions.  Suffixing is a also a plausibly secure plaintext tagging construction when instantiated with Blake2, SHA-3, Ascon, and all hash functions based on the sponge construction. I've not done an extensive survey of alteratives beyond these, but I am not specifically aware of a cryptographic hash function for which this observation is untrue.  Even if SHA256 turns out to be a less than ideal choice for this construction, it is at least possible that other cryptographic hash functions are more suitable for various cryptoacoustically secure tagging constructions.
+
+Thus the G3P also uses bcrypt in a self-documenting mode of operation to supplement the primary crypoacoustic construction,  with the understanding that every bit of bcrypt's two 72-byte inputs is a cryptoacoustic plaintext tag under the assumption that a sufficient number of bytes has been derived from observer input.
+
+Futhermore, the expansion phase of all the PHKDF-based protocols relies on a slight variant of our primary understanding, where the entire hmac message must be known to an observer if they provide the key:
+
+```
 HMAC-SHA256 (
     key = derived-from-observer-input
     msg = long-tag
   )
 ```
 
-Tags that appear after user input, or are part of any message that is HMAC'd with a key derived from observer input, are plausibly secure plaintext tags with no caveats. One of these long tags is capable of directly conveying an arbitrarily long plaintext message to an observer without relying on external means, because we are encoding our message in the internal workings of the standard algorithm that computes SHA256.
+The main limitation of a short HMAC tag is that it must be substantially shorter
+than one block (64 bytes in the case of SHA256) to ensure that the first block
+processed contains the first cryptoacoustic repetition of the `indirect-tag` and observer-derived input so that the observer must compute that SHA256 block themselves and cannot be provided with a precomputed block.  Our final protocols basically limit the use of this exact construct as protocol-identifying domain seperation constants.
 
-In order for an attacker to defeat a long tag, they would have to provide a virtual black-box obfuscated algorithm to an observer that enables `SHA256 (x || long-tag)` to be computed for arbitrary `x` chosen by the observer, using any compatible hardware of the observer's choice and under their direct control, while securely hiding the plaintext of the `long-tag` from the observer. This implementation would have to provide quite an exotic algorithm for computing SHA256, because observing the internal workings of the standard algorithm trivially reveals the plaintext of the tags our attacker wishes to obscure.
+However, our final padding design employs a slight extension of the short tag construction to ensure that whomever computes the SHA256 blocks where certain parameters are located in the overall protocol must know those short tags.
 
-This observation applies not only to the entire the SHA-2 family of functions.  Suffixing is a also a plausibly secure plaintext tagging construction when instantiated with Blake2, SHA-3, Ascon, and all hash functions based on the sponge construction. I've not done an extensive survey of alteratives beyond these, but I am not specifically aware of a cryptographic hash function for which this observation is untrue.  Even if SHA256 turns out to be a less than ideal choice for this construction, it is at least possible that other cryptographic hash functions are more suitable for various secure tagging constructions.
+```
+HMAC-SHA256 (
+    key = indirect-tag
+    msg = length-is-exact-multiple-of-64
+       || short-tag
+       || encoded-parameter-blocks
+       || long-tag
+  )
+
+```
 
 With the help of Self-documenting Globally Unique Identifiers (seguids), HMAC keys are indirectly usable as tags. Indirect tags cannot be used to convey a plaintext message without the help of external means, such as openly-published seguids and reverse-lookup search engines.
 
@@ -383,8 +406,8 @@ PHKDF-SLOW-EXTRACT-HMAC-SHA256 : (
     tag  : BitString,
     ctr  : Word32 = decode_be32("go\x00\x00") + 2023,
     tags : Vector<BitString> = [],
-    fn-name : BitString = "phkdf-slow-extract-v0"
-    rounds  : Word32 = 250000,
+    fn-name : BitString = "phkdf-slow-extract-v0",
+    rounds  : Word32 = 250000
   ) -> UnboundedByteStream =
 
 secretStream = PHKDF-STREAM-HMAC-SHA256 (
@@ -394,34 +417,24 @@ secretStream = PHKDF-STREAM-HMAC-SHA256 (
     tag  = tag
   )
 
-// compute the length of the main parameter
-
 phkdfLen = (rounds + 1) * 512
 
-// compute the number of bytes that it will take to left_encode that length
+phkdfLenTag = leftEncode(phkdfLen)
 
-phkdfLenLen = floorLogBase(phkdfLen,256) + 2
-
-// now, we want to put the ending of the second parameter's length tag on a half-block boundary
-// so now we need to calculate how long the first parameter is needs to be by taking 32 minus
-// the number of bytes the comprise the length fields for the first and second parameters
-
-extFnNameLen = 32 - 2 - phkdfLenLen
+extFnNameLen = 32 - 2 - byte-length(phkdfLenTag)
 
 extFnName = cycle-bitstring-with-null(extFnNameLen, fn-name)
 
 fillerTag = cycle-bitstring-with-null(32, tag)
 
-phkdfArg = secretStream.read(bytes = 32)
+phkdfArg = ""
 
-for _ in 1..rounds:
-    phkdfArg ||= fillerTag
+for _ in 0..rounds:
     phkdfArg ||= secretStream.read(bytes = 32)
-
-phkdfArg ||= secretStream.read(bytes = 32)
+    phkdfArg ||= fillerTag
 
 // This must cleanly wrap around from 2^32-1 to 0
-endCtr = ctr + rounds + 2
+endCtr = ctr + rounds + 1
 
 return PHKDF-STREAM-HMAC-SHA256 (
     key  = key
@@ -462,29 +475,47 @@ PHKDF-SIMPLE : (
     rounds : Word32 = 250000
   ) -> UnboundedByteStream =
 
-// used to flush the SHA256 buffer after the username and password:
-
-protoPad = cycle-bitstring-with-null (52, "phkdf-simple-v0 password-hash-key-derivation-function")
-
 phkdfTag = expand-domain-tag(domain-tag)
 
-headerExtract = [
-    "phkdf-simple-v0 extract",
-    username, "username\x00" || protoPad,
-    password, "password\x00" || protoPad,
-    bare-encode(bit-length(domain-tag)),
-    bare-encode(rounds)
+headerExtract = [ "phkdf-simple0 username", username ]
+
+headerUsername = headerExtract || [
+    username-padding(headerExtract, domainTag)
   ]
+
+headerProtocol =
+    "password-hash-key-derivation-function phkdf-simple0\x00"
+    || left-encode(bit-length(domain-tag))
+    || bare-encode(rounds)
+
+headerLongTag = [ long-tag, headerProtocol ]
+
+passwordPad =
+    password-padding (
+        headerUsername,
+        headerLongTag,
+        long-tag,
+        domain-tag,
+        password
+    )
+
+credentialsPad =
+    credentials-padding (
+        credentials,
+        long-tag,
+        domain-tag
+    )
 
 secretKey = PHKDF-SLOW-EXTRACT-HMAC-SHA256 (
     key = seguid,
-    msgs = headerExtract
-        || [ long-tag ]
-        || [ long-padding(headerExtract, long-tag) ]
+    msgs = headerUsername
+        || [ password ]
+        || headerLongTag
+        || [ passwordPad ]
         || credentials
-    || [ short-padding(credentials, domain-tag) ]
+        || [ credentialsPad ]
         || tags
-    || [ encode-vector-length(tags) ]
+        || [ encode-vector-length(tags) ]
     tag = phkdfTag,
     rounds = rounds,
     tags-1x = tags,
@@ -505,11 +536,11 @@ The username and password padding is specifically designed so that the plaintext
 
 Being theoretically able to obscure the username might be useful as a damage-enhancement strategy in a court of law in cases where password hashes are stolen or otherwise disclosed:  somebody who trafficks in stolen hashes can (somewhat) protect the privacy of the usernames of their victims.  Failing to do so says something relevant about the trafficker.  Of course this damage-enhancement strategy is more likely to be meaningful if everybody is aware of the possibility up front, which is a major part of the reason I wrote this paragraph.
 
-The subroutines `encode-vector-length`, `expand-domain-tag`, `pad-to-fixed-length` are introduced in this protocol.  The first is used to unambiguously differentiate between the credential vector and the echo tag vector.  A design principle employed by these prehash protocols is that all the initial parameters must be unambiguously parseable from the initial extraction call to HMAC. This ensures that any change to the initial parameters require a complete recomputation of PHKDF's key stretching.
+The subroutines `encode-vector-length`, `expand-domain-tag`, `username-padding`, `password-padding`, and `credentials-padding` are all introduced in this protocol.  The first is used to unambiguously differentiate between the credential vector and the echo tag vector.  A design principle employed by these prehash protocols is that all the initial parameters must be unambiguously parseable from the initial extraction call to HMAC. This ensures that any change to the initial parameters require a complete recomputation of PHKDF's key stretching.
 
 The use of `encode-vector-length` isn't strictly necessary for avoiding collisions in the overall PHKDF-SIMPLE protocol; however, omitting it would then admit trivial collisions in the initial extraction function by shuffling inputs between the end of the credentials vector and the beginning of the echo-tags vector.  This mean that the overall PHKDF-SIMPLE protocol would then be computable for multiple inputs without redoing the key-stretching computation.
 
-Perhaps it would be unlikely that the ability to cheaply shuffle inputs between these two vectors would be relevant to real deployments of the G3P, but this would still need to be properly documented. So, for the sake of keeping the interface documentation as concise and accurate as possible, and the interface as potent and as generally applicable as possible, we definitely want to avoid this early collision by suffixing the length of the echo-tags vector.
+It would be unlikely that the ability to cheaply shuffle a very specific input between these two vectors would be relevant to real deployments of the G3P, but this would still need to be properly documented. So, for the sake of keeping the interface documentation as concise and accurate as possible, and the interface as potent and as generally applicable as possible, we definitely want to avoid this early collision by suffixing the length of the echo-tags vector.
 
 This design maximizes opportunities for streaming at the cost of requiring an unbounded-lookhead grammar to parse the result. This benefit is likely irrelevant, but this cost is almost certainly irrelevant. However, this choice does imply that the length tag needs to be locatable relative to the end of the overall `msgs` input vector. This is why these protocols always place the tagging vector length in the very last index.
 
@@ -541,58 +572,84 @@ expand-domain-tag : (
     return cycle-bitstring-with-null(n + x, tag)
 ```
 
-The third function, `long-padding`, is used to encode the long tag and harden the username and password fields against timing side-channels.  As a side benefit, it also lands on a specific relative location in the SHA256 buffer.  This property helps harden subsequent arguments to timing side channels.
+The third function, `username-padding`, hides the length of the username input and provides a short plaintext tag for the password input. This short tag ensures that whomever provides the password input must be provided with the first 32 bytes of the domain tag if they are to compute the SHA256 blocks corresponding to the password input themselves. It also has the effect of
+flushing the SHA256 blocks containing the username, and synchronizing the
+relative location of the SHA256 buffer thus masking the length of the password outside those blocks.
+
+```
+username-padding (
+    headerExtract : Vector<BitString>,
+    domain-tag : BitString
+  ) =
+
+  a = 157 - encoded-vector-byte-length(headerExtract)
+
+  while (a < 32)
+     a += 64
+
+  return cycle-bitstring-with-null(a - 32, domain-tag)
+      || cycle-bitstring-with-null(    32, domain-tag)
+```
+
+The fourth function, `password-padding`, is used to harden the username, password, and long-tag against any timing side channels except on multi-kilobyte inputs.  On these extremely long inputs, the overage incurs a cost of one SHA256 block per 64 bytes. This padding also ensures the first 32 bytes of the SHA256 block where the credentials vector starts is filled with the first 32 bytes of the domain tag.  This provides a short plaintext tag for that block, and synchronizes the buffer position.
+
+```
+password-padding (
+    headerUsername : Vector<BitString>,
+    headerLongTag  : Vector<BitString>,
+    long-tag : BitString,
+    domain-tag : BitString,
+    password : BitString,
+    bytes : Int = 8413
+  )
+
+  a = bytes - encoded-vector-byte-length(headerLongTag)
+
+  while (a < 3240)
+    a += 64
+
+  a -= encoded-vector-byte-length(headerUsername)
+
+  while (a < 136)
+    a += 64
+
+  a -= encoded-byte-length(password)
+
+  while (a < 32)
+    a += 64
+
+  return cycle-bitstring-with-null(a - 32, long-tag)
+      || cycle-bitstring-with-null(    32, domain-tag)
+```
+
+The fifth function, `credentials-padding`, comes in between the credentials vector and the tags vector.  It hardens the credential vector against timing side channels, and provides a short tag to the tags vector.  This tag is only 29
+bytes long as to maximize the amount of tagging bytes (0-63) that operate in
+constant time, given that the tags vector is then followed by the end-of-message padding that is built into `PHKDF-STREAM`.
+
+```
+credentials-padding (
+    credentials : Vector<BitString>,
+    long-tag : BitString,
+    domain-tag : BitString
+  )
+  a = 122 - encoded-vector-byte-length(credentials)
+
+  while (a < 32)
+    a += 64
+
+  return cycle-bitstring-with-null(a - 29, long-tag)
+      || cycle-bitstring-with-null(    29, domain-tag)
+```
+
+is used to ensure that whomever provides the password input to the overall protocol must at the very least know the first 32 bytes of the `domain-tag`.
+
+long-padding`, is used to encode the long tag and harden the username and password fields against timing side-channels.  As a side benefit, it also lands on a specific relative location in the SHA256 buffer.  This property helps harden subsequent arguments to timing side channels.
 
 String arguments that have length that is greater than or equal to 32, and less than 8196, require 3 additional bytes to encode their length. To keep the padding length calculations simple, we keep the length of the long padding within this range.
 
 The target total output length of 8312 bytes is used as the `bytes` parameter because it is the largest number such that `n - 128 < 2^13` that is also equivalent to 56 modulo 64.  This was chosen so that both the credentials and tags vectors each have their own 0-63 encoded bytes of constant-time operation.
 
 Assume momentarily that the tags vector is empty: we want to land on the half-buffer boundary (32).  We need to compensate for the number of bytes it takes to encode the vector length of the tags vector (3), the offset generated by encoding the credentials vector and it's padding (34), and the number of bytes it takes to encode the the length of the long-pad (3).  Applying these adjustments, 32 - 3 - 34 - 3 = 56 modulo 64,  thus maximizing phkdf-stream's end-of-message padding whenever the tags vector is empty.
-
-```
-long-padding (
-    header : Vector<BitString>,
-    long-tag : BitString,
-    bytes : PositiveInteger = 8312,
-    minext : PositiveInteger = 2048,
-    minlen : PositiveInteger = 64
-  ) -> ByteString =
-
-  taglen = encoded-byte-length(long-tag)
-
-  extent = bytes - taglen
-
-  while (extent < minext):
-    extent += 64
-
-  enclen = sum(map(encoded-byte-length, header))
-
-  padlen = extent - enclen
-
-  while (padlen < minlen):
-    padlen += 64
-
-  return cycle-bitstring-with-null(padlen, long-tag)
-
-encoded-byte-length (
-    x : BitString
-  ) -> PositiveInteger =
-
-  return byte-length(encode_string(x))
-```
-
-Finally, the short padding is appended to the end of the credentials vector in order to start the tags vector at a known relative position in the SHA256 buffer. To ensure that the short padding can be encoded with a fixed tag, the generated length is at least 32 bytes and at most 95 bytes long.
-
-```
-short-padding (
-    credentials : Vector<BitString>,
-    domain-tag : BitString
-  ) -> ByteString =
-
-  enclen = sum(map(encoded-byte-length, credentials))
-  n = 95 - (enclen mod 64)
-  return cycle-bitstring-with-null(n, domain-tag)
-```
 
 The next protocol, PHKDF-PASSWORD, adds a role. This parameter is a tweak that can be repeatedly and robustly applied without recomputing the expensive part of hash function.  Changing other parameters require starting over from the beginning. The role is useful for implementing domain separation within the context of a single authentication service, among other possible use cases.
 
@@ -611,29 +668,47 @@ PHKDF-PASSWORD (
     echo-tags : Vector<BitString> = seed-tags,
   ) -> UnboundedByteStream
 
-protoPad = cycle-bitstring-with-null (52, "password-hash-key-derivation-function version phkdf-pass-v0")
-
 phkdfTag = expand-domain-tag(domain-tag)
 
-headerExtract = [
-    "phkdf-pass-v0 extract",
-    username, "username\x00" || protoPad,
-    password, "password\x00" || protoPad,
-    bare-encode(bit-length(domain-tag)),
-    bare-encode(phkdf-rounds)
+headerExtract = [ "phkdf-pass-v0 username", username ]
+
+headerUsername = headerExtract || [
+    username-padding(headerExtract, domainTag)
   ]
 
-headerPadding = long-padding(headerExtract, long-tag)
+headerProtocol =
+    "password-hash-key-derivation-function phkdf-pass-v0\x00"
+    || left-encode(bit-length(domain-tag))
+    || bare-encode(rounds)
+
+headerLongTag = [ long-tag, headerProtocol ]
+
+passwordPad =
+    password-padding (
+        headerUsername,
+        headerLongTag,
+        long-tag,
+        domain-tag,
+        password
+    )
+
+credentialsPad =
+    credentials-padding (
+        credentials,
+        long-tag,
+        domain-tag
+    )
 
 secretSeed = PHKDF-SLOW-EXTRACT-HMAC-SHA256 (
     key = seguid,
-    msgs = headerExtract
-        || [ long-tag ]
-        || [ headerPadding ]
+    msgs = headerUsername
+        || [ password ]
+        || headerLongTag
+        || [ passwordPad ]
         || credentials
-        || [ short-padding(credentials) ]
+        || [ credentialsPad ]
         || seed-tags
-        || [ encode-vector-length(seed-tags) ]
+        || [ bare-encode(vector-length(seed-tags)) ]
     tag = tag,
     rounds = rounds,
     tags-1x = seed-tags,
@@ -692,7 +767,7 @@ G3P-HASH : (
     domain-tag : BitString,
     long-tag : BitString = domain-tag,
     bcrypt-tag : BitString = take(56, domain-tag),
-    bcrypt-salt-tag : BitString = take(56, domain-tag),
+    bcrypt-salt-tag : BitString = bcrypt-tag,
     seed-tags : Vector<BitString> = [],
     phkdf-rounds : Word32 = 20240,
     bcrypt-rounds : Word32 = 4095,
@@ -701,52 +776,55 @@ G3P-HASH : (
     echo-tags : Vector<BitString> = seed-tags,
   ) -> UnboundedByteStream =
 
-protoPad = cycle-bitstring-with-null (52,
-    "global-password-prehash-protocol seguid G3Pb1"
-  )
-
 phkdfTag = expand-domain-tag(domain-tag)
 
-// First, G3Pb1 extract alpha  (bcrypt variant)
+headerExtract = [ "G3Pb1 alfa username", username ]
 
-headerAlfa = [
-    "G3Pb1 alfa",
-    username, "username\x00" || protoPad,
-    password, "password\x00" || protoPad,
-    bare-encode(bit-length(domain-tag)),
-    bare-encode(phkdf-rounds),
-    bare-encode(bcrypt-rounds)
+headerUsername = headerExtract || [
+    username-padding(headerExtract, domainTag)
   ]
 
-headerPadding = [
-    long-tag,
-    long-padding (headerAlfa, long-tag, bytes = 8346)
-  ]
+bcryptHeader = [ bcrypt-tag, bcrypt-salt-tag ]
 
-bcryptTags = [
-    bcrypt-tag,
-    bcrypt-salt-tag
-  ]
+headerProtocol =
+    "global-password-prehash-protocol version G3Pb1"
+    || left-encode(bit-length(domain-tag))
+    || left-encode(phkdf-rounds)
+    || bare-encode(bcrypt-rounds)
 
-credsPadLen = 253 - encoded-byte-length(bcryptTags)
+headerLongTag = [ long-tag, headerProtocol ]
 
-while (credsPadLen < 135)
-    credsPadLen += 64
+bytes = 8413 - encoded-vector-byte-length(bcryptHeader)
 
-credsPadLen -= encoded-byte-length(creds)
+while (bytes < 8295)
+    bytes += 64
 
-while (credsPadLen < 32)
-    credsPadLen += 64
+passwordPad =
+    password-padding (
+        headerUsername,
+        headerLongTag,
+        long-tag,
+        domain-tag,
+        password,
+        bytes
+    )
 
-credsPad = cycle-bytestring-with-null(credsPadLen, domain-tag)
+credentialsPad =
+    credentials-padding (
+        credentials,
+        bcrypt-tag,
+        domain-tag
+    )
 
 secretStream = PHKDF-SLOW-EXTRACT-HMAC-SHA256 (
     key = seguid,
-    msgs = headerAlfa
-        || headerPadding
+    msgs = headerUsername
+        || [ password ]
         || bcryptTags
+        || headerLongTag
+        || [ passwordPad ]
         || credentials
-        || [ credsPad ]
+        || [ credentialsPad ]
         || seed-tags
         || [ encode-vector-length(seed-tags) ]
     tag = phkdfTag,
