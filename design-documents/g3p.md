@@ -28,9 +28,9 @@ Whenever an evesdropper obtains hash that includes the G3P protocol in its deriv
 
 For example, say Acme Corporation's password database gets stolen, and posted on a darknet website. The goal is that in order to have a possibility of cracking those stolen hashes, any observer must know (or guess) that they came from Acme Corporation. Thus, if a security researcher witnesses the password hashes on the sketchy website and those hashes are genuinely crackable, then the security researcher is supposed to have an easy time figuring out that the hashes should be reported to Acme Corporation as stolen.
 
-In another very plausible scenario, let's say that instead of reporting Acme's hashes as stolen, an observer chooses to conduct an offline brute-force attack against them using a botnet or other stolen computing resources. If a security analyst observes this payload, that analyst is supposed to have an easy time figuring out that the stolen resources are being spent cracking Acme Corporation's password hashes.  That analyst would ideally then have an easy time finding Acme's security disclosure portal to report their observations directly to Acme.
+In another very plausible scenario, let's say that an evesdropper chooses to conduct an offline brute-force attack against stolen password hashes using a botnet or other stolen computing resources. If a security analyst observes this payload, that analyst is supposed to have an easy time figuring out that the stolen resources are being spent cracking Acme Corporation's password hashes.  That analyst would ideally then have an easy time finding Acme's security disclosure portal to report their observations directly to Acme.
 
-The website _Have I Been Pwned_ includes an effort to document the huge and currently growing problem of stolen passwords and stolen password hashes. This effort inspired a personal desire in this author for password hashes that are _traceable-or-useless_, which helped inspire the invention of cryptoacoustics.
+The website _Have I Been Pwned_ includes an effort to document the huge and currently growing problem of stolen passwords and stolen password hashes. This effort inspired a personal desire in this author for password hashes that are _traceable-or-useless_, which helped inspire the invention of cryptoacoustics and self-documenting cryptography.
 
 The tagging constructions I propose provide no way to determine whether or not any particular password hash is actually from Acme Corporation. Even if you successfully crack a plaintext password from a hash using the official Acme Corporation-branded password hash function, it's trivial to forge such password hashes.
 
@@ -187,7 +187,7 @@ return HMAC (
   )
 ```
 
-This function can be implemented with constant memory consumption,  because the output of HKDF and the input of HMAC are both streamable.  However, WebCrypto doesn't support streaming operations, so a WebCrypto-based implementation will briefly use eight kilobytes of memory to construct the intermediate message before it is hashed into the final result. Increasing the number of rounds only increases the amount of memory needed.  Also, specifying more than 255 rounds technically violates the specification of HKDF and NIST 800-108r1, and probably can't be guaranteed to work with webcrypto implementations anyway.
+This function can be implemented with constant memory consumption,  because the output of HKDF and the input of HMAC are both streamable.  However, WebCrypto doesn't support streaming operations, so a WebCrypto-based implementation will briefly use eight or sixteen kilobytes of memory to construct the intermediate message before it is hashed into the final result. Increasing the number of rounds only increases the amount of memory needed.  Also, specifying more than 255 rounds technically violates the specification of HKDF and NIST 800-108r1, and probably can't be guaranteed to work with webcrypto implementations anyway.
 
 Also it's important to point out that this call to HKDF only achieves 1x repetition of the seguid, so overall, TAGGED-HMAC-HKDF achieves 2x repetition of the seguid.  We've achieved 256x repetition of the domain tag, but at the unnecessary cost of giving up most of the repetitions of the seguid.
 
@@ -250,7 +250,7 @@ HMAC-SHA256 (
   )
 ```
 
-The main limitation of a short HMAC tag is that it must be substantially shorter than one block (64 bytes in the case of SHA256) to ensure that the first block processed contains the first cryptoacoustic repetition of the `indirect-tag` and observer-derived input so that the observer must compute that SHA256 block themselves and cannot be provided with a precomputed block.  Our final protocols basically limit the use of this exact construct as protocol-identifying domain seperation constants.
+The main limitation of a short HMAC tag is that it must be substantially shorter than one block (64 bytes in the case of SHA256) to ensure that the first block processed includes the `indirect-tag` and a sufficient quantity of observer-derived input so that the observer must compute that SHA256 block themselves and cannot be provided with a precomputed block.  Our final protocols basically limit the use of this exact construct as protocol-identifying domain seperation constants.
 
 However, our final padding design employs a slight extension of the short tag construction to ensure that whomever computes the SHA256 blocks where the `password`, `credentials`, or `seed-tags` parameters are located in the overall protocol must know those short tags.
 
@@ -268,8 +268,6 @@ HMAC-SHA256 (
 With the help of Self-documenting Globally Unique Identifiers (seguids), HMAC keys are indirectly usable as tags. Indirect tags cannot be used to convey a plaintext message without the help of external means, such as openly-published seguids and reverse-lookup search engines.
 
 This tag is necessarily indirect because two precomputed SHA256 hashes of the key can be used to compute the HMAC function in lieu of the plaintext of the HMAC-SHA256 key itself.  An analogous statement is true no matter which underlying hash function HMAC is instantiated with. This observation is critical to efficient implementations of PHKDF and PBKDF2 when instatiated with an HMAC-based pseudorandom function (PRF).
-
-In the case of HMAC-SHA256, tags prefixed before user-derived input are usable as plaintext tags if a sufficient quantity of user input is included in the first non-key SHA256 block processed by HMAC. Thus these short tags need to be less than about 48 bytes long or so. Our early protocols ignore this tagging construct, while the later PHKDF and final G3P protocol uses these protocol constants as short tags in a few calls to HMAC.
 
 Homomorphic Encryption seems theoretically capable of hiding arbitrary state machines, which would then seem to be capable of defeating our tagging constructions. Thus our _traceable-or-useless_ secondary security goal might be too simplistic, somewhat in vain, or at least decidedly non-trivial. However, Homomorphic Encryption currently introduces 6+ orders of magnitude of overhead, and is unlikely to be practical in this application space anytime soon. Just to be safe, the G3P somewhat naively attempts to add another 4+ orders of magnitude of overhead on top of that, via PHKDF and bcrypt.
 

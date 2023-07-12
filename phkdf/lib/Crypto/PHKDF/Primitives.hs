@@ -152,8 +152,8 @@ of rounds to be computed: it's possible to share portions of the key-stretching
 computation when the @rounds@ parameter is varied. To avoid this issue, our
 complete worked PHKDF examples include the number of PHKDF rounds to be computed
 among the initial arguments to @phkdfSlowExtract@. This means that any change
-to the phkdf rounds parameter must restart the key-stretching to some time
-before the slow extraction computation began.
+to the phkdf rounds parameter must restart the key-stretching at some point in
+time before the slow extraction computation began.
 -}
 
 module Crypto.PHKDF.Primitives
