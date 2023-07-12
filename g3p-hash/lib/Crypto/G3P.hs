@@ -238,7 +238,7 @@ data G3PInputArgs = G3PInputArgs
   , g3pInputArgs_password :: !ByteString
   -- ^ constant time on 0-101 bytes, or if any of the other conditions are met.
   , g3pInputArgs_credentials :: !(Vector ByteString)
-  -- ^ constant time on 0-92 encoded bytes. This includes a variable-length
+  -- ^ constant time on 0-90 encoded bytes. This includes a variable-length
   -- field that encodes the bit length of each string; this field itself
   -- requires two or more bytes per string.
   } deriving (Eq, Ord, Show)
