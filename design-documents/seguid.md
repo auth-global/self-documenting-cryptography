@@ -262,19 +262,30 @@ The Seguid Protocol aspires to be a reasonably general-purpose tool for creating
 ## History
 
 
-[![A fine example of a proto-seguid found at its origin.](media/toronto-recursive-history.jpg)](https://readtheplaque.com/plaque/the-toronto-recursive-history-project)
+[![THE TORONTO RECURSIVE HISTORY PROJECT
+OF TORONTO'S RECURSIVE HISTORY
+This plaque was commemorated on October 10, 2018,
+commemorate its own commemoration. Plaques like this
+one are an integral part of the campaign to support more
+plaques like this one. By reading this plaque, you have made
+a valuable addition to the number of people who have read
+this plaque. To this day and up to the end of this sentence,
+this plaque continues to be read by people like yourself
+Heritage Toronto 2018](media/toronto-recursive-history.jpg)](https://readtheplaque.com/plaque/the-toronto-recursive-history-project)
+
+A fine example of a proto-seguid found in its own native habitat.
 
 To invent seguids, break apart the concepts embodied in the self-referential sign of the Toronto Recursive History Project, and distill one of those concepts into a Y-like combinator.  Use the ideas behind "Y in Practical Programs" to weave some Merkle-tree cryptography into this fixpoint.  Add a generous helping of Programming Language Theory and a smidge of the Theory of Computation, and work and rework these basic ingredients until they form a cohesive and unified whole.  Finish with a protective glaze of numerology.
 
-The author has a long personal history of dealing with (or rather, largely failing to deal with) some of the most outrageous and obstinate liars imaginable, at least by the contemporary standards of 2023. Developed as a tool for documenting dishonesty, seguids are response to these sorts unfortunate life experiences that are now being experienced by large numbers of people worldwide.
+This author has had a long-established intellectual attraction to exploring the outer limits of the mathematics of self-reference. This author also has a long personal history of dealing with (or rather, largely failing to deal with) some of the most outrageous and obstinate liars imaginable, at least by the contemporary standards of 2023. Developed as a tool for documenting dishonesty, seguids are response to these sorts unfortunate life experiences that are now being experienced by large numbers of people worldwide.
 
-Of course the most outrageous liars are invariably supported by a network of willfully blind enablers and reluctant witnesses. Oftentimes those liars also have one or more enthusaistic accomplices. There is no technological solution for observers who are in denial, fatigued, intimidated, and/or corrupt.  Yet seguids can be used to make some truths more directly knowable, hopefully tilting the social landscape ever so slightly away from pathological lies.
+Of course the most outrageous liars are invariably supported by a network of willfully blind enablers and reluctant witnesses. Oftentimes those liars also have one or more enthusaistic accomplices. There is no technological solution for observers who are in denial, fatigued, intimidated, complicit and/or corrupt. Yet seguids can be used to make some truths more directly knowable, hopefully tilting the social landscape ever so slightly away from pathological lies.
 
 To provide grist for Feyerabend's slogan that _anything goes_, seguids drew significant inspiration from numerology. The original idea was to attach numerological significance to the configuration of a computer system, say by using a cryptographic hash as a configuration constant that is absolutely essential to deployment of the system. If somebody then chooses to try to lie about the origin or purpose of that configuration constant as say, part of a criminal scheme to avoid acknowledging liabilities already incurred by the deployment of the system, then the numerological significance of the configuration constant(s) can be appealed to.
 
-This seed of an idea lay dormant for years. The basic notion to "use a cryptographic hash to catch a liar", say by putting extra hashes inside git commit messages that represent commitments to some (possibly sensitive) bit of private information that one suspects one might need to appeal to later, seems like seems like it should be obvious to those reasonably well versed in blockchain technologies and other forms of applied cryptographic hashing.  However these vague notions are very incomplete, with a lot of critically important detail left out. Moreover I wasn't specifically aware of a configuration parameter in the systems I worked on or was envisioning that seemed a plausible fit for the slightly more specific notion of a seguid.
+This seed of an idea lay dormant for years. The basic notion to "use a cryptographic hash to catch a liar", say by putting extra hashes inside git commit messages that represent commitments to some (possibly sensitive) bit of private information that one suspects one might need to appeal to later, seems like seems like it should be obvious to those reasonably well versed in blockchain technologies and other forms of applied cryptographic hashing. However these vague notions are very incomplete, with a lot of critically important detail left out. Moreover I wasn't specifically aware of a configuration parameter in the systems I worked on or was envisioning that seemed a plausible fit for the slightly more specific notion of a seguid.
 
-Eventually I came around to thinking about how to make stolen password hashes traceable or useless.  To set this historical context,  I had already come to understand that suffixing a tag to an externally-supplied input of SHA256 was a plausibly-secure plaintext tagging construction.   I was now researching how one might be able to best use this observation in a PBKDF2-based password prehashing scheme.
+Eventually I came around to thinking about how to make stolen password hashes traceable or useless. To set this historical context, I had already come to understand that suffixing a tag to an externally-supplied input of SHA256 was a plausibly-secure plaintext tagging construction. I was now researching how one might be able to best use this observation in a PBKDF2-based password prehashing scheme.
 
 In this context, I was introduced to Soatok's blog post on HKDF, which lead me to read RFC 5869 for the first time.  These two documents really nucleated a burst of creative insight into my research topics. Most interestingly, HKDF's salt parameter also gave me an obvious place to try to germinate the idea of a seguid, which would then turn into a second and complementary indirectly self-documenting cryptographic tag.
 
