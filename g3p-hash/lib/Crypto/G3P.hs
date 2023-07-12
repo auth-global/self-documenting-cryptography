@@ -179,6 +179,12 @@ data G3PInputBlock = G3PInputBlock
     --   it contains two or more strings.
     --
     --   Overages incur three sha256 blocks per 64 bytes.
+    --
+    --   This parameter is notable because it is the least expensive purely
+    --   auxiliary input that is not horn-loaded. Thus if you want a very long
+    --   salt input that provides a bit of extra collision resistance, (because
+    --   the collision resistance of HMAC-SHA256 isn't enough?!) this would
+    --   be a logical candidate input location to consider.
   , g3pInputBlock_phkdfRounds :: !Word32
     -- ^ How expensive will the PHKDF component be? An optimal implementation
     --   computes exactly three SHA256 blocks per round if the domain tag is
