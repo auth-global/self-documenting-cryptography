@@ -277,7 +277,7 @@ A fine example of a proto-seguid found in its own native habitat.
 
 To invent seguids, break apart the concepts embodied in the self-referential sign of the Toronto Recursive History Project, and distill one of those concepts into a Y-like combinator.  Use the ideas behind "Y in Practical Programs" to weave some Merkle-tree cryptography into this fixpoint.  Add a generous helping of Programming Language Theory and a smidge of the Theory of Computation, and work and rework these basic ingredients until they form a cohesive and unified whole.  Finish with a protective glaze of numerology.
 
-This author has had a long-established intellectual attraction to exploring the outer limits of the mathematics of self-reference. This author also has a long personal history of dealing with (or rather, largely failing to deal with) some of the most outrageous and obstinate liars imaginable, at least by the contemporary standards of 2023. Developed as a tool for documenting dishonesty, seguids are response to these sorts unfortunate life experiences that are now being experienced by large numbers of people worldwide.
+This author has long been interested in exploring the outer limits of self-reference. This author also has a long personal history of dealing with (or rather, largely failing to deal with) some of the most outrageous and obstinate liars imaginable, at least by the contemporary standards of 2023. Developed as a tool for documenting dishonesty, seguids are response to these sorts unfortunate life experiences that are now being experienced by large numbers of people worldwide.
 
 Of course the most outrageous liars are invariably supported by a network of willfully blind enablers and reluctant witnesses. Oftentimes those liars also have one or more enthusaistic accomplices. There is no technological solution for observers who are in denial, fatigued, intimidated, complicit and/or corrupt. Yet seguids can be used to make some truths more directly knowable, hopefully tilting the social landscape ever so slightly away from pathological lies.
 
@@ -301,7 +301,7 @@ More than once the insight obtained from trying to answer the question "why" dra
 
 The concept of a seguid suffered for a long time without having a name for it. At first, I focused the discussion around `seguid-v2-salt`, the global salt that I was originally calling the "global pseudorandom key". In the context of what I wanted to acheive, that was certainly the wrong starting point along multiple axes.
 
-Once I shifted my primary focus to seguids as the outputs of the protocol that produces them, I started using the term "SGUID", suggesting the pronouncation "ESS-gwid". I thought of it like a linguistic variation on "escrow", except with cephalopods instead of corvids. Then I realized that "seguid" can be translated from Spanish to English as the imperative "y'all follow", so I leaned into it. I decided to follow this uncannily appropriate cultural pun wherever it may lead.
+Once I shifted my primary focus to seguids as the outputs of the function that produces them, I started using the term "SGUID", suggesting the pronouncation "ESS-gwid". I thought of it like a linguistic variation on "escrow", except with cephalopods instead of corvids. Then I realized that "seguid" can be translated from Spanish to English as the imperative "y'all follow", so I leaned into it. I decided to follow this uncannily appropriate cultural pun wherever it may lead.
 
 ## Acknowledgements
 

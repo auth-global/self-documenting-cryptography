@@ -8,9 +8,11 @@
         "phkdf-rounds":1998,
         "bcrypt-rounds":7
     },
-    "results":{
-        "G3Pb1":"6775698c77b908f227ffa9f804eab8e35262a7a12bfa9ccc5c4a735d37d3003f19ded7240763e3b7c0eb3b6699133225d222ab12222a25409acc9ac534008473"
-    }
+    "results":[
+        {"G3Pb1":"6775698c77b908f227ffa9f804eab8e35262a7a12bfa9ccc5c4a735d37d3003f19ded7240763e3b7c0eb3b6699133225d222ab12222a25409acc9ac534008473"},
+        {"args":{"seguid":{"hex":"7ac89a79f49447fafd11cb71f74b025359ea2207fdbbef408079a8934bd680a40d314b73e61981ecec5f773b3477d2d8a711bfe1da28b7a50921f8b2e896f973"}},
+         "G3Pb1":"1aca6802e8bca5afe6499bc4de770fd44c343d1bb4ea2685116cb46269f08abb1068d50cd6b100965923c390de85f2c6a6c06f5b2d19e0271eda5fab92f3e766"}
+    ]
 },{
     "name":"prehash first light, elaborated",
     "args": {
@@ -26,28 +28,24 @@
         "bcrypt-rounds":7
     },
     "results":[
-        {"G3Pb1":"7ac89a79f49447fafd11cb71f74b025359ea2207fdbbef408079a8934bd680a40d314b73e61981ecec5f773b3477d2d8a711bfe1da28b7a50921f8b2e896f973"},
-        {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40"}},
-         "G3Pb1":"4e3b2069403084ee888a4ee26b1b7f372c234422cbb6286310d4f710921b2b2dcec1165d5a82a36cf6113adfa50f6ed5342de4ec1fb4492dde33eff5d1d0a57e"},
-        {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f4041"}},
-         "G3Pb1":"7a8fc8875fb9d3d0b0ab28cd674a5901cbbae72ae02e0c09c390b0446520eee7c23ade994afec55c36226d00c576f1c299354ee866612a50602c54c351550262"}
+        {"G3Pb1":"7ac89a79f49447fafd11cb71f74b025359ea2207fdbbef408079a8934bd680a40d314b73e61981ecec5f773b3477d2d8a711bfe1da28b7a50921f8b2e896f973"}
     ]
 },{
     "name":"prehash unicode test, inset naval story with a reference",
     "args": {
         "username":"Р-360 «Нептун»",
-        "password":"Русский военный корабль, иди на хуй",
+        "password":"Русский военный корабль, иди нахуй",
         "seed-tags":["Державне Київське конструкторське бюро «Луч»"],
         "echo-tags":["Збройні Cили України «ЗСУ»"],
         "domain-tag":"Україна",
         "phkdf-rounds":2022,
-        "bcrypt-rounds":9
+        "bcrypt-rounds":8
     },
     "results":[
-        {"G3Pb1":"1cc3b11f25cabf90e7f09cfc10cf2c156b24eb6355bd82611cbaa7941172ffde86fbfdd235997b826ed7f99e9e5316f852c8536dfa68101c0da027504ed5a1b5"},
+        {"G3Pb1":"59c58b301e302c4843d24c4a12e8324c025562b25327448d77bb8135efc503206324ec9ae2c4b2b0bfecbb4c3b2ad586dc822673c88eee1693adc08e2c670893"},
         {"args":{"bcrypt-tag":"Державне Київське конструкторське бюро «Луч»",
                  "bcrypt-salt-tag":"Збройні Cили України «ЗСУ»"},
-         "G3Pb1":"ceafec0b492b0a519c14f28d8db06cb3c72a3836ba2ac6fb3d76bfe97efad4233763f53ebbd933a9e9dfeb5c27fd68d7944413e9f23ba0f8c92d50d444f8a647"}
+         "G3Pb1":"01dce76e0ece5deba6ff9bc1a3fa878becbf06e21aa23ee7773cb63411d9c7c91f679a983aa4240661b67ea0119eb72d1a5d4a387b0f3d2b9bf2d1364d961522"}
     ]
 },{
     "name":"prehash unicode test, lightly extended on top",
@@ -60,9 +58,13 @@
         "phkdf-rounds":1894,
         "bcrypt-rounds":66
     },
-    "results":{
-        "G3Pb1":"cb6b1f5f3703328b9bf05d24a5ac6fbccbb66a8a8dfadffece596308d05a7ec61f35326bf6d5670324034f8fb5f69d606d566940ddc4df69f66fe12548afffbd"
-    }
+    "results":[
+        {"G3Pb1":"cb6b1f5f3703328b9bf05d24a5ac6fbccbb66a8a8dfadffece596308d05a7ec61f35326bf6d5670324034f8fb5f69d606d566940ddc4df69f66fe12548afffbd"},
+        {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40"}},
+         "G3Pb1":"00fa00e078ad5bd4f1303124b90d283d84053df49f5ea72362aaf1775dbbc5b64ccd2598132ec3784a08a0e2a8051864f64868418add80777cc516031e73feba"},
+        {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f4041"}},
+         "G3Pb1":"67cd248ab32cb09d9d34bb688606819257d1783a0309118eeed9ac7f12c9fbd6aa76c08633fbb0e0b4c6aef93689a3cd6eeba8e5f27d245603a403eb7f60d418"}
+    ]
 },{
     "name":"xkcd account problems",
     "args":{
@@ -192,50 +194,54 @@
         {"args":{
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3045
+                "len":3045,
+                "index":1
             },
             "password":{
                 "ref":"prehash unicode test, inset naval story with a reference",
                 "len":101,
                 "index":1
             }},
-         "G3Pb1":"722dc391994103c9580f7909e76163c2017dfcb3106f384b4e8feb6c21cb8996"
+         "G3Pb1":"07de0dcc8b7d8c449d37e9be617be7cb68f33953681e023397c6a64f7795c074"
         },
         {"args":{
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3045
+                "len":3045,
+                "index":1
             },
             "password":{
                 "ref":"prehash unicode test, inset naval story with a reference",
                 "len":102,
                 "index":1
             }},
-         "G3Pb1":"c9ec77d4a75fdd71adfbf56f3e3d0c4c2941d782205d3737ff51fb421e2b42b3"
+         "G3Pb1":"ea42df96a5051207d679f00af588edd25cc789c495e3a3ab5f00db682bd1dbdf"
         },
         {"args":{
-            "long-tag":{"ref":"prehash first light, elaborated","len":5049},
+            "long-tag":{"ref":"prehash first light","len":5049,"index":1},
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3109
+                "len":3109,
+                "index":2
             },
             "password":{
                 "ref":"prehash unicode test, inset naval story with a reference",
                 "len":164
             }},
-         "G3Pb1":"9bc27aada706b3f0e226e85f2edfc6a73ccb3df2bcc0454a077817636c9fee97"
+         "G3Pb1":"1644767fc3a62b8844beac3fbb6558bc886d52e426952c7e3316e1372675f3d3"
         },
         {"args":{
-            "long-tag":{"ref":"prehash first light, elaborated","len":5049},
+            "long-tag":{"ref":"prehash first light","len":5049,"index":1},
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3109
+                "len":3109,
+                "index":2
             },
             "password":{
                 "ref":"prehash unicode test, inset naval story with a reference",
                 "len":165
             }},
-         "G3Pb1":"dc17acf59ee1f72a84c40d7a0382a92bc2008a5abe3478c81f9aa9b935cefd9d"
+         "G3Pb1":"2d7488ff9325491570986e96bc48fc9602d458489bc34b5082175147947c9f7e"
         }
 
     ]

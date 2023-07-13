@@ -116,9 +116,9 @@ stream secret, allowing a publicly-known key, counter, and tag to be used as
 self-documenting domain seperation constants.
 
 Thus phkdf's slow extraction function calls @phkdfStream@ to generate a stream
-that is allowed to be predictable, but at an unpredictable starting point.
-This stream remains secret, and is immediately consumed by a second call to
-@phkdfStream@. After @rounds + 1@ blocks have been produced and consumed, the
+that is allowed to be predictable, but at an unpredictable starting point. This
+predictable stream remains secret, and is immediately consumed by a second call
+to @phkdfStream@. After @rounds + 1@ blocks have been produced and consumed, the
 second call to @phkdfStream@ has an opportunity to add some additional
 post-key-stretching tweaks before the output stream is finalized.
 
@@ -138,14 +138,14 @@ phkdfSlowExtract key args counter tag fnName rounds tweaks = out
 Again, assuming key, counter, rounds, and tag are all publicly known, which is
 the primary intended use case of this function, then the output stream of this
 slow extract is predictable. Thus it must be subjected to the first or third
-mode of operation.  If more than 32 bytes need to be revealed, then another
-call to @phkdfStream@ with a secret key in the second mode of operation
+mode of operation.  If more than 32 bytes ever need to be revealed, then
+another call to @phkdfStream@ with a secret key in the second mode of operation
 is required for final output expansion.
 
 The purpose of this function is that it provides a bit of key-stretching very
 similar in flavor to PBKDF2. Also, this extraction function repeatedly hashes
 the plaintext of the tag in order to amplify the overhead plausibly associated
-with any hypothetical virtual black-box obscuration attacks.
+with any hypothetical virtual black-box tag obscuration attacks.
 
 Note that @phkdfSlowExtract@ is not hardened against changes to the number
 of rounds to be computed: it's possible to share portions of the key-stretching
@@ -220,7 +220,7 @@ phkdfCtx_reset :: PhkdfCtx -> PhkdfCtx
 phkdfCtx_reset = phkdfCtx_initFromHmacKey . phkdfCtx_hmacKey
 
 
--- | initialze a new empty HMAC context from the key originally supplied to
+-- | initialize a new empty HMAC context from the key originally supplied to
 --   the PHKDF context, discarding all arguments already added.
 
 phkdfCtx_resetCtx :: PhkdfCtx -> HmacCtx

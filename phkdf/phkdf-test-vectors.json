@@ -32,21 +32,21 @@
     "name":"phkdf unicode test, inset naval story with a reference",
     "args": {
         "username":"Р-360 «Нептун»",
-        "password":"Русский военный корабль, иди на хуй",
+        "password":"Русский военный корабль, иди нахуй",
         "seed-tags":["Державне Київське конструкторське бюро «Луч»"],
         "echo-tags":["Збройні Cили України «ЗСУ»"],
         "domain-tag":"Україна",
         "rounds":2022
     },
     "results":[
-        {"phkdf-pass":"a280158cfd511d97e33334f51498201009aed6756a5c39fe8f3694071ea937eedff61a28a3c9844965de0beec14876575f942de2dcc81a54e477e67dd9f8a9e7",
-         "phkdf-simple":"7519f8e11989492d9cd3a534066e2b2d8555876763d61decd8a26e9554988d6feb38aabcca0dd1691b36dee88f01d6a14398f2184ee7964a184798bab00be4d5"},
+        {"phkdf-pass":"cd41fc9eaea2638c2ffd39fdb5061fd675348ca07124cfb95d173c0a701edf8f493f25116b60e48831458e2b5fef9c853808edbaa78bfebca34db8f2ca3190fe",
+         "phkdf-simple":"b5b9403d66c8dd963761c2b7a32bdc27ec5a3aa7438e0127765daa0cc8ae524b1bf4c4085eba7d13d7a2a06b3aecd108a595da366cfb4dbb9ace74588b6d329f"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40"}},
-         "phkdf-pass":"66b67db07d608a6e7a2f383fe5389d05a3e8c48cc856e3fe099306a41d43e431ea6107b334131ba40bb15d6aa0275ba54a56f6f5017e412f1d1d35f4a0aa978b",
-         "phkdf-simple":"88db183c46aa5257c0f2c3470491497b45fccf34d8aa9596269df347ab3c64bd637b6ab40d3f7b6a2d8670400405e5b6741d521d55e61313ca0acc29881b592a"},
+         "phkdf-pass":"78a0822707767d22b5d3e7efa2b112017b4ad53dd33a23623b3771caf58f2c2dee8d29a670bb3ceda0476f685c8036c53cde775d7cd18140fc14889ffd9262a4",
+         "phkdf-simple":"31ad71c79bdaedab54022748f31b7962b9008f74d3321db9a2547f4f5d1f6a341c457bdb21d7fa1e3746d2c8e217b7e69c60c8d1828652cbc32a095d176aba36"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f4041"}},
-         "phkdf-pass":"3ea25a674ad11e2d750e60f783232085fcb0debb26b2c8b38c737ce758d05ba9142f890e6d5ae781c4a18aa0943da521e8e7afcde08bd7742119a9d87e8f7249",
-         "phkdf-simple":"af0883cd7fdacb24f74fb3cb2aa452a367ebf1084ed9235c5363a0765c1fd978912b5d62e74f4c473272f3b25ee60692c71dd044a753ac5d8b69e20cfaf9f901"}
+         "phkdf-pass":"d8c28b3597c130e474eab9148a2e999a8724bc80ebe346bdf7936d2f95f042194438260c492fc72d7c67c638f292216d9f002b1d8a0d05cd1c9dbdf681e1f1aa",
+         "phkdf-simple":"b9c6b4b1887e79f636d81c087f27607ac75065411798338703047b3dce5fae2a14d81cf841a1c213858aff41e6449d16d4cea165ee65351691d9f73476db7b5e"}
     ]
 },{
     "name":"phkdf unicode test, lightly extended on top",
@@ -161,28 +161,28 @@
         "phkdf-simple":"a8e37851b0dda24717b555af6e7364dfd0442fcd6bccd4e3829a4a334f7a3590026b89b70f1168c9f74a215c88a79f9af576aca9ef1d6f1ba014568bff0bb875"
     }
 },{
-    "name":"long padding",
+    "name":"password padding",
     "args":{
         "username":"tests with very long inputs",
         "password":"back references",
         "domain-tag":"your-domain-name-here.example",
-        "long-tag":{"ref":"phkdf first light","len":5112},
+        "long-tag":{"ref":"phkdf first light, elaborated","len":5112},
         "rounds":255
     },
     "results":[
-        {"phkdf-pass":"ef9919af56a107bd7b859213d9059e1fc1fd789acf5403d2eec2dfbdb310db20",
-         "phkdf-simple":"0e57417b241d403417e25863471a078def0ca3c574958c8ebb027fe16c2402f0"},
-        {"args":{"long-tag":{"ref":"phkdf first light","len":5113}},
-         "phkdf-pass":"d870c816505224bcf512baba069bf33a0accafc8da4f97cb740ab66baef89603",
-         "phkdf-simple":"c7044db80a295e16383e6dd7b2052625908333e25dd6ef673d443d9c3bd46863"},
+        {"phkdf-pass":"2930dd23e0bcf062b18d286e9a15a966b5e069a3d29db766320e84c10f33754c",
+         "phkdf-simple":"a0896b86b68b3c380a9a90f50a606146de0b08e97c911c81b25632d2b31cdb07"},
+        {"args":{"long-tag":{"ref":"phkdf first light, elaborated","len":5113}},
+         "phkdf-pass":"f9298244aab2ba083a1a3fe636b2dee2a84d85431ae689b43391d1f4aeab1d5e",
+         "phkdf-simple":"1c83f03baa76230c073271bb59ec7178bf0bc8695e2316cf3a609c1d766114e6"},
         {"args":{
             "username":{
                 "ref":"phkdf unicode test, lightly extended on top",
                 "len":3042,
                 "algorithm":"phkdf-simple"
             }},
-         "phkdf-pass":"1830f46f06ffb86c46652dae0e70346544abef7771e998266df6ae99b3aee055",
-         "phkdf-simple":"8246d3b474f3232e6e6672cceff7e2ffaa48588b125819f360f4f2a5eaf4f270"
+         "phkdf-pass":"12b69f25da2360fcc586b2f9c7e0d103d7921b3e4b2df181b11cedb6a802b053",
+         "phkdf-simple":"33eecf8c29fad1d1473e61211d5561c79aaab9835ec43deeb1339221499716a3"
         },
         {"args":{
             "username":{
@@ -190,8 +190,8 @@
                 "len":3043,
                 "algorithm":"phkdf-simple"
             }},
-         "phkdf-pass":"fb0610e934cd7c2d75364f72fa5ffd21cd0f87c3e57d16c2e74079e8b2fc84dc",
-         "phkdf-simple":"65acc9e33e126284b948bebc20aeed841743e1d9746e70f3b18dc6fca9e4e0f1"
+         "phkdf-pass":"e52abc8bfb506b997b75908d99071468f1c8ccde126a5dc2e21d5449ace1e178",
+         "phkdf-simple":"f3efa15abae9744b9599b24ccca7c49f05210c63bdca6feac92366cc9cc6d606"
         },
         {"args":{
             "username":{
@@ -204,8 +204,8 @@
                 "len":101,
                 "index":1
             }},
-         "phkdf-pass":"9c9548e5a4f0738753da6c47e18118b06fc18ccdaaa688a854c38f4a6ac2e899",
-         "phkdf-simple":"fb1ef65457398de981df644c2402749e31fac6be291f988a757a086b2ff82a4f"
+         "phkdf-pass":"287395a4d33949054d8bc3bc281a08fe11027e54a8ea34284160ab46fc410bb4",
+         "phkdf-simple":"2be39ddb80bb0092789ba9ee174f3defe15ad80e40535ca781f5788d1d44a961"
         },
         {"args":{
             "username":{
@@ -218,49 +218,54 @@
                 "len":102,
                 "index":1
             }},
-         "phkdf-pass":"a9ed9707a1bb7ebe399fe538331ff787156699c1d7673280988ed50b1499ce76",
-         "phkdf-simple":"a64035fd366f5eb04e6db1ecded19675c23952fbf6c8055809c968988334b0a8"
+         "phkdf-pass":"070465ecf539e44f1a722df5e9ccdcb9976df0393a76bcc7102e4dbac5c71444",
+         "phkdf-simple":"0a16092a84fa6bc7b2f119973a2cff379fbcc208d6d4ba25da01979039e2db17"
         },
         {"args":{
-            "long-tag":{"ref":"phkdf first light, elaborated","len":5049},
+            "long-tag":{
+                "ref":"phkdf first light, elaborated",
+                "len":5049,
+                "algorithm":"phkdf-simple"
+            },
             "username":{
                 "ref":"phkdf unicode test, lightly extended on top",
-                "len":3106,
-                "algorithm":"phkdf-simple"
+                "len":3106
             }
            },
-         "phkdf-pass":"216b3d9e1672c1be68c88b232ec965e5976b8549754c1ebb00fda697efda185c",
-         "phkdf-simple":"2b9bb05f8049dab85727f0c1b41ffe6c1e1c9dd4e144636bdb97538a7c87a454"
+         "phkdf-pass":"b649967eaf215b45a747090c9bb4a5edb73fb5268ca001c030ec243f6f3bfec4",
+         "phkdf-simple":"d6fe2bd9f22765e811921092e85dfa0c4a9ca20e9ff0b875e992def1c26856bb"
         },
         {"args":{
-            "long-tag":{"ref":"phkdf first light, elaborated","len":5049},
+            "long-tag":{
+                "ref":"phkdf first light, elaborated",
+                "len":5049,
+                "algorithm":"phkdf-simple"
+            },
             "username":{
                 "ref":"phkdf unicode test, lightly extended on top",
-                "len":3106,
-                "algorithm":"phkdf-simple"
+                "len":3106
             },
             "password":{
                 "ref":"phkdf unicode test, inset naval story with a reference",
                 "len":164,
-                "index":1
+                "index":2
             }},
-         "phkdf-pass":"427e4994fcd44c155acabfa2fc4f55a1fe5e6f9b8dd7a2da7fcaf3ad06c7a795",
-         "phkdf-simple":"fe764427d4399f6026d11af966b6fe3cbc1106d62b851d3c7b0bf09be818dbbe"
+         "phkdf-pass":"909aba280fcc984a60b2135713fba472af3c5ff0296d4b0c6fe2bd79380eff5d",
+         "phkdf-simple":"8621567abcfc9d0233655a4d33a3426d215ed903dc21eb21c34b93eb17bcde14"
         },
         {"args":{
             "long-tag":{"ref":"phkdf first light, elaborated","len":5049},
             "username":{
                 "ref":"phkdf unicode test, lightly extended on top",
-                "len":3106,
-                "algorithm":"phkdf-simple"
+                "len":3106
             },
             "password":{
                 "ref":"phkdf unicode test, inset naval story with a reference",
                 "len":165,
-                "index":1
+                "index":2
             }},
-         "phkdf-pass":"e079486ca839ba0a32e2254d2eb1edd78d434d9332f8874ab88c86bc963a66dd",
-         "phkdf-simple":"f06a54c150f73ce1ecc45ed796a84843bd2661ca84bf5006cba2f13bdc1f2cba"
+         "phkdf-pass":"cc955a2323cd958e5e17d8e2cfed0ff52cc5af6bbfadc1cfb0d32cb5f0a03249",
+         "phkdf-simple":"7ee1d8fcac43621733256e64437b2a02bde5db1cee69dd113bc32b07e7fda3f5"
         }
     ]
 }]
