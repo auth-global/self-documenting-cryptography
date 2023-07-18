@@ -379,7 +379,7 @@ g3pHash_seedInit block args =
         phkdfCtx_addArg  longPadding &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArgs credentials &
-        phkdfCtx_addArg (credentialsPadding credentials bcryptTag domainTag) &
+        phkdfCtx_addArg (credentialsPadding credentials bcryptTag bcryptSaltTag) &
         phkdfCtx_assertBufferPosition' 29 &
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
@@ -401,8 +401,9 @@ g3pHash_seedInit block args =
                  bcryptRaw bKey bSalt bcryptRounds
 
     headerCharlie = B.concat [
-        "G3Pb1 charlie", phkdfHash, bcryptHash,
-        cycleByteStringWithNull 24 domainTag
+        "G3Pb1 charlie", phkdfHash,
+        cycleByteStringWithNull 56 bcryptSaltTag, bcryptHash,
+        cycleByteStringWithNull 32 bcryptTag
       ]
     secret =
         phkdfCtx_initFromHmacKey seguidKey &

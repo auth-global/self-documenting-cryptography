@@ -292,7 +292,7 @@ Just as homomorphic transciphers are a research topic that seeks to design crypt
 
 I don't know that there isn't a more efficient tag obscuration attack. Perhaps it would be specific to SHA256; such an attack need not depend on a general-purpose framework for encrypted computation such as HE. In any case, a meaningful tag obscuration attack would require a rather exotic SHA256 algorithm. It seems plausible that this exotic algorithm would impose significant overhead versus the native SHA256 algorithm. Thus we might as well try to hedge against any such hypothetical attack by attempting to amplify this plausible overhead.
 
-The G3P protocol ensures that every HMAC call and nearly every SHA256 block it specifies contains at least one self-documenting constant. This is an educated but naive attempt at amplifying the overhead imposed by any hypothetical tag obscuration attack. It accomplishes this using PHKDF, a cryptographic primitive introduced in the next section that is the result of deconstructing PBKDF2 and HKDF and reconstructing them into a natively self-documenting cryptographic construction.  If the self-documenting constants weren't throughly suffused throughout PHKDF, then it perhaps the virtual black-box tag obscuration algorithm would only need to be used for a few blocks instead of tens of thousands of blocks per password guess.
+The G3P protocol ensures that every HMAC call and nearly every SHA256 block it specifies contains at least one self-documenting constant. This is an educated but naive attempt at amplifying the overhead imposed by any hypothetical tag obscuration attack. It accomplishes this using PHKDF, a cryptographic primitive introduced in the next section that is the result of deconstructing PBKDF2 and HKDF and reconstructing them into a natively self-documenting cryptographic construction. If the self-documenting constants weren't throughly suffused throughout PHKDF, then it perhaps the virtual black-box tag obscuration algorithm would only need to be used for a few blocks instead of tens of thousands of blocks per password guess.
 
 G3P further hedges the self-documenting properties of PHKDF by using bcrypt in a cryptoacoustically self-documenting mode of operation. While further improvements are likely be found by reconstructing bcrypt as well, this would necessarily involve much deeper and more subtle changes. A design goal of Version 1 of the G3P is to be relatively cautious in the changes it chooses to introduce, and to be adventurous only when the risk-to-reward ratio seems highly favorable.
 
@@ -818,7 +818,7 @@ credentialsPad =
     credentials-padding (
         credentials,
         bcrypt-tag,
-        domain-tag
+        bcrypt-salt-tag,
     )
 
 secretStream = PHKDF-SLOW-EXTRACT-HMAC-SHA256 (
@@ -853,8 +853,10 @@ bcryptHash = bcrypt ( bcryptPass, bcryptSalt, bcrypt-rounds )
 
 secretSeed = PHKDF-STREAM-HMAC-SHA256 (
     key = seguid,
-    msgs = [ "G3Pb1 charlie" || phkdfHash || bcryptHash ||
-             cycle-bitstring-with-null(24, domain-tag)  ]
+    msgs = [ "G3Pb1 charlie" || phkdfHash ||
+             cycle-bitstring-with-null(56, bcrypt-salt-tag) || bcryptHash ||
+             cycle-bitstring-with-null(32, bcrypt-tag)
+           ]
         || seed-tags,
     ctr = decode-be32("SEED"),
     tag = phkdfTag
