@@ -4,43 +4,57 @@
 
 This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
 
+## Abstract
+
+The Global Password Prehash Protocol (G3P) is a slow password hash function that is _self-documenting_ in the sense that its output hashes aim to be _traceable_ or _useless_ after they have been _stolen_ by an evesdropper. It does this by extending the role of the traditional _salt_ parameter to serve as a communication channel intended to be used by deployments to identify themselves.
+
+This communication channel is based on _cryptoacoustics_, which is the art of encoding messages in cryptographic state changes in ways that are easy for observers to decode and difficult for attackers to obfuscate.
+
+Here, an observer is anybody is capable of computing the correctly-salted G3P hash function on hardware they provide on passwords of their own choosing. An attacker might be a data thief who would like to outsource a cracking attack on a G3P password hash without simulatenously extending an invitation to report that G3P hash as stolen.
+
+Most (all?) common cryptographic hash functions exclusive-or their input into a state machine, therefore suffixing this salt as a plaintext tag to the end of observer-supplied input is a plausibly-secure cryptoacoustic communication channel for many choices of hash function.
+
+Computing such a tagged hash function announces the plaintext of the tag to anybody who can observe the internal workings of the state machine that natively computes that hash function. Without providing exotic cryptographic algorithms, the plaintext of these tags will always be within reach of a reasonably good reverse engineer. This plausibly provides a natural chokepoint against obfuscation.
+
+Homomorphic Encryption (HE) can plausibly hide the internal transitions of arbitrary state machines from even the best reverse engineers. Although the cost overhead of HE is currently prohibitive in the context of password cracking, the G3P would very much like to keep it that way. Thus the G3P uses _cryptoacoustic repetition_ to amplify the overhead plausibly associated with the exotic cryptography required of any truly secure virtual black-box tag obscuration attack.
+
 ## Introduction
 
-Authentication services are naturally a high-value target for cyberattackers.  Successfully evesdropping on a password-based login flow often reveals the plaintext password itself. Because users often use the same or similar passwords across multiple websites, the plaintext password can often then be used to attack other accounts.
+Authentication services are a _high-value asset_, and therefore a natural target for cyberattackers to prioritize. Successfully evesdropping on a password-based login flow often reveals the plaintext password itself. Because users often use the same or similar passwords across multiple websites, the plaintext password can often then be used to attack other accounts.
 
 We can do better. The Global Password Prehash Protocol (G3P) is a slow password hashing function based on PHKDF and bcrypt that is designed to be particularly suitable for use on the user's endpoint before a password is sent to an authentication server. If the service provider requires[^require-prehashing] prehashing, the provider can all but ensure that they will never see plaintext passwords.
 
 When the G3P is deployed as a client-side prehash, then further server-side hashing or other suitable password authentication technology such as SCRAM or PAKE is required before the hash can be safely stored in the server's authentication database. In some cases this might be as simple as a single application of SHA256, HMAC, or any other suitable cryptographic hash function applied to the prehash itself.
 
-The G3P transparently binds the output of the hash to a specific username on a specific authentication service. In doing so, the G3P provides domain separation among usernames and services. Say there is a user reuses the same or similar password across multiple accounts. Say there is an evesdropper with the ability to see inside encrypted TLS sessions, and they intercept a G3P prehash of our user's reused password.
+One of the practical challenges of deploying a client-side password prehash function is communicating the salt for the password function to the authenticating party. Any careless adaptation or implementation of a traditional random-salt-per-password design in a prehash setting has the potential to leak information such as whether or not a given account exists, or if the password for a given account has changed.
 
-In order for the evesdropper to use the stolen prehash against the other accounts, the reused plaintext password must first be cracked. Beyond cracking and replaying, the domain-separated, channel-locked prehash is otherwise almost certainly useless.
+The G3P eliminates this complication by seperating the salt into the _username_ parameter, which is expected to be known of an authenticating party, and various deployment-identifying cryptoacoustic tags such as the _seguid_ and the _domain-tag_. These tags can be shared by all users, and can be constant across an entire deployment.
+
+Typically, most of these tags would be publicly known. They are intended to point to the start of a documentation path that leads to the deployment's security disclosure portal. This referenced documentation should be reasonably specific, and should be published for everybody to see for free and without registration over https and possibly also InterPlanetary FileSystem (IPFS), a content-addressable distributed storage technology that also supports strongly-authenticated publication channels.
+
+In this way, the G3P transparently binds the output of the hash to a specific username on a specific authentication service. In doing so, the G3P provides domain seperation among usernames and services. Say there is a user reuses the same or similar password across multiple accounts. Say there is an evesdropper with the ability to see inside encrypted TLS sessions, and they intercept a G3P prehash of our user's reused password.
+
+In order for the evesdropper to use the stolen prehash against the other accounts, the reused plaintext password must first be cracked. Beyond cracking and replaying, the domain-seperated, channel-locked prehash is otherwise almost certainly useless.
 
 A G3P hash cannot be transported between deployments of the protocol in dishonest ways. This is analogous to ingress and egress filtering routinely deployed on Internet Protocol routers.  In ingress/egress filtering, traffic that claims to originate from inside the network is not allowed to enter the network from the outside, and traffic that claims to originate from outside the network is not allowed to be leave the network from the inside.
 
-To strengthen the second half of the analogy, the G3P protocol introduces a secondary security goal into the password hashing process. The G3P tries to ensure that a password hash is either _traceable_ or _useless_ after it has been _stolen_ by an evesdropper. The G3P implements domain separation using tags that are _cryptoacoustically self-documenting_, in the sense that these tags are encoded into the state transitions of SHA256 and bcrypt in a way that is easy for observers to decode and that plausibly resists obfuscation. In this way, computing the correct hash function with standard cryptographic algorithms announces the plaintext of these domain tags.
+To strengthen the second half of the analogy, the G3P protocol introduces a secondary security goal into the password hashing process. The G3P tries to ensure that a password hash is either _traceable_ or _useless_ after it has been _stolen_ by an evesdropper.  For example, say Acme Corporation deploys the G3P, and their password database gets stolen and posted on a darknet website.
 
-These domain tags are not normally secret, otherwise users might have a difficult time logging in! Rather, they are intended to be publicly published for everybody to see. They should be available for free and without registration, on the authentication service's website and possibly other places such as the Interplanetary Filesystem (IPFS).
+The goal is that in order to have a possibility of cracking those stolen hashes, any observer must know (or guess) that they came from Acme Corporation. Thus, if a security researcher witnesses the password hashes on the sketchy website and those hashes are genuinely crackable, then the security researcher is supposed to have an easy time figuring out that the hashes should be reported to Acme Corporation as stolen.
 
-Since most (all?) common cryptographic hash functions exclusive-or their input into a state machine, suffixing a plaintext tag to the end of observer-supplied input plausibly exhibits desireable cryptoacoustical properties for most any cryptographic hash function. Securely hiding these tags from an observer requires exotic algorithms in order compute standard hash functions;  homomorphic encryption seems plausibly capable of doing this, but at a prohibitive expense.
-
-Whenever an evesdropper obtains hash that includes the G3P protocol in its derivation chain, the evesdropper cannot usefully share that intercepted hash with a third party without also sharing the domain tags specified by the deployment of the G3P. Omitting or lying about these values means that the computed prehashes will be incorrect, and thus the password hashes cannot be cracked without guessing the correct domain tag. On the other hand, truthfully communicating theses values is intended to provide that third party with ample opportunity to report the password hashes as stolen.
-
-For example, say Acme Corporation's password database gets stolen, and posted on a darknet website. The goal is that in order to have a possibility of cracking those stolen hashes, any observer must know (or guess) that they came from Acme Corporation. Thus, if a security researcher witnesses the password hashes on the sketchy website and those hashes are genuinely crackable, then the security researcher is supposed to have an easy time figuring out that the hashes should be reported to Acme Corporation as stolen.
-
-In another very plausible scenario, let's say that an evesdropper chooses to conduct an offline brute-force attack against stolen password hashes using a botnet or other stolen computing resources. If a security analyst observes this payload, that analyst is supposed to have an easy time figuring out that the stolen resources are being spent cracking Acme Corporation's password hashes.  That analyst would ideally then have an easy time finding Acme's security disclosure portal to report their observations directly to Acme.
-
-The website _Have I Been Pwned_ includes an effort to document the huge and currently growing problem of stolen passwords and stolen password hashes. This effort inspired a personal desire in this author for password hashes that are _traceable-or-useless_, which helped inspire the invention of cryptoacoustics and self-documenting cryptography.
+In another plausible scenario, let's say that an evesdropper chooses to conduct an offline brute-force attack against stolen password hashes using a botnet or other stolen computing resources. If a security analyst observes this payload, that analyst is supposed to have an easy time figuring out that the stolen resources appear to be devoted to cracking Acme Corporation's password hashes. That analyst would ideally then have an easy time finding Acme's counterintelligence tip line to report their observations directly to Acme.
 
 The tagging constructions I propose provide no way to determine whether or not any particular password hash is actually from Acme Corporation. Even if you successfully crack a plaintext password from a hash using the official Acme Corporation-branded password hash function, it's trivial to forge such password hashes.
 
-This proposal purposefully leaves unaddressed the issue of authenticating whether or not any purported password hash is genuinely Acme Corporation's or not. On that specific question, it seems preferable to Acme to maintain plausible deniability. We need our tagging construction to be a robust communication channel from deployments to observers, but the type of tagging we desire is much weaker than say, an indelible property tag attached to a physical object.
+This proposal purposefully leaves unaddressed the issue of authenticating whether or not any purported password hash is genuinely Acme Corporation's or not. On that specific question, it seems preferable to Acme to maintain plausible deniability. We need our tagging construction to be a robust communication channel from deployments to observers, but the type of tagging that is needed is much weaker than say, an indelible property tag attached to a physical object.
 
-Our security goal is that if one of Acme Corporation's geniune hashes is obtained by an evesdropper, and is subsequently subjected to a cracking attack, then it should be prohibitively expensive for the evesdropper to hide the target of the attack from those who are providing the resources to carry the password cracking attack out. In this way, this proposal hopes to supplement and enhance _Have I Been Pwned_ and similar efforts by building a closer approximation to a closed-loop detector for leaked password hashes.
+Our security goal is that if one of Acme Corporation's geniune password hashes is obtained by an evesdropper, and is subsequently subjected to a cracking attack, then it should be prohibitively expensive for the evesdropper to hide the target of the attack from whomever is providing the resources to carry the attack out, thus building a closer approximation to a closed-loop detector for leaked password hashes.
+
+In this way, this proposal hopes to supplement and enhance _Have I Been Pwned_, which is a website that includes an effort to document the huge and currently growing problem of stolen passwords and stolen password hashes. Troy Hunt's pioneering effort at closed-loop leaked password hash detection directly inspired a desire for password hashes that are _traceable-or-useless_, which helped inspire the invention of cryptoacoustics and self-documenting cryptography.
 
 ## Design Requirements
 
-This paper introduces a series of cryptographic hash protocols. The first is based on PBKDF2, the second is based on HDKF, the third introduces PHKDF, and the fourth and final introduces the full Global Password Prehash Protocol (G3P). This introduction provides an overview of the design requirements for a complete prehash protocol. The three most important parameters of a complete input block are the username, password, and domain tag:
+This paper introduces a series of cryptographic hash protocols. Two are based on PBKDF2, one is based on HDKF, two are used to introduce PHKDF, and the final introduces the full Global Password Prehash Protocol (G3P). This introduction provides an overview of the design requirements for a complete prehash protocol. The three most important parameters of a complete input block are the username, password, and domain tag:
 
 ```
 username   : ByteString
@@ -48,13 +62,13 @@ password   : ByteString
 domain-tag : ByteString
 ```
 
-The username and password are normally provided by an authenticating party. A complete password prehash protocol should not impose any theoretical limitation on the length of either parameter. If implementations impose a maximum length on the username or password, that upper limit should not be less than 2048 bytes long.
+The username and password are normally provided by an authenticating party. A complete password prehash protocol should not impose any theoretical limitation less than the maximum input length supported by an underlying cryptographic hash function. If implementations impose a maximum length on the username or password, that upper limit should not be less than 2048 bytes long.
 
 Furthermore, both parameters must support arbitrary binary data, including null bytes. Every single bit must match: there must be no password-truncation or password-encoding gotchas like bcrypt. There must be no timing side-channels in the protocol that depend on anything more than the length of the parameters, and a complete password prehash protocol must take steps to minimize those side channels.
 
-The username is functionally a second password. The username must match, and the username and password cannot be swapped, nor bytes shuffled between them. Though the username is often not considered a secret, both inputs are otherwise functionally identical: if either the username or the password is a high-entropy secret, the result must be a high-entropy secret.
+The username is functionally a second password. The username must match, and the username and password cannot be swapped, nor bytes shuffled between them. Though the username is often not considered a secret, both inputs are functionally identical in the sense that if either the username or the password is a high-entropy secret, the result must be a high-entropy secret.
 
-From the perspective of our primary, classical security model of password hashing, the domain tag is functionally a third password. In normal use cases, the domain tag is intended to be a constant (or near-constant) specified by a deployment of a password prehashing protocol. Though the domain tag may contain arbitrary binary data, we recommend specifying a domain tag that consists of UTF8-encoded plaintext strings, possibly separated by null bytes, due to our _traceable-or-useless_ secondary security model.
+From the perspective of our primary, classical security model of password hashing, the domain tag is functionally a third password. In normal use cases, the domain tag is intended to be a constant (or near-constant) specified by a deployment of a password prehashing protocol, thus serving as a form of salt. Though the domain tag may contain arbitrary binary data, we recommend specifying a domain tag that consists of UTF8-encoded plaintext strings, possibly seperated by null bytes, due to the cryptoacoustic properties of the domain tag that our  _traceable-or-useless_ security goal depends upon.
 
 The domain tag is normally expected to start with an RFC 3490-compliant DNS name under your control, an RFC 3986-compliant URI that points to documentation relevant to the deployment, or at least an RFC-6530 email address to report security incidents to. Additional data may be included in a domain tag after an ASCII space ("\x20"), CR LF newline ("\x0D0A"), or horizontal tab character ("\x09").
 
@@ -66,7 +80,7 @@ domain-tag = "your-domain.example"
 domain-tag = "your-email-address@provider.example"
 ```
 
-A high-quality deployment should clearly document the intended audience and use case. For example, a deployment of the G3P might be intended to be used by customers and/or employees of the Acme Corporation in order to login into Acme's website. This should be clearly documented, and then a link to those documents should be included in the plaintext tags specified by the deployment itself. This can be done in the domain tag directly; alternatively all of the complete PHKDF-based protocols all support various other tagging locations, such as the `long-tag` which is constant-time for any length up to nearly 5 KiB:
+A high-quality deployment should clearly document the intended audience and use case. For example, a deployment of the G3P might be intended to be used by employees of the Acme Corporation in order to login into Acme's website. This purpose should be clearly documented, and then a link to those documents should be included in the plaintext tags specified by the deployment itself. This can be done in the domain tag directly; alternatively all of the complete PHKDF-based protocols all support various other tagging locations, such as the `long-tag` which is constant-time for any length up to nearly 5 KiB:
 
 ```
 long-tag = "https://your-domain.example/link/to/deployment/docs"
@@ -76,23 +90,23 @@ E.G.
 long-tag = "https://login.acme-corp.example/.prehash/v0"
 ```
 
-These tags are intended to provide a cryptoacoustically robust plaintext communication channel from _deployments_ to _observers_. In this context, an observer is whomever is capable of computing the correct hash function for passwords of their choosing.
+These tags are a form of salt intended to provide a cryptoacoustically robust plaintext communication channel from _deployments_ to _observers_. In this context, an observer is whomever is capable of computing the correctly-salted hash function using hardware of their choosing.
 
-A password-based authenticator can securely display (part of) the domain tag to the user, and the user can double check the domain tag against their expectations. It does no good to lie about the domain tag to the authenticator, as that completely changes the resulting hash itself.
+A G3P-based password authenticator can securely display (part of) the domain tag to the user, and the user can then double check the domain tag against their expectations. Even if a user were to reuse a password between say, a social media account and an online bank account, there is no direct, immediate benefit to an attacker to ask the user's authenticator for the password to the social media account in an attempt to gain access to the financial account.[^reduced-round-attacks]
 
 This communication channel makes the domain tag functionally distinct from the username and password.  Reciprocal relationships are not design requirements: for example, if an observer can compute a hash for an arbitrary domain tag of their choice, and some hidden username and password, they are not required have access to the plaintext of either the username or password.
 
-The domain tag is allowed, even encouraged, to exhibit strong timing side-channels revealing a range into which the length of the domain-tag falls. In the final G3P protocol for example, the plaintext of the domain tag is repeatedly hashed into the final result, very much like the `info` parameter in HKDF.
+The domain tag is allowed, even encouraged, to exhibit strong timing side-channels revealing a range into which the length of the domain-tag falls. This is an unavoidable consequence of achieving _cryptoacoustic repetition_, where the plaintext of the domain tag is repeatedly hashed into the final result, very much like the `info` parameter in HKDF.
 
-In our PHKDF-based protocols, the domain tag is free of timing side-channels if it is 19 bytes or less. In the range of 20 and 83 bytes, the domain tag incurs the computation of one additional SHA256 block _per round_ and _per output block_, plus a small constant number of extra blocks. Every 64 characters added to the domain tag thereafter incurs this same incremental cost.  The domain tag will become otherwise entirely free of timing side channels, though the following the suggested defaults can introduce small timing side channels on domain tags of varying lengths between 20 and 83 bytes and every 64 bytes thereafter.
+In our PHKDF-based protocols, the domain tag is free of timing side-channels if it is 19 bytes or less. In the range of 20 and 83 bytes, the domain tag incurs the computation of one additional SHA256 block _per round_ and _per output block_, plus a small constant number of extra blocks. Every 64 characters added to the domain tag thereafter incurs this same incremental cost. The domain tag is otherwise entirely free of timing side channels.
 
 Space in the domain tag can be at a premium, depending on one's goals. Although for many or most purposes a 20-83 byte or even longer domain tag should work quite well, keeping it to 19 bytes or less means PHKDF remains the most directly comparable to PBKDF2 as possible. Longer domain tags also introduce extra overhead during final output expansion; while the magnitude of this timing effect is much smaller, it can't be easily compensated for by adjusting a cost parameter, and the location where the overhead is incurred could conceivably be more cost sensitive in some applications.
 
-For this reason, the G3P protocol intends to register well-known URLs so that one can start from a domain name, and easily find that domain's G3P deployment constants and other relevant documentation.  Also, our complete protocols offer a variety of alternate tagging locations that aren't repeatedly hashed into the result nearly as many times. These are ideal places to specify additional tags that convey longer messages to observers.
+For this reason, the G3P protocol intends to register well-known URLs so that one can start from a domain name, and easily find that domain's G3P deployment constants and other relevant documentation. Also, our complete protocols offer a variety of alternate tagging locations that are hashed into the result only once or a few times. These are ideal places to specify additional tags that convey longer messages to observers.
 
 The last parameter that appears in all of the complete protocols in this paper is the `seguid`, which serves as sort of a global salt. One of the cryptographically most important things a typical deployment can do is specify a constant seguid.  The seguid is then used as the HMAC key throughout most or all of a protocol, and is not used for any other purpose by the protocol itself.
 
-The seguid parameter is fully defined for arbitrary bitstrings, however, the parameter corresponds to a _key derivation key_ (KDK) in NIST Special Publication 800-108r1.  As such, it is highly recommended that the input be 256-512 bits long, and resemble a string chosen uniformly at random.  Using a genuine seguid meets both of these recommendations.   Using a 512-bit seguid is basically free, and theoretically stronger, however, in the context of HMAC-SHA256, seguids that are longer than 512 bits are equivalent in security strength to a 256-bit seguid.
+The seguid parameter is fully defined for arbitrary bitstrings, however, the parameter corresponds to a _key derivation key_ (KDK) in NIST Special Publication 800-108r1.  As such, it is highly recommended that the input be 256-512 bits long, and resemble a string chosen uniformly at random.  Using a genuine seguid meets both of these recommendations.   Using a 512-bit seguid is basically free, and theoretically stronger than a 256-bit seguid, however, in the context of HMAC-SHA256, seguids that are longer than 512 bits are equivalent to a 256-bit seguid.
 
 ```
 seguid : BitString
@@ -102,15 +116,15 @@ We highly recommend that the input to the seguid parameter be a genuine self-doc
 
 It is recommended that every deployment generates and uses its own genuine seguid, because doing so is easy and because it always improves the coverage of self-documenting tags throughout our protocols.
 
-For example, without either using a deployment-specific seguid or modifying the HMAC construction altogether, it's impossible to add a deployment-documenting tag to the last SHA256 block required to compute a full application of HMAC. This block is fairly common in the core key-stretching component of PHKDF, typically consisting of one out of three or four blocks, depending on the length of the domain tag. This plausibly amplifies any overhead associated with hypothetical tag obscuration attacks.
+For example, without either using a deployment-specific seguid or modifying the HMAC construction altogether, it's impossible to add a deployment-documenting tag to the last SHA256 block required to compute a full application of HMAC. This block is fairly common in the core key-stretching component of PHKDF, typically consisting of one out of three or four blocks, depending on the length of the domain tag. Using a deployment-specific seguid plausibly amplifies any overhead associated with hypothetical tag obscuration attacks.
 
 While it is recommended to use your own seguid, it is also perfectly secure to use a default seguid; it just won't point back to your specific deployment, and instead you'll be entirely reliant on other tags to communicate with observers.
 
-Be aware that using a default seguid can bring with it additional expectations or requirements. For example, while the above recommendation that the domain tag start with a domain name, email address, or URI is a universal recommendation no matter what seguid is ultimately specified, these recommendations might become an expectation if a default seguid is used.  On the other hand, a deployment could change the seguid and then do whatever it wants to with the domain tag.
+Be aware that using a default seguid can bring with it additional expectations or requirements. For example, while the above recommendation that the domain tag start with a domain name, email address, or URI is a universal recommendation no matter what seguid is ultimately specified, these recommendations might become an expectation if a default seguid is used. On the other hand, a deployment could change the seguid and then do whatever it wants to with the domain tag.
 
 ## A First Implementation
 
-Our first protocol meets all of our design requirements and is relatively simple and foolproof to implement.  It is literally PBKDF2 deployed in an alternate mode of operation.  This alternative is plausibly better for at least three reasons: first, this mode of operation is the only way to turn PBKDF2-HMAC-SHA256 into an iterated self-documenting hash function.  Second, this mode of operation allows a PBKDF2 computation to efficiently transferred to another computing element at nearly any time, with full credit for any key-stretching work already performed.  Third, this mode of operation comports more closely with modern recommendations for key derivation functions as found in NIST Special Publication 800-108r1 and RFC 5869.
+Our first protocol meets all of our design requirements and is relatively simple and foolproof to implement.  It is literally PBKDF2 deployed in an alternate mode of operation. This alternative is plausibly better for at least three reasons: first, this mode of operation is the only way to turn PBKDF2-HMAC-SHA256 into an iterated self-documenting hash function. Second, this mode of operation allows a PBKDF2 computation to efficiently transferred to another computing element at nearly any time, with full credit for any key-stretching work already performed. Third, this mode of operation comports more closely with modern recommendations for key derivation functions as found in NIST Special Publication 800-108r1 and RFC 5869.
 
 ```
 TAGGED-PBKDF2-HMAC-SHA256 : (
@@ -141,7 +155,7 @@ return PBKDF2-HMAC-SHA256 (
 
 TAGGED-PBKDF2-HMAC-SHA256 uses a parameter padding scheme that doesn't depend on the length of the input parameter.  Under this constraint, the padding is design to maximize the input length range for which the hashing protocol will operate in constant time.  In this case, any input from 0-63 bytes long will be processed in constant time.  Every 64 bytes thereafter will cause the computation of exactly one additional SHA256 block, thus also minimizing the side-channel.
 
-This is done by ensuring that the length of the padding is of the form (56 + 64 n), with n determined by the length of the parameter's name and the domain tag.  SHA256's end-of-message padding requires 8 bytes plus 1 bit. This is effectively 9 bytes if you constrain SHA256 inputs to bytestrings. Thus the parameter padding and the minimum-length end-of-message padding together consume (65 + 64 n) bytes, leaving 63 input bytes left to go before another SHA256 block computation is incurred.
+This is done by ensuring that the length of the padding is of the form (56 + 64 n), with n determined by the length of the parameter's name and the domain tag.  SHA256's end-of-message padding requires 8 bytes plus 1 bit. This is effectively 9 bytes if you constrain SHA256 inputs to bytestrings. Thus the parameter padding and the minimum-length end-of-message padding together consume (65 + 64 n) bytes, leaving 63 input bytes left to go before another SHA256 block computation is incurred on the 64th byte.
 
 ```
 parameter-padding : (
@@ -237,22 +251,26 @@ Tags that appear after user input are plausibly secure plaintext tags with no ca
 
 In order for an attacker to defeat a long tag, they would have to provide a virtual black-box obfuscated algorithm to an observer that enables `SHA256 (x || long-tag)` to be computed for arbitrary `x` chosen by the observer, using any compatible hardware of the observer's choice and under their direct control, while securely hiding the plaintext of the `long-tag` from the observer. This implementation would have to provide quite an exotic algorithm for computing SHA256, because observing the internal workings of the standard algorithm trivially reveals the plaintext of the tags our attacker wishes to obscure.
 
-This observation applies not only to the entire the SHA-2 family of functions.  Suffixing is a also a plausibly secure plaintext tagging construction when instantiated with Blake2, SHA-3, Ascon, and all hash functions based on the sponge construction. I've not done an extensive survey of alteratives beyond these, but I am not specifically aware of a cryptographic hash function for which this observation is untrue.  Even if SHA256 turns out to be a less than ideal choice for this construction, it is at least possible that other cryptographic hash functions are more suitable for various cryptoacoustically secure tagging constructions.
+The observation that suffixing is a plausibly-secure plaintext tagging construction applies not only to the entire SHA-2 family of functions, but also Blake2, SHA-3, Ascon, and many or most other cryptographic hash functions. Even if SHA256 turns out to be a less than ideal choice for this construction, it is at least possible that other cryptographic hash functions are more suitable for various cryptoacoustically secure tagging constructions.
 
 Thus the G3P also uses bcrypt in a self-documenting mode of operation to supplement the primary crypoacoustic construction,  with the understanding that every bit of bcrypt's two 72-byte inputs is a cryptoacoustic plaintext tag under the assumption that a sufficient number of bytes has been derived from observer input.
 
-Futhermore, the expansion phase of all the PHKDF-based protocols relies on a slight variant of our primary understanding, where the entire hmac message must be known to an observer if they provide the key:
+A notable counterexample is Blake3. It too exclusive-ors its input into a cryptographic state machine, so thus it too exhibits plausibly-secure cryptoacoustic properties. However, it also offers parallel computation and incremental updates via it's internal tree structure, which complicates the cryptoacoustic properties of this function.
+
+This means the tag-suffixing construction can only be cryptoacoustically secure with additional assumptions about the lengths of the tag and other inputs to Blake3, which shouldn't be anything insurmountable in cryptoacoustically-sensitive designs, but it is an unusual example nonetheless.  Blake3's parallelism and incremental updates seem largely at odds with the goals of cryptoacoustics, but perhaps there is a shift in perspective that could somehow render these features cryptoacoustically attractive
+
+The expansion phase of all the PHKDF-based protocols relies on a slight variant of our primary understanding, where the entire hmac message must be known to an observer if they provide the key:
 
 ```
 HMAC-SHA256 (
     key = derived-from-observer-input
-    msg = long-tag
+    msg = plaintext-tag
   )
 ```
 
-The main limitation of a short HMAC tag is that it must be substantially shorter than one block (64 bytes in the case of SHA256) to ensure that the first block processed includes the `indirect-tag` and a sufficient quantity of observer-derived input so that the observer must compute that SHA256 block themselves and cannot be provided with a precomputed block.  Our final protocols basically limit the use of this exact construct as protocol-identifying domain seperation constants.
+The main limitation of a short HMAC tag is that it must be substantially shorter than one block (64 bytes in the case of SHA256) to ensure that the first block processed includes the `indirect-tag` and a sufficient quantity of observer-derived input so that the observer must compute that SHA256 block themselves and cannot be provided with a precomputed block. Our final protocols basically limit the use of this exact construct as protocol-identifying domain seperation constants.
 
-However, our final padding design employs a slight extension of the short tag construction to ensure that whomever computes the SHA256 blocks where the `password`, `credentials`, or `seed-tags` parameters are located in the overall protocol must know those short tags.
+However, our final padding design employs a slight extension of the short tag construction to ensure that whomever computes the SHA256 blocks where the `password`, `credentials`, or `seed-tags` parameters are located in the overall protocol must know those short tags, where the domain and various other tag parameters are fit into a fixed number of bytes, usually 32 bytes, in a truncated or cyclically extended form.  All such parameters are repeated fully elsewhere, so none of these truncations lead to trivial collisions.
 
 ```
 HMAC-SHA256 (
@@ -262,7 +280,6 @@ HMAC-SHA256 (
        || encoded-parameter-blocks
        || remainder-of-message
    )
-
 ```
 
 With the help of Self-documenting Globally Unique Identifiers (seguids), HMAC keys are indirectly usable as tags. Indirect tags cannot be used to convey a plaintext message without the help of external means, such as openly-published seguids and reverse-lookup search engines.
@@ -277,11 +294,11 @@ I don't know that there isn't a more efficient tag obscuration attack. Perhaps i
 
 The G3P protocol ensures that every HMAC call and nearly every SHA256 block it specifies contains at least one self-documenting constant. This is an educated but naive attempt at amplifying the overhead imposed by any hypothetical tag obscuration attack.  It accomplishes this using PHKDF, a cryptographic primitive introduced in the next section that is the result of deconstructing PBKDF2 and HKDF and reconstructing them into a natively self-documenting cryptographic construction.  If the self-documenting constants weren't throughly suffused throughout PHKDF, then it perhaps the virtual black-box tag obscuration algorithm would only need to be used for a few blocks instead of tens of thousands of blocks per password guess.
 
-G3P further hedges the self-documenting properties PHKDF by using bcrypt in a cryptographically self-documenting mode of operation. While further improvements are likely be found by reconstructing bcrypt as well, this would necessarily involve much deeper and more subtle changes. A design goal of Version 1 of the G3P is to remain cautious in the changes it chooses to introduce.
+G3P further hedges the self-documenting properties of PHKDF by using bcrypt in a cryptographically self-documenting mode of operation. While further improvements are likely be found by reconstructing bcrypt as well, this would necessarily involve much deeper and more subtle changes. A design goal of Version 1 of the G3P is to be relatively cautious in the changes it chooses to introduce.
 
-Furthermore, even if our hope for a durable plaintext communication channel to observers is overly optimistic, the domain separation itself enables a sufficiently sophisticated observer to deduce openly-published, non-secret tags even from perfect black-box implementations of a G3P deployment.
+Furthermore, even if our hope for a durable plaintext communication channel to observers is overly optimistic, the domain seperation itself enables a sufficiently sophisticated observer to deduce openly-published, non-secret tags even from perfect black-box implementations of a G3P deployment.
 
-Let's say an attacker provides an observer with a virtual black-box implementation of Acme's prehash function, like a webservice. Of course, a literal G3P-as-a-webservice would be almost entirely useless in practice.  It's of no use to password crackers, because generating password guesses is cheap, but actually calculating their hash so that the guess can be checked is expensive, so this arrangement does not outsource the real cost of password cracking, and in fact introduces new ones. And of course G3P-as-a-webservice is a comically insecure deployment decision if the G3P is actually used as a password prehash function. However, G3P-as-a-webservice is a useful mental approximation of the virtual black-box oracle needed for our thought experiment.
+Let's say an attacker provides an observer with a virtual black-box implementation of Acme's prehash function, like a webservice. Of course, a literal G3P-as-a-webservice would be almost entirely useless in practice.  It's of no use to password crackers, because generating password guesses is cheap, but actually calculating their hash so that the guess can be checked is expensive, so this arrangement does not outsource the real cost of password cracking in addition to introducing substantial new costs. And of course a literal G3P-as-a-webservice is a comically insecure deployment decision if the G3P is actually used as a password prehash function. However, G3P-as-a-webservice is a useful mental approximation of the virtual black-box oracle needed for our thought experiment.
 
 For the remainder of this section, we assume our attacker has the superpower to produce a virtual black-box oracle for Acme's prehash function that allows this  "webservice" to be shared as a executable program with 10x overhead or less, or somehow otherwise magically find another solution that is bordering on practical for purposes of outsourcing password cracking attacks. Even in this scenario, a sufficiently advanced observer should still have relatively little difficulty figuring out which deployment is being hidden behind the oracle.
 
@@ -289,11 +306,11 @@ All the observer need to do is to simply select some username and password at ra
 
 There's a certain lack of compositionality in this thought experiment: let's say that Acme is storing their prehashes using a secret HMAC key. Say an attacker learns Acme's secret storage key, and then constructs an oracle that computes the composition of Acme's G3P prehash and their secret storage function. No observer outside of Acme's cybersecurity administrators and engineers could deduce that the oracle's hidden function is at all relevant to Acme Corporation.
 
-In general, it seems plausible that such an attacker could lift the entire password-checking computation into their virtual black-box, so that an observer simply gets a "yes/no" answer to any given password guess. Thanks to our attacker's superpower, this would enable practical password cracking attacks to be outsourced to third parties while also hiding the target of the attack from those providing the resources to carry it out.
+In general, it seems plausible that our hypothetical attacker could lift the entire password-checking computation into their virtual black-box, so that an observer simply gets a "yes/no" answer to any given password guess. Thanks to our attacker's superpower, this would enable practical password cracking attacks to be outsourced to third parties while also hiding the target of the attack from those providing the resources to carry it out.
 
-Ultimately, it is important to remember that a tag obscuration attack is only relevant to our extended secondary security model that password hashes must be _traceable_ or _useless_ after they have been _stolen_.  A successful tag obscuration attack means that an attacker removed or changed some of the signposts that we are attempting to leave for observers.  Successful attacks of this kind have no impact the classical model of password security, which is still our first and primary security model. Moreover, in this context, observers are authenticating parties and the authentication service itself, and the benefits of our domain separation methodology are more robust.
+Ultimately, it is important to remember that a tag obscuration attack is only relevant to our extended secondary security model that password hashes must be _traceable_ or _useless_ after they have been _stolen_.  A successful tag obscuration attack means that an attacker removed or changed some of the signposts that we are attempting to leave for observers.  Successful attacks of this kind have no impact the classical model of password security, which is still our first and primary security model.
 
-Our secondary _traceable-or-useless_ security model appears to be novel, and is relevant only when a third-party observer is a witness to a stolen G3P hash.  By contrast, our primary security model is classical, and very much relevant to the normal day-to-day functioning of an authentication service.
+Our secondary _traceable-or-useless_ security model appears to be novel, and is relevant only when a third-party observer is a witness to a stolen G3P hash.  By contrast, our primary security model is classical, and very much relevant to the normal day-to-day functioning of an authentication service.  Moreover, in the context of normal operations, the observers are authenticating parties not password crackers.  In this primary context, tag obscuration attacks are far less useful in practice and therefore the benefits provided by the G3P's domain seperation methodology are much more robust.
 
 ## PHKDF
 
@@ -346,7 +363,7 @@ Care must be taken not to introduce any important new secrets in the `msgs` para
 
 PHKDF-STREAM makes use of TupleHash's `encode_string` subroutine from NIST Special Publication 800-185 in order to unambiguously differentiate between an arbitrary number of bitstring inputs. After this vector of bitstrings has been fully encoded, we mark the end of the vector with a single null byte. Because the output of `encode_string` always starts with a byte that is not null, this end marker ensures that our encoding is _one-to-one_ and _well-defined_.
 
-At first, I tried to avoid incorporating TupleHash-style syntax in the G3P.  But I wanted the end-of-message tag placed in a consistent buffer location. I also wanted to be able to look at any given HMAC message generated by the G3P and be able to unambiguously understand exactly which call to HMAC it is within the context of a protocol deployment. All parameters should be unambiguously parseable from at least one set of calls to HMAC. I eventually came to believe the only practical way to really accomplish these and a few other minor perceived constraints was to incorporate TupleHash-style syntax to frame input arguments.
+At first, I tried to avoid incorporating length-prefixing syntax like TupleHash in the G3P.  But I wanted the end-of-message tag placed in a consistent buffer location. I also wanted to be able to look at any given HMAC message generated by the G3P and be able to unambiguously understand exactly which call to HMAC it is within the construction. All parameters should be unambiguously parseable from the inputs to at least one set of calls to HMAC. I eventually came to believe the only practical way to really accomplish these and a few other minor perceived constraints was to adopt something like TupleHash syntax to properly frame inputs.
 
 After we mark the end of the vector, we generate between 0 and 63 additional bytes of padding in order to bring the end of the HMAC message we are encoding to a half-buffer boundary.  This step ensures that all the timing side-channels associated with the length of tag occur at a consistent length.
 
@@ -515,10 +532,10 @@ secretKey = PHKDF-SLOW-EXTRACT-HMAC-SHA256 (
     tag = phkdfTag,
     rounds = rounds,
     tags-1x = tags,
-    fn-name = "phkdf-simple-v0 compact\x00" || domain-tag
+    fn-name = "phkdf-simple0 compact\x00" || domain-tag
   ).read(bytes = 32)
 
-echoHeader = cycle-bitstring-with-null(30,"phkdf-simple-v0 expand echo")
+echoHeader = cycle-bitstring-with-null(30,"phkdf-simple0 expand echo")
 
 return PHKDF-STREAM-HMAC-SHA256 (
    key = secretKey,
@@ -637,7 +654,7 @@ credentials-padding (
       || cycle-bitstring-with-null(    29, domain-tag)
 ```
 
-The next protocol, PHKDF-PASSWORD, adds a role. This parameter is a tweak that can be repeatedly and robustly applied without recomputing the expensive part of hash function.  Changing other parameters require starting over from the beginning. The role is useful for implementing domain separation within the context of a single authentication service, among other possible use cases.
+The next protocol, PHKDF-PASSWORD, adds a role. This parameter is a tweak that can be repeatedly and robustly applied without recomputing the expensive part of hash function.  Changing other parameters require starting over from the beginning. The role is useful for implementing domain seperation within the context of a single authentication service, among other possible use cases.
 
 ```
 PHKDF-PASSWORD (
@@ -734,15 +751,15 @@ Because PHKDF is not a particularly effective expenditure of latency, the G3P in
 
 Bcrypt's partial cache-hardness means that building and operating a bcrypt password cracker is going to be particularly expensive relative to the level of parallelism achieved. Within the G3P, bcrypt is primarily used as an expensive compression function. Bcrypt is secondarily used as another cryptographically self-documenting construction in order to reinforce and hedge the self-documenting properties of PHKDF.
 
-To derive the input for bcrypt's password parameter, PHKDF-SLOW-EXTRACT is used to generate 32 pseudorandom bytes to which the bcrypt tag is appended.  This tag is either truncated or cyclicly expanded to 40 bytes.   This truncation does not lead to trivial collisions, because the bcrypt tag is also included in the initial inputs to PHKDF-SLOW-EXTRACT, thus varying this tag also requires the recomputation of those pseudorandom bytes via PHKDF.  Bcrypt's salt parameter is used as a similar 16 byte self-documenting tag.
+To derive the inputs for bcrypt's password and salt parameters, PHKDF-SLOW-EXTRACT is used to generate two sets of 16 pseudorandom bytes to which the bcrypt tags are appended. These tags are either truncated or cyclicly expanded to 56 bytes. This truncation does not lead to trivial collisions, because each bcrypt tag is also included in the initial inputs to PHKDF-SLOW-EXTRACT, thus varying this tag also requires the recomputation of PHKDF and those two set of 16 pseudorandom bytes.
 
-Finally, a seed is created by combining bcrypt's 24-byte output hash and another 38 pseudorandom bytes from PHKDF-SLOW-EXTRACT.  Other than this use of bcrypt, and different choices for protocol constants, the G3P is the same as PHKDF-PASSWORD.
+Finally, a seed is created by hashing another 32 pseudorandom bytes from PHKDF-SLOW-EXTRACT with bcrypt's 24-byte output. Other than this use of bcrypt, and different choices for protocol constants, the G3P is largely the same as PHKDF-PASSWORD.
 
 The G3P actually uses a mildly generalized variant of bcrypt that allows for any number of rounds between `1..2^32`, not just powers of two of index `0..31`. This allows for finer-grained tuning of the cost parameter. Choosing `4095` as G3P's bcrypt-rounds parameter corresponds exactly to the traditional bcrypt cost parameter of `12`, because `4095 = 2^12 - 1`.
 
 We recommend that a deployment of the G3P specify 4000 rounds of bcrypt, give or take a factor of four or so, corresponding to a traditional bcrypt cost parameter of 10-14. We also suggest cutting down the number of PHKDF rounds by a order of magnitude relative to PHKDF-PASSWORD, to about 20,000 rounds, give or take a factor of two or so. Note that each individual bcrypt round is significantly more expensive than an individual PHKDF round, so if you use these suggested parameters, the main computational cost is bcrypt.
 
-If the latency budget is increased to about one second or more, argon2 becomes one of the empircally best expenditures of latency among well-established password hash functions. As an alterative to significantly increasing the PHKDF and/or Bcrypt cost parameters, cybersecurity engineers should consider incorporating another slow password hashing function such as argon2 into the larger hashing protocol.
+If the latency budget is increased to about one second or more, argon2 becomes one of the empircally best expenditures of latency among well-established password hash functions. As an alterative to significantly increasing the PHKDF and/or Bcrypt cost parameters, cybersecurity engineers should consider incorporating a memory-hard password hashing function such as argon2 into the larger hashing protocol.
 
 ```
 G3P-HASH : (
@@ -880,7 +897,7 @@ Taking a lesson from the bcrypt experience, these issues are probably best left 
     * Consider offering server-side RPCs and reference implementations
 
 * Even if the username is usually not a secret, there can be contexts in which it's still best kept private
-    * Consider separating screen names from login names
+    * Consider seperating screen names from login names
     * Screen names are typically shared with other users, at least in some contexts
     * Screen names often (but don't always) serve as something akin to an address, like a phone number or email
     * Consider keeping login names private-ish
@@ -911,9 +928,7 @@ PBKDF2 and bcrypt are both viable modern candidates for password security despit
 
 In this light, it seems like a good time to revisit a number of password hashing practices. Furthermore, some of the guidance offered by NIST is somewhat contradictory, or not up to date with the current state of the art outside the world of FIPS compliance.
 
-Designing self-documenting deployments of argon2 and/or natively self-documenting memory-hard hash functions seems like a fruitful and important line of research.  A future variant of the G3P is almost certain to incorporate a self-documenting deployment of argon2.
-
-Future versions of the G3P need not be as cautious regarding it's choice of cryptographic primitives. I think two efforts are particularly interesting and salient on this front: ascon, the lightweight cryptographic primitive that has been recently standardized by NIST, and bscrypt, a relatively new password hash function that attempts to achieve more complete cache-hardness. A natively self-documenting variation of bscrypt, possibly implemented in terms of ascon, seems a plausibly very strong starting point for a future version of the G3P.
+Designing self-documenting cache-hard and memory-hard password hash functions seems like a fruitful and important line of research. Bscrypt and argon2 are two particularly interesting password hash functions. While they would seem to be logical choices for future variants of the G3P, unfortunately they are both rather dead, cryptoacoustically speaking. There is simply no way to achieve cryptoacoustic repetition without some relatively delicate modifications of these functions.
 
 Version 1 itself is likely to have one or more officially-endorsed extensions developed for it.  One extension currently planned will include detailed recommendations about how to best implement second secrets via the `credentials` vector, directly inspired by 1password's two-secret key derivation (2SKD).
 
@@ -962,10 +977,12 @@ https://tools.ietf.org/html/rfc6530
 https://tools.ietf.org/html/rfc8018
 
 https://blog.cryptographyengineering.com/2014/02/21/cryptographic-obfuscation-and/
-
 [^require-prehashing]:
     Requiring prehashing is a potent and consequential move for an authentication service, but it's also important to point out the servers cannot verify that a purported "prehash" was actually computed via any particular cryptographic hash function. The best that the servers can do is to ensure that the prehash "looks right": i.e. has the correct length and format and passes one or more entropy estimation checks whenever the password is set.
 
     Indeed, in cases where an account is only ever used in conjunction with a password manager, it benefits both the user and the authentication service for the password manager to circumvent the prehash function altogether, and simply generate a "prehash" uniformly at random.  This "prehash" effectively has no plaintext password associated with it.  The only way to "crack" such a prehash is to conduct a successful preimage attack on the cryptographic hash function itself, inventing a plaintext password where there was none before.  This is part of the reason why the G3P strongly recommends that deployments specify syntax and mechanisms so that login boxes and forms can accept prehashes directly.
 
     There are strong security and compatibility incentives to implementing the recommended prehash function for a domain. While substituting another suitable prehash function is in some senses "harmless" and arguably even beneficial to the authentication servers, such shenanigans are best restricted to password managers.  Implementing unsanctioned hash functions directly in a software client has huge potential to create user support issues with often dubious security benefits, so in other senses it is harmful to the authentication service as a whole.
+
+[^reduced-round-attacks]:
+    Such a simplistic lie is certainly not the only kind of lie that can be told about a domain tag. Probably the most interesting lie I can think of that might somehow sorta work in some fuzzy, unknown hypothetical scenario, is to ask a G3P authenticator for some password with the correct domain tag, but with a substantially reduced number of rounds. This first login attempt will fail, but then the attacker is presumably doing this to obtain a much less expensive guessing attack on the plaintext password associated with that domain tag, which might then be usable to bootstrap attacks elsewhere.
