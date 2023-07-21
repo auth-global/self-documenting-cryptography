@@ -323,51 +323,31 @@ The core PHKDF-STREAM construction uses HMAC-SHA256 in a feedback mode, much lik
 ```
 PHKDF-STREAM-HMAC-SHA256 : (
     key  : BitString,
-    msgs : Vector<BitString>,
+    args : Vector<BitString>,
     ctr  : Word32,
     tag  : BitString
   ) -> output : UnboundedByteStream =
 
-encoded_msg = concat-map(encode_string, msgs) || "\x00"
+state = concat-map(encode_string, args) || "\x00"
 
-n = (32 - byte-length(encoded-msg)) mod 64
-
-encoded_msg ||= cycle-bitstring-with-null( n, tag )
-
-encoded_msg ||= encode_be32(ctr) || tag
-
-state = HMAC-SHA256 ( key, encoded_msg )
+n = (32 - byte-length(state)) mod 64
+// add 0-63 bytes, landing on 32-byte buffer boundary
+state ||= cycle-bitstring-with-null( n, tag )
 
 loop as needed:
-    output ||= state
+    state := HMAC-SHA256 ( key, state || encode_be32(ctr) || tag )
 
     // this increment must cleanly wrap around from 2^32-1 to 0
     ctr += 1
 
-    state := HMAC ( key, state || encode_be32(ctr) || tag )
+    output ||= state
 ```
-
-The interface of PHKDF-STREAM _superfically_ resembles the interface of HKDF,  with the `key` corresponding to HKDF's salt parameter,  `msgs` corresponding to the initial keying material (IKM), `tag` corresponding to `info`,  PHKDF-STREAM's `ctr` as kind of a little extra bonus `info` parameter, and HKDF's length parameter being subsumed into PHKDF-STREAM's unbounded output CSPRNG.
-
-However, it is important to understand that this superficial resemblence is _deceiving_. PHKDF-STREAM is actually a dramatically different, lower-level cryptographic primitive. PHKDF-STREAM has it's own _modes of operation_, three of which will be introduced and used to build complete prehash protocols on PHKDF.
-
-To build a proper replacement for HKDF in a fully native PHKDF fashion, it is _required_ to string together at least two calls to PHKDF-STREAM in different modes of operation, the first that mimicks a call to HKDF-Extract, and the second that mimicks a call to HKDF-Expand.
-
-PHKDF-STREAM is a low-level cryptographic primitive because revealing the output to any other party or less-than-trusted computing element can in some situations reveal the rest of the output stream.  Revealing extended portions of an output stream can re-reveal brute force attacks on weak secrets. Fortunately, there are at least three useful modes of operation for PHKDF that avoid these often-undesirable situations.  We use all three to build the G3P.
-
-The first and simplest mode of operation is to treat an output of PHKDF like a 32-byte hash, and not an unbounded CSPRNG stream.  Under this mode of operation, PHKDF-STREAM simplifes to a call to HMAC, layered with TupleHash syntax and bespoke, supplemental end-of-message padding.  If the rest of the output stream has never been imbued with any utility or meaning, then the first 32 bytes is safe to reveal to a third party, because it is irrelevant that the third party can predict the rest of the output stream!  Our one restriction is to stop examining the CSPRNG stream after a 32-byte output block has been revealed to another party.
-
-The second mode of operation is to keep a PHKDF output stream completely secret, and never reveal it to another party or less-than-trusted computing element. The secret-stream mode of operation imposes no limitation on how the _inputs_ to the function are used: a secret message can be safely hashed with a publicly-known key, counter, and tag, and we can use as much of the output stream as we need. Our one restriction is that we have to keep the output secret, with the possible exception of the last block examined.
-
-The third mode of operation is to derive a secret pseudorandom key (PRK) for use with PHKDF-STREAM.  In this mode of operation, PHKDF-STREAM properly emulates the HKDF-Expand half of a full HKDF call. This allows for more than 32 bytes of an output stream to be echoed to other parties.  The major difference is that HKDF-Expand's analogy to PHKDF-STREAM's `msgs` parameter is not a parameter at all, instead, it is an empty string constant specified by HKDF itself.
-
-Care must be taken not to introduce any important new secrets in the `msgs` parameter of a PHKDF expansion call.  If you don't, then revealing more than a full block to another party has the potential to re-reveal brute-force attacks on the older keying material.  For this reason, our complete password prehash protocols ensure that everything included in the `msgs` parameter of the expansion call to PHKDF has already been included in the derivation of the secret pseudorandom key.
 
 PHKDF-STREAM makes use of TupleHash's `encode_string` subroutine from NIST Special Publication 800-185 in order to unambiguously differentiate between an arbitrary number of bitstring inputs. After this vector of bitstrings has been fully encoded, we mark the end of the vector with a single null byte. Because the output of `encode_string` always starts with a byte that is not null, this end marker ensures that our encoding is _one-to-one_ and _well-defined_.
 
 At first, I tried to avoid incorporating length-prefixing syntax like TupleHash in the G3P.  But I wanted the end-of-message tag placed in a consistent buffer location. I also wanted to be able to look at any given HMAC message generated by the G3P and be able to unambiguously understand exactly which call to HMAC it is within the construction. All parameters should be unambiguously parseable from the inputs to at least one set of calls to HMAC. I eventually came to believe the only practical way to really accomplish these and a few other minor perceived constraints was to adopt something like TupleHash syntax to properly frame inputs.
 
-After we mark the end of the vector, we generate between 0 and 63 additional bytes of padding in order to bring the end of the HMAC message we are encoding to a half-buffer boundary.  This step ensures that all the timing side-channels associated with the length of tag occur at a consistent length.
+After we mark the end of the vector, we generate between 0 and 63 additional bytes of padding in order to bring the end of the HMAC message we are encoding to a half-buffer boundary. This step ensures that all the timing side-channels associated with the length of tag occur at a consistent length.
 
 This variable-length padding is generated via the subroutine `cycle-bitstring-with-null`, which always returns a bytestring of a given length. This routine is used throughout these constructions to improve the coverage of SHA256 blocks by self-documenting constants. It is implemented using `cycle-bytestring`, which repeats it's bytestring argument as many times as needed, followed by a prefix of the bytestring, to reach the desired length.
 
@@ -381,7 +361,6 @@ cycle-bitstring-with-null : (
   // Then add a full null byte.
   str = extend-to-bytestring(tag) || "\x00"
   return cycle-bytestring(out-bytes, str)
-
 
 cycle-bytestring : (
     out-bytes : Integer,
@@ -401,18 +380,83 @@ cycle-bytestring : (
 
 ```
 
-PHKDF-SLOW-EXTRACT's first output block of its output stream is extra expensive to produce, but computing additional blocks is the same amount of work as any other PHKDF output stream.  It is analogous to the initial TAGGED-PBKDF-HMAC-SHA256 implementation, as well as TAGGED-HMAC-HKDF and PBKDF2-TAGGED-HMAC,  which are the three starting points for our final design.
+If we unroll the demand-driven loop of `PHKDF-STREAM` a few steps, PHKDF conceptually looks like this:
 
-PHKDF-SLOW-EXTRACT is also a low-level primitive. Its intended mode of operation is to to be provided secrets among the input messages, with the other parameters being publicly known. In this mode, the output stream should be kept secret, and truncated after 32 bytes have been revealed.
+```
+PHKDF-STREAM (key, args, ctr, tag) =
+  output0 = HMAC (key, encode(args) || encode_be32(ctr)     || tag)
+  output1 = HMAC (key, output0      || encode_be32(ctr + 1) || tag)
+  output2 = HMAC (key, output1      || encode_be32(ctr + 2) || tag)
+  ...
+  return output0 || output1 || output2 || ...
+```
 
-PHKDF-SLOW-EXTRACT first uses a call to PHKDF-STREAM to set up a stream generator,  from which it collects 32 bytes plus another 32 bytes per round.  It calls PHKDF-STREAM a second time, to compact this long output into a more managable form.  We interleave these blocks with a filler tag, so that the incremental computational cost per round is three SHA256 blocks if the tag is 19 bytes or less,  or four SHA256 blocks per round for medium-length tags between 20-83 bytes.
+The interface of PHKDF-STREAM _superfically_ resembles the interface of HKDF, with the `key` corresponding to HKDF's salt parameter, `msgs` corresponding to the initial keying material (IKM), `tag` corresponding to `info`, and PHKDF-STREAM's `ctr` as kind of a little extra bonus `info` parameter:
 
-By contrast, PBKDF2 `xor`s the output blocks of it's internal CSPRNG, thus requiring a serial computation of two SHA256 blocks per round instead of three.  Thus 250k rounds of PHKDF-SLOW-EXTRACT is likely roughly comparable in strength to 375k rounds of PBKDF2 for a short domain tag (0-19 byts), or 500k rounds PBKDF2 equivalent for a medium-length domain tag (20-83 bytes).  Every additional 64 bytes of tag length likely adds another 125k rounds of PBKDF2 equivalence.  The most cautious comparison is direct: it would seem rather difficult to believe that 250k rounds of PHKDF-SLOW-EXTRACT is any less secure than 250k rounds of PBKDF2.   In any case, if PBKDF2 or PHKDF is the sole key-stretching component of a prehash function, we recommend at least 250k rounds of PHKDF or 375k rounds of PBKDF2.
+```
+HKDF (salt, ikm, info) =
+  key = HMAC (salt, ikm)
+  output1 = HMAC (key,            info || encode_u8(1))
+  output2 = HMAC (key, output1 || info || encode_u8(2))
+  ...
+  output255 = HMAC (key, output254 || info || encode_u8(255))
+  return output1 || output2 || ... output255
+```
+
+However, it is important to understand that this superficial resemblence is _deceiving_. The first thing to notice about `PHKDF-STREAM` is that it doesn't matter how secure the `args` parameter is, if you use a publicly known key, counter, and tag, then revealing a full output block reveals the remainder of the output stream.
+
+This is in contrast to HKDF, which allows the secret initial keying material to be expanded into a large number of output blocks that can be arbitrarily partitioned into non-overlapping portions that may be revealed independently of each other.
+
+Thus `PHKDF-STREAM` is actually a much lower-level hash function than `HKDF`. As such it has it's own _modes of operation_ that offer various different answers to the issue of output stream predictability.  Building a proper replacement for HKDF requires combining to or more calls to `PHKDF-STREAM` in different modes of operation.
+
+The first and simplest mode of operation is discard all but the first output block. In this case, `PHKDF-STREAM` simplifies to a call to HMAC with the addition of TupleHash style encoding, and custom end-of-message padding determined by the counter and tag. Thus we can use this mode to
+implement the key extraction portion of an HKDF-like hash function.
+
+In this mode of operation, we can safely use `PHKDF-STREAM` with secret initial keying materials and optionally non-secret salt, counter, and tag, and possibly even reveal the output. After all it doesn't matter if anybody can predict the remainder of the stream if it's never been granted any meaning.
+
+The second mode of operation is to use `PHKDF-STREAM` with a secret key, non-secret arguments, and optionally secret counter and tag.  In this mode, we can reveal arbitrary non-overlapping portions of the output stream to third parties, without worry that any portion can be derived from the others.
+
+Thus we can implement a variant of the HKDF construction using these two modes of operation in conjunction with each other:
+
+```
+HKDF-SIMPLE
+   ( salt : BitSttring
+   , ikms : Vector BitString
+   , tag  : BitString
+   ) -> output : UnboundedByteStream
+
+   echoArgs = ["hkdf-simple"]
+   inputCtr = decodeBE32 "IN\x00\x00"
+   outputCtr = decodeBE32 "OUT\x00"
+
+   key = PHKDF-STREAM (salt, ikms, inputCtr, tag)
+
+   return PHKDF-STREAM (key, echoArgs, outputCtr, tag)
+```
+
+However, we must be aware of the _echo args gotcha_: for reasons intimately related to the predictability of `PHKDF-STREAM` with a non-secret key, counter, and tag, the `echoArgs` parameter must not include any important new secrets.
+
+This time we are deriving a secret key using initial keying material. However, if that material is potentially guessable, then introducing a high-entropy secret in the @echoArgs@ parameter will secure the first output block, but revealing two output blocks would re-reveal the ability to guess the original keying material.
+
+Thus all secrets should be included in the derivation of the key, or possibly included in the tag parameter. A secret counter can also help, but cannot provide a sufficient level of entropy to secure the output all by itself.
+
+One of HKDF's design principles was to obtain a clean seperation between the extraction and expansion phases.  This seperation allows HKDF's design to avoid the _echo args gotcha_ by specifying that `echoArgs` is the empty string.
+
+In a literal, low-level sense, `PHKDF-STREAM` intentionally violates this seperation. In a metaphorical, higher-level sense, PHKDF affirms this design principle, rather PHKDF's goal is to allow a single primitive to serve both roles. This unification makes it easy to create cryptographic hash protocols where every call to HMAC is covered by a directly self-documenting plaintext tag.
+
+Moreover, PHKDF's alternative to PBKDF2 is its slow extraction function `PHKDF-SLOW-EXTRACT`, which makes crucial use of the /echo args gotcha/.  That brings us to a third mode of operation, which keeps the output stream secret, except possibly for the very last output block examined.
+
+In this way, you can safely use secret _args_ parameters with a publicly known _key_, _tag_, and _counter_ to start a predictable output stream at an unpredictable location. By keeping the output stream secret, _key stretching_ of the secret inputs can be achieved in a PBKDF2-like fashion while at the same time also providing _cryptoacoustic repetition_ of those publicly-known salts.  This construction combines all the best features of `TAGGED-PBKDF2-HMAC-SHA256`, `TAGGED-HKDF`, and `PBKDF2-TAGGED-HMAC`, which are the three starting points for our design.
+
+The `PHKDF-SLOW-EXTRACT` function uses two calls to `PHKDF-STREAM`, the first to produce a pseudorandom stream that stays secret because it is immediately consumed by a second call to `PHKDF-STREAM`. Thus first output block of `PHKDF-SLOW-EXTRACT` is extra expensive to produce, but subsequent output blocks are computed just as quickly as the key-stretching blocks. The output stream of `PHKDF-SLOW-EXTRACT` suffers from the same issues of predictability as `PHKDF-STREAM`, so this too is a low-level construction that when used in this suggested way, it's output is also truncated to 32 bytes or remains secret.
+
+`PHKDF-SLOW-EXTRACT` combines the output blocks of it's internal CSPRNG with SHA256; by contrast, PBKDF2 uses `xor`.  This means PHKDF's slow extraction routine requires the computation at least three SHA256 blocks per round, or possibly more if the tag is greater than 19 bytes long. PBKDF2 only requires two blocks per round.  Thus 250k rounds of PHKDF-SLOW-EXTRACT is likely roughly comparable in strength to 375k rounds of PBKDF2 for a short domain tag (0-19 bytes), or 500k rounds PBKDF2 equivalent for a medium-length domain tag (20-83 bytes).
+
+Every additional 64 bytes of tag length likely adds another 125k rounds of PBKDF2 equivalence. On the other hand the most cautious comparison is direct: it would seem rather difficult to believe that 250k rounds of PHKDF-SLOW-EXTRACT is any less secure than 250k rounds of PBKDF2. In any case, if PBKDF2 or PHKDF is the sole key-stretching component of a prehash function, we recommend at least 375k rounds of PBKDF2 or 250k rounds of PBKDF.
 
 These extra blocks that PHKDF requires can be computed in parallel with the internal CSPRNG.  Therefore, if an implementation can employ 1.5x parallel computation (or less for domain tags longer than 19 bytes), then this additional cost need not add any latency to the hashing computation.
 
 PHKDF-SLOW-EXTRACT's suggested default counter value provides a word of blessing and encouragement to the tag that follows.  It does this for the year 2023 and every subsequent year for one more than the number of rounds specified, plus the number of output blocks examined.
-
 
 ```
 PHKDF-SLOW-EXTRACT-HMAC-SHA256 : (
@@ -434,7 +478,7 @@ secretStream = PHKDF-STREAM-HMAC-SHA256 (
 
 phkdfLen = (rounds + 1) * 512
 
-phkdfLenTag = leftEncode(phkdfLen)
+phkdfLenTag = left_encode(phkdfLen)
 
 extFnNameLen = 32 - 2 - byte-length(phkdfLenTag)
 
@@ -459,24 +503,13 @@ return PHKDF-STREAM-HMAC-SHA256 (
   )
 ```
 
-Fact: PHKDF-SLOW-EXTRACT can be implemented in constant space. This is because both the output of PHKDF-STREAM, and any input message of known length, are both streamable. This is left as an exercise for the reader, though you can refer to the author's sample implementation. This slow extraction function introduces a helper function, which are used in subsequent constructions:
+Fact: `PHKDF-SLOW-EXTRACT` can be implemented in constant space. This is because both the output of `PHKDF-STREAM`, and any input message of known length, are both streamable. This is left as an exercise for the reader, though you can refer to the author's sample implementation. This slow extraction function introduces a helper function, which are used in subsequent constructions.
 
-```
-bare-encode : (n : NonnegativeInteger) -> ByteString =
-  encode "n" in a minimum number of bytes, using big-endian notation.
-  the common element of left_encode and right_encode, without a length field
-  e.g.   0 = "\x00"
-       127 = "\x7F"
-       256 = "\x01\x00"
-     65536 = "\x01\x00\x00"
-  etc.
-```
+`PHKDF-SIMPLE` implements a full HKDF-like construction by using `PHKDF-SLOW-EXTRACT` to derive a secret key to use in another call to `PHKDF-STREAM`, which generates final output which is much safer to reveal to semi-trusted third parties. This is analogous to the extract-then-expand construction `HKDF` and `HKDF-SIMPLE`, but now with key stretching analogous to `PBKDF2` and enhanced cryptoacoustic repetition.
 
-Keying PHKDF-SLOW-EXTRACT with a publicly-known seguid, counter, and tag is in fact the initially intended primary mode of operation for this construct. While the internal PKDF stream is used in the secret-stream mode of operation, PHKDF-SLOW-EXTRACT then goes on to produce an output stream that has the exact same predictability issue as the internal stream did.
+`PHKDF-SIMPLE` uses variable-length parameter padding to all but eliminate timing side channels revealing the length of the username or password. The exact rules are a little complicated, but a very good approximation is that each input is constant time on 0-101 bytes, or constant time if their combined length is less than roughly 3-8 kilobytes, depending on the length of the long-tag.  Any overages cost one sha256 block per 64 bytes, thus keeping incremental costs to a minimum.
 
-Keying PHKDF-STREAM with a secret key (with a counter and tag that may or may not be publicly known) produces an output stream that safely allows for extended portions to be safely revealed to others, even if subsequent parts of that output stream must remain secret. This third, secret-key mode of operation gives us the final piece we need to demonstrate our first complete password prehash protocol based on PHKDF.
-
-PHKDF-SIMPLE implements a full HKDF-like construction by stringing together multiple calls to PHKDF-STREAM in different modes of operation.   First, PHKDF-SLOW-EXTRACT is used in a way analogous HKDF-Extract, which derives a secret key for the next step.  Second, PHKDF-STREAM is used with a secret key, analogous to HKDF-Expand.  Variable-length parameter padding is used so that the overall construction all but eliminates timing side channels revealing the length of the username or password so long as their combined length is less than roughly 3-8 kilobytes, depending on the length of the long-tag.
+Moreover, as a low-level primitive, `PHKDF-SLOW-EXTRACT` allows the rounds parameter to be varied without fully recomputing its key-stretching parameter. The high-level `PHKDF-SIMPLE` remedies this situation by encoding the number of rounds into the initial inputs to the slow extract.
 
 ```
 PHKDF-SIMPLE : (
@@ -500,7 +533,7 @@ headerUsername = headerExtract || [
 
 headerProtocol =
     "password-hash-key-derivation-function phkdf-simple0\x00"
-    || left-encode(bit-length(domain-tag))
+    || left_encode(bit-length(domain-tag))
     || bare-encode(rounds)
 
 headerLongTag = [ long-tag, headerProtocol ]
@@ -547,17 +580,17 @@ return PHKDF-STREAM-HMAC-SHA256 (
  )
 ```
 
-The username and password padding is specifically designed so that the plaintext username need _not_ be known in order to crack the corresponding password hash. This built-in feature doesn't provide any significant level of key-stretching, and so is not a very strong defensive line on it's own without being part of more holistic deployment considerations. If a deployment specifically wants to avoid this feature, they could say, put the username of their login flow into the "password" parameter of the G3P and vice-versa, swapping the suggested interpretations of these two parameters.
+The username and password padding is specifically designed so that the plaintext username need _not_ be known in order to crack the corresponding password hash. This built-in feature doesn't provide any significant level of key-stretching, and so is not a very strong defensive line on its own without being a part of larger, more holistic deployment considerations. If a deployment specifically wants to avoid this feature, they could say, put the username of their login flow into the "password" parameter of the G3P and vice-versa, swapping the suggested interpretations of these two parameters.
 
 Being theoretically able to obscure the username might be useful as a damage-enhancement strategy in a court of law in cases where password hashes are stolen or otherwise disclosed: somebody who trafficks in password hashes can at least somewhat protect the privacy of the usernames of their victims. Failing to do so says something relevant about the trafficker. Of course this damage-enhancement strategy is more likely to be meaningful if everybody is aware of the possibility up front, which is a major reason why I wrote this paragraph.
 
-The subroutines `encode-vector-length`, `expand-domain-tag`, `username-padding`, `password-padding`, and `credentials-padding` are all introduced in this protocol.  The first is used to unambiguously differentiate between the credential vector and the echo tag vector.  A design principle employed by these prehash protocols is that all the initial parameters must be unambiguously parseable from the initial extraction call to HMAC. This ensures that any change to the initial parameters require a complete recomputation of PHKDF's key stretching.
+The subroutines `encode-vector-length`, `bare-encode`, `expand-domain-tag`, `username-padding`, `password-padding`, and `credentials-padding` are all introduced in this protocol.  The first is used to unambiguously differentiate between the credential vector and the echo tag vector.  A design principle employed by these prehash protocols is that all the initial parameters must be unambiguously parseable from the initial extraction call to HMAC. This ensures that any change to the initial parameters require a complete recomputation of PHKDF's key stretching.
 
 The use of `encode-vector-length` isn't strictly necessary for avoiding collisions in the overall PHKDF-SIMPLE protocol; however, omitting it would then admit trivial collisions in the initial extraction function by shuffling inputs between the end of the credentials vector and the beginning of the echo-tags vector.  This mean that the overall PHKDF-SIMPLE protocol would then be computable for multiple inputs without redoing the key-stretching computation.
 
 It would be unlikely that the ability to cheaply shuffle a very specific input between these two vectors would be relevant to real deployments of the G3P, but this would still need to be properly documented. So, for the sake of keeping the interface documentation as concise and accurate as possible, and the interface as potent and as generally applicable as possible, we definitely want to avoid this early collision by suffixing the length of the echo-tags vector.
 
-This design maximizes opportunities for streaming at the cost of requiring an unbounded-lookhead grammar to parse the result. This benefit is likely irrelevant, but this cost is almost certainly irrelevant. However, this choice does imply that the length tag needs to be locatable relative to the end of the overall `msgs` input vector. This is why these protocols always place the tagging vector length in the very last index.
+This design maximizes opportunities for streaming at the cost of requiring an unbounded-lookhead grammar to unambiguously parse the inputs to HMAC. This benefit is likely irrelevant, but this cost is almost certainly irrelevant. However, this choice does imply that the length tag needs to be locatable relative to the end of the overall `msgs` input vector. This is why these protocols always place the tagging vector length in the very last index.
 
 ```
 encode-vector-length : (
@@ -565,9 +598,18 @@ encode-vector-length : (
   )  -> Vector<BitString> =
 
   return bare-encode(vector-length(v))
+
+bare-encode : (n : NonnegativeInteger) -> ByteString =
+  encode "n" in a minimum number of bytes, using big-endian notation.
+  the common element of left_encode and right_encode, without a length field
+  e.g.   0 = "\x00"
+       127 = "\x7F"
+       256 = "\x01\x00"
+     65536 = "\x01\x00\x00"
+  etc.
 ```
 
-The second function, `expand-domain-tag` is used to add 0-63 extra bytes onto it's argument to ensure that the last block of the call to HMAC is filled.  This is particularly important as in context, this last block is likely to be repeated thousands of times within a relatively tight loop, so this step can significantly improve coverage of SHA256 blocks by self-documenting constants. However, the consequence is that the expanded tag does not necessarily encode the domain tag with 100% unambiguity. For this reason, our password prehash protocols encode the bit length of the raw, unprocessed domain tag in the first call to PHKDF.
+The next function, `expand-domain-tag` is used to add 0-63 extra bytes onto it's argument to ensure that the last block of the call to HMAC is filled.  This is particularly important as in context, this last block is likely to be repeated thousands of times within a relatively tight loop, so this step can significantly improve coverage of SHA256 blocks by self-documenting constants. However, the consequence is that the expanded tag does not necessarily encode the domain tag with 100% unambiguity. For this reason, our password prehash protocols encode the bit length of the raw, unprocessed domain tag in the first call to PHKDF.
 
 Bitstrings that are 19 bytes or less are short enough to fit into PHKDF's iterated hash construction without triggering the computation of extra SHA256 blocks.  Thus there doesn't seem to be much benefit to cyclically extending such a tag to a full block.  Moreover, the tag as passed to PHKDF is also cycled to generate the variable-length end-of-message padding to HMAC messages, cyclically extending a short tag to a non-integer multiple of itself will in some cases change this padding.
 
@@ -637,9 +679,7 @@ password-padding (
       || cycle-bitstring-with-null(    32, domain-tag)
 ```
 
-The fifth function, `credentials-padding`, comes in between the credentials vector and the tags vector.  It hardens the credential vector against timing side channels, and provides a short tag to the tags vector.  This tag is only 29
-bytes long as to maximize the amount of tagging bytes (0-63) that operate in
-constant time, given that the tags vector is then followed by the end-of-message padding that is built into `PHKDF-STREAM`.
+The fifth function, `credentials-padding`, comes in between the credentials vector and the tags vector.  It hardens the credential vector against timing side channels, and provides a short tag to the tags vector.  This tag is only 29 bytes long as to maximize the amount of tagging bytes (0-63) that operate in constant time, given that the tags vector is then followed by the end-of-message padding that is built into `PHKDF-STREAM`.
 
 ```
 credentials-padding (
@@ -683,7 +723,7 @@ headerUsername = headerExtract || [
 
 headerProtocol =
     "password-hash-key-derivation-function phkdf-pass-v0\x00"
-    || left-encode(bit-length(domain-tag))
+    || left_encode(bit-length(domain-tag))
     || bare-encode(rounds)
 
 headerLongTag = [ long-tag, headerProtocol ]
@@ -720,7 +760,6 @@ secretSeed = PHKDF-SLOW-EXTRACT-HMAC-SHA256 (
     fn-name = "phkdf-pass-v0 compact\x00" || domain-tag
   ).read(bytes = 32)
 
-// we can modify roles and recompute the result from here
 secretKey = PHKDF-STREAM-HMAC-SHA256 (
     key = seguid,
     msgs = [ "phkdf-pass-v0 combine" || secretSeed ]
@@ -737,13 +776,11 @@ return PHKDF-STREAM-HMAC-SHA256 (
   )
 ```
 
-It would be a mistake to include the role solely in the messages parameter of the output expansion stream. When the role contains high-entropy secrets, the first 32 bytes of the output stream won't reveal a brute force attack on the password, no matter how weak the password is. However, revealing more than 32 initial bytes of the output stream then re-reveals brute-force attacks on weak passwords. On the other hand, the implementation of PHKDF-SLOW-EXTRACT crucially depends upon the appropriate usage of exactly this pitfall.
+In order to avoid the _echo args gotcha_, the expansion subroutine of PHKDF-PASSWORD hashes the plaintext of the _echo tags_ twice: once to derive the secret key used to produce the final output, and then once as the _echo args_ for that final output expansion call.
 
-For this reason, our complete password prehash protocols incorporate the entirety of the role parameter into the secret key that is used to expand our final output.  Using our HKDF analogy, the role is part of the initial keying material `ikm`, just one that's mixed in after key-stretching.
+We don't bother unambiguously encoding the `role` and `echo-tag` vectors in expansion subroutine of PHKDF, which is resolved in the last call. Because we are done with key-stretching at this point, we depart from our precedent of using `encode-vector` to immediately resolve the ambiguity. Instead, we defer the disambiguation until the last call, and gain three additional bytes of free tagging space.
 
-We don't bother unambiguously encoding the `role` and `echo-tag` vectors in the second-to-last call to PHKDF, which is resolved in the last call.  Because we are done with key-stretching at this point, we depart from our precedent of using `encode-vector` to immediately resolve the ambiguity.   Instead, we defer the disambiguation until the last call, and gain three additional bytes of free tagging space.
-
-PHKDF-PASSWORD is very close to the final G3P protocol, the only real difference is that the G3P incorporates bcrypt.  The problem with PBKDF2, and by extension PHKDF, is that they are good at adding latency but can also be inexpensively parallelized.  This is the worst possible combination, as legitimate users are particularly cost-sensitive to serial latency, but password crackers are particularly cost-sensitive to parallel throughput.
+PHKDF-PASSWORD is very close to the final G3P protocol, the major difference being that the G3P incorporates bcrypt. The problem with PBKDF2, and by extension PHKDF, is that they are good at adding latency but can also be inexpensively parallelized. This is the worst possible combination, as legitimate users are particularly cost-sensitive to serial latency, but password crackers are particularly cost-sensitive to parallel throughput.
 
 Users are going to be upset if every password attempt takes ten seconds to answer. That's far less upsetting to an attacker that can afford a machine that can try a million password guesses in parallel. That's still an average cracking rate of a 100k password guesses per second, enough to crack a seven-digit PIN in a minute or two, or a ten-digit PIN in not more than 28 hours. A ten-digit pin is approximately equivalent to a three-word passphrase selected from one of EFF's shortlists, which have 6^4 = 1296 words.
 
@@ -753,13 +790,15 @@ Because PHKDF is not a particularly effective expenditure of latency, the G3P in
 
 Bcrypt's partial cache-hardness means that building and operating a bcrypt password cracker is going to be particularly expensive relative to the level of parallelism achieved. Within the G3P, bcrypt is primarily used as an expensive compression function. Bcrypt is secondarily used as another cryptographically self-documenting construction in order to reinforce and hedge the self-documenting properties of PHKDF.
 
-To derive the inputs for bcrypt's password and salt parameters, PHKDF-SLOW-EXTRACT is used to generate two sets of 16 pseudorandom bytes to which the bcrypt tags are appended. These tags are either truncated or cyclicly expanded to 56 bytes. This truncation does not lead to trivial collisions, because each bcrypt tag is also included in the initial inputs to PHKDF-SLOW-EXTRACT, thus varying this tag also requires the recomputation of PHKDF and those two set of 16 pseudorandom bytes.
+To derive the inputs for bcrypt's password and salt parameters, PHKDF-SLOW-EXTRACT is used to generate two sets of 16 pseudorandom bytes to which the bcrypt tags are appended. These tags are either truncated or cyclicly expanded to 56 bytes. This truncation does not lead to trivial collisions, because each bcrypt tag is also included in the initial inputs. Thus varying this tag also requires recomputing those two set of 16 pseudorandom bytes, which requires PHKDF's key-stretching computation to be redone.
 
-Finally, a seed is created by hashing another 32 pseudorandom bytes from PHKDF-SLOW-EXTRACT with bcrypt's 24-byte output. Other than this use of bcrypt, and different choices for protocol constants, the G3P is largely the same as PHKDF-PASSWORD.
+This rather nonstandard arrangement turns bcrypt into an expensive compression function that turns 32 pseudorandom input bytes into 24 pseudorandom output bytes, and improves the utilization of bcrypt's cryptoacoustic transmission potential. Moreover, changing any of the bcrypt tag or rounds parameters requires a complete recomputation of those 32 pseudorandom input bytes.
 
-The G3P actually uses a mildly generalized variant of bcrypt that allows for any number of rounds between `1..2^32`, not just powers of two of index `0..31`. This allows for finer-grained tuning of the cost parameter. Choosing `4095` as G3P's bcrypt-rounds parameter corresponds exactly to the traditional bcrypt cost parameter of `12`, because `4095 = 2^12 - 1`.
+Finally, a seed is created by hashing another 32 pseudorandom bytes from PHKDF-SLOW-EXTRACT with bcrypt's 24-byte output. Other than this use of bcrypt, and different choices for protocol constants and how to fill in padding in certain locations, the G3P is largely the same as PHKDF-PASSWORD.
 
-We recommend that a deployment of the G3P specify 4000 rounds of bcrypt, give or take a factor of four or so, corresponding to a traditional bcrypt cost parameter of 10-14. We also suggest cutting down the number of PHKDF rounds by a order of magnitude relative to PHKDF-PASSWORD, to about 20,000 rounds, give or take a factor of two or so. Note that each individual bcrypt round is significantly more expensive than an individual PHKDF round, so if you use these suggested parameters, the main computational cost is bcrypt.
+The G3P actually uses a mildly generalized variant of bcrypt that allows for any number of rounds between `1..2^32`, not just powers of two of index `0..31`. This allows for finer-grained tuning of the cost parameter. Choosing `4095` as G3P's `bcrypt-rounds` parameter corresponds exactly to the traditional bcrypt cost parameter of `12`, because `4095 = 2^12 - 1`.
+
+We recommend that a deployment of the G3P specify 4000 rounds of bcrypt, give or take a factor of four or so, corresponding to a traditional bcrypt cost parameter of 10-14. We also suggest cutting down the number of PHKDF rounds by an order of magnitude relative to PHKDF-PASSWORD, to about 20,000 rounds, give or take a factor of two or so. Note that each individual bcrypt round is significantly more expensive than an individual PHKDF round, so if you use these suggested parameters, the main computational cost is bcrypt.
 
 If the latency budget is increased to about one second or more, argon2 becomes one of the empircally best expenditures of latency among well-established password hash functions. As an alterative to significantly increasing the PHKDF and/or Bcrypt cost parameters, cybersecurity engineers should consider incorporating a memory-hard password hashing function such as argon2 into the larger hashing protocol.
 
@@ -793,8 +832,8 @@ bcryptHeader = [ bcrypt-tag, bcrypt-salt-tag ]
 
 headerProtocol =
     "global-password-prehash-protocol version G3Pb1"
-    || left-encode(bit-length(domain-tag))
-    || left-encode(phkdf-rounds)
+    || left_encode(bit-length(domain-tag))
+    || left_encode(phkdf-rounds)
     || bare-encode(bcrypt-rounds)
 
 headerLongTag = [ long-tag, headerProtocol ]
@@ -818,7 +857,7 @@ credentialsPad =
     credentials-padding (
         credentials,
         bcrypt-tag,
-        bcrypt-salt-tag,
+        bcrypt-salt-tag
     )
 
 secretStream = PHKDF-SLOW-EXTRACT-HMAC-SHA256 (
@@ -857,7 +896,7 @@ secretSeed = PHKDF-STREAM-HMAC-SHA256 (
              cycle-bitstring-with-null(56, bcrypt-salt-tag) || bcryptHash ||
              cycle-bitstring-with-null(32, bcrypt-tag)
            ]
-        || seed-tags,
+          || seed-tags,
     ctr = decode-be32("SEED"),
     tag = phkdfTag
   ).read(bytes = 32)
@@ -981,6 +1020,7 @@ https://tools.ietf.org/html/rfc6530
 https://tools.ietf.org/html/rfc8018
 
 https://blog.cryptographyengineering.com/2014/02/21/cryptographic-obfuscation-and/
+
 [^require-prehashing]:
     Requiring prehashing is a potent and consequential move for an authentication service, but it's also important to point out the servers cannot verify that a purported "prehash" was actually computed via any particular cryptographic hash function. The best that the servers can do is to ensure that the prehash "looks right": i.e. has the correct length and format and passes one or more entropy estimation checks whenever the password is set.
 
