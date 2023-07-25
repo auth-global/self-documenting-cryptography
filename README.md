@@ -1,8 +1,8 @@
 This repository introduces the concept of self-documenting cryptography, which is the art of using self-reference and self-narration in cryptographic constructions in order to communicate certain indelible facts to legitimate users and other observers.
 
-This in turn implicates the topic of cryptoacoustics, which is the art of encoding messages in the transmission medium of cryptographic state changes in ways that are easily decoded and understood by observers, and that maximize the overall resistance to obfuscation.
+This in turn implicates the topic of cryptoacoustics, which is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes in ways that are easily decoded and understood by observers, and that maximize the overall resistance to obfuscation. This transmission medium is purely mathematical and has no physical basis. Therefore it is insufficient for interactive communication. Yet noninteractive communication protocols can be extremely useful, consider for example broadcast television, broadcast radio, or [WSPR](https://en.wikipedia.org/wiki/WSPR_\(amateur_radio_software\)).
 
-Since most (all?) common cryptographic hash functions exclusive-or their input into a state machine, suffixing a plaintext tag to the end of observer-supplied input plausibly exhibits desireable cryptoacoustical properties for most any cryptographic hash function.
+Since most (all?) common cryptographic hash functions exclusive-or their input into a state machine, suffixing a plaintext tag to the end of observer-supplied input plausibly exhibits desireable cryptoacoustic properties for most any cryptographic hash function.
 
 This project follows various philosophies of documentation-driven design. It is also an example of design for reverse engineering. The two headline contributions in this repository are the Global Password Prehash Protocol (G3P), and the Seguid Protocol.
 
@@ -16,7 +16,7 @@ The purpose is to point their conspirator in the correct direction to sell out t
 
 Similarly, if a botnet is used to try to crack Acme's password hashes using stolen computing resources, then the G3P is designed to make it easy for a security analyst who observes this payload on the botnet to report the payload(s) and other observations back to Acme's security tip line.
 
-In effect, this is an attempt to move towards closed-loop detection of leaked password hashes. In the longer run, I hope that will disrupt the activities of the cybercriminal scene. That said, I expect the more profound change in behavior will ultimately be the promotion of more antifragile attitudes and practices among security departments.
+In effect, this is an attempt to move towards a closer approximation of [closed-loop](https://en.wikipedia.org/wiki/Closed-loop_controller) detection of leaked password hashes. In the longer run, I hope that will disrupt the activities of the cybercriminal scene. That said, I expect the more profound change in behavior will ultimately be the promotion of more antifragile attitudes and practices among security departments.
 
 The major design goals for the G3P were:
 
