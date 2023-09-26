@@ -103,7 +103,7 @@ I also went with cryptoacoustics because I am interested in hi-fi audio and prof
 
 I am sure I would have found cryptoacoustics to be a rather suprising concept as recently as July 2022. That reminded me of the pleasantly surprising acoustics of Chicago's Field Museum of Natural History, which I remember my swing choir exploring on performance-adjacent field trip.  While that kind of effect is better experienced in person, Malinda provides a reasonable demonstration of the kinds of acoustic effects that are possible in [Singing in Church](https://www.youtube.com/watch?v=H6zswBOzxig) on YouTube.
 
-I was also amused to first read Niels Provos' retrospective on [Bcrypt at 25](https://www.usenix.org/publications/loginonline/bcrypt-25-retrospective-password-security) sometime in late August or early September of 2023, in a context where I had already compared the cryptoacoustics of bcrypt in the G3P to a subwoofer. I found out that Nels has a cybersecurity-themed EDM (Electronic Dance Music) project under his moniker [activ8te](https://activ8te.bandcamp.com/). EDM music is certainly known for it's relatively heavy use of synth bass, which makes those subs woof.
+I was also amused to first read Niels Provos' retrospective on [Bcrypt at 25](https://www.usenix.org/publications/loginonline/bcrypt-25-retrospective-password-security) sometime in late August or early September of 2023, in a context where I had already compared the cryptoacoustics of bcrypt in the G3P to a subwoofer. I found out that Niels has a cybersecurity-themed EDM (Electronic Dance Music) project under his moniker [activ8te](https://activ8te.bandcamp.com/). EDM music is certainly known for it's relatively heavy use of synth bass, which makes those subs woof.
 
 [![Three Japanese acoustic locators, colloquially known as “war tubas”, mounted on four-wheel carriages, being inspected by Emperor Hirohito.](design-documents/media/acoustic_locator_8.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
 
@@ -114,7 +114,6 @@ Cryptoacoustics is an alternative form of _digital watermarking_. However, I don
 For example, wikipedia describes [digital watermarking](https://en.wikipedia.org/wiki/Digital_watermarking) as "a kind of marker covertly embedded in a noise-tolerant signal such as audio, video or image data." By contrast, cryptoacoustics attempts to _overtly_ embed a tag into a noise-_intolerant_ signal, namely the inputs to a cryptographic function.  This intolerance for noise hopefully serves as a bulwark against obfuscation.
 
 The literature usually requires that a watermarked signal be nearly identical to the original signal. By contrast, a tagged hash should look nothing like an untagged hash, in that these two should be statistically independent and indistinguishable without access to the underlying cryptographic secrets, a property which provides the built-in plausible deniability of any given tag. For this reason, cryptoacoustics should prove to be much more robust than more traditional forms of digital watermarking, as it's starting from much stronger assumptions.
-
 
 ## Cryptoacoustics and Obfuscation
 
