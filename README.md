@@ -77,7 +77,7 @@ Furthermore [`phkdfSimple`](phkdf/lib/Crypto/PHKDF.hs) and [`phkdfPass`](phkdf/l
 
 From a certain point of view that is particularly cautious, the G3P's application of cryptoacoustics is nothing more than a novel justification for the `FixedInfo` parameters mentioned in [NIST SP 800-56C](https://csrc.nist.gov/pubs/sp/800/56/c/r2/final), or alternatively the `Label` and `Context` parameters mentioned in [NIST SP 800-108](https://csrc.nist.gov/pubs/sp/800/108/r1/final).
 
-Furthermore, the G3P applies these insights to the possibly-novel topic of password hashing to make specific suggestions about what kind of data to include in these contextual parameters. So from this point of view, the changes adopted by the G3P are particularly cautious and low-risk.
+Furthermore, the G3P applies these insights to the topic of password hashing in a possibly novel way to make specific suggestions about what kind of data to include in these contextual parameters. So from this point of view, the changes adopted by the G3P are particularly cautious and low-risk.
 
 I know of no theoretical basis for believing the cryptoacoustic constructions deployed by the G3P are workably secure in the way I conjecture they are. Clearly this situation is not ideal, and should not be tolerated in the long run.
 
@@ -134,9 +134,9 @@ If a hypothetical tag obscuration attack imposes a 100x overhead on the overall 
 
 At 10x overhead, you might start to see a few oddball cases where people are willing to employ tag obfuscation techniques, but I would expect such an approach to remain rather niche. In this scenario, I believe that a cryptoacoustic construction would likely remain reasonably effective at spreading a message, even if that particular construction would not appear to be cryptoacoustically viable going forward.
 
-At 4x overhead, you might actually start to see the adoption of tag obfuscation technology by password crackers. If that cost multiplier approaches 1x, then tag obscuration becomes essentially free, and I would expect the tag obscuration attack to be widely adopted by nefarious password crackers, leading to a total failure of the effort.
+At 4x overhead, you might actually start to see the adoption of tag obfuscation technology by password crackers. If that cost multiplier approaches 1x, then tag obscuration becomes essentially free, and I would expect the tag obscuration attack to be widely adopted by nefarious password crackers, leading to a total failure of the primary objective. However, such a failure would not represent a total failure for the overall cryptoacoustic effort, because such an attack would almost certainly be a real insight into the research topic of cryptoacoustics.
 
-However, a slow password hash function is probably a best-case scenario for cryptoacoustics. Without key stretching, even a 1000x overhead to compute a single application of HMAC or HKDF would be perfectly acceptable in some contexts.
+A slow password hash function is probably a best-case scenario for cryptoacoustics. Without key stretching, even a 1000x overhead to compute a single application of HMAC or HKDF would be perfectly acceptable in some contexts.
 
 For example, the Seguid Protocol is HKDF that specifies constant salt and info parameters. Correspondingly, the Seguid Protocol uses these parameters as cryptoacoustic tags, narrating itself in an attempt to help out any reverse engineer who is examining code that implements the Seguid Protocol.
 
