@@ -28,6 +28,10 @@ The purpose is to point their conspirator in the correct direction to sell out t
 
 Similarly, if a botnet is used to try to crack Acme's password hashes using stolen computing resources, then the G3P is designed to make it easy for a security analyst who observes this payload on the botnet to report the payload(s) and other observations back to Acme's security tip line.
 
+This tagging process is not unlike a digital watermark, however, the G3P provides no means of authenticating whether or not any purported password hash is genuine or not, so there's plausible deniability baked into this watermarking process. 
+
+Rather, the tag is only readable during the password hashing process, so this form of watermark records a belief about where a password hash came from, a belief that must be correct to achieve offline attacks on truly genuine hashes.
+
 In effect, this is an attempt to move towards a closer approximation of [closed-loop](https://en.wikipedia.org/wiki/Closed-loop_controller) detection of leaked password hashes. In the longer run, I hope that will disrupt the activities of the cybercriminal scene. That said, I expect the more profound change in behavior will ultimately be the promotion of more antifragile attitudes and practices among security departments.
 
 The major design goals for the G3P were:
@@ -108,9 +112,8 @@ Cryptoacoustics is an alternative form of _digital watermarking_. However, I don
 
 For example, wikipedia describes [digital watermarking](https://en.wikipedia.org/wiki/Digital_watermarking) as "a kind of marker covertly embedded in a noise-tolerant signal such as audio, video or image data." By contrast, cryptoacoustics attempts to _overtly_ embed a tag into a noise-_intolerant_ signal, namely the inputs to a cryptographic function.  This intolerance for noise hopefully serves as a bulwark against obfuscation.
 
-The literature usually requires that a watermarked signal be nearly identical to the original signal. By contrast, a tagged hash should look nothing like an untagged hash, in that these two should be statistically independent and indistinguishable without access to the underlying cryptographic secrets. For this reason, cryptoacoustics should prove to be much more robust than more traditional forms of digital watermarking, as it's starting from much stronger assumptions.
+The literature usually requires that a watermarked signal be nearly identical to the original signal. By contrast, a tagged hash should look nothing like an untagged hash, in that these two should be statistically independent and indistinguishable without access to the underlying cryptographic secrets, a property which provides the built-in plausible deniability of any given tag. For this reason, cryptoacoustics should prove to be much more robust than more traditional forms of digital watermarking, as it's starting from much stronger assumptions.
 
-However the G3P provides no means of authenticating whether or not any purported password hash is genuine or not, so there's plausible deniability baked into this watermarking process.  Rather, the watermark is only readable during the password hashing process, so rather this form of watermark records a belief about where a password hash came from, a belief that must be correct to achieve offline attacks on truly genuine hashes.
 
 ## Cryptoacoustics and Obfuscation
 
@@ -118,7 +121,7 @@ The existing literature on [program obfuscation](https://blog.cryptographyengine
 
 While a cursory reading of this paper might suggest that it supports the plausibility of cryptoacoustics, I'm unconvinced that a more careful reading of this paper either supports or detracts in any significant way.
 
-In particular, the unobfuscatable property demonstrated in this paper is not directly useful for creating a general-purpose plaintext tagging construction. Furthermore, it seems far from obvious that this particular construction (or something like it) can be used for any practical purpose.
+In particular, the unobfuscatable property demonstrated in the aforementioned paper is not directly useful for creating a general-purpose plaintext tagging construction. Furthermore, it seems far from obvious that this particular construction (or something like it) can be used for any practical purpose.
 
 At the time the paper was written, whether or not full homomorphic encryption was even possible was still an open question. Suprisingly, FHE does exist, which seems to rule out many or most practical use cases for a truly unobfuscatable program property in the sense of Barak et al.
 
@@ -126,7 +129,7 @@ At the time the paper was written, whether or not full homomorphic encryption wa
 
 However, cryptoacoustics need not rely a notion of "unobfuscatable" that is as stringent as found in Barak et al. Cracking a password hash is a rather costly endeavor that is particularly sensitive to inefficiency.
 
-If a hypothetical tag obscuration attack imposes a 100x overhead on the overall password cracking process, it will probably never be used in practice. A weak-ish password that costs $100 to crack would then cost $10,000 to crack. That provides an $9900 incentive to either reveal the target to the cracker or insource the attack.
+If a hypothetical tag obscuration attack imposes a 100x overhead on the overall password cracking process, it will probably never be used in practice. A weak-ish password that costs $100 to crack would then cost $10,000 to crack. That provides an $9900 incentive to either reveal the target to the cracker or bring the attack in-house.
 
 At 10x overhead, you might start to see a few oddball cases where people are willing to employ tag obfuscation techniques, but I would expect such an approach to remain rather niche. In this scenario, I believe that a cryptoacoustic construction would likely remain reasonably effective at spreading a message, even if that particular construction would not appear to be cryptoacoustically viable going forward.
 
@@ -136,7 +139,7 @@ However, a slow password hash function is probably a best-case scenario for cryp
 
 For example, the Seguid Protocol is HKDF that specifies constant salt and info parameters. Correspondingly, the Seguid Protocol uses these parameters as cryptoacoustic tags, narrating itself in an attempt to help out any reverse engineer who is examining code that implements the Seguid Protocol.
 
-Since the Seguid Protocol applies no key stretching, millions of hashes can be computed per second. Thus the most efficient tag obscuration attack may need to impose 100,000x overhead or more in order to be truly effective.  For this reason, slow password hashing seems to be a best-case scenario for the application of cryptoacoustics.
+Since the Seguid Protocol applies no key stretching, millions of hashes can be computed per second. Thus the most efficient tag obscuration attack may need to impose 100,000x overhead or more in order to be truly effective. For this reason, slow password hashing seems to be a best-case scenario for the application of cryptoacoustics.
 
 Though it's presumably much easier in practice to deploy tag obscuration attacks against the Seguid Protocol compared to the G3P, it's also far less clear what practical benefits this might confer to an attacker. At my own currrent level of understanding of my own design, incorporating cryptoacoustics into the Seguid Protocol itself is mostly an issue of design consistency, though there may well be advantages and benefits I don't currently appreciate.
 
