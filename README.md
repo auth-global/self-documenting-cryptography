@@ -28,11 +28,11 @@ The purpose is to point their conspirator in the correct direction to sell out t
 
 Similarly, if a botnet is used to try to crack Acme's password hashes using stolen computing resources, then the G3P is designed to make it easy for a security analyst who observes this payload on the botnet to report the payload(s) and other observations back to Acme's security tip line.
 
-This tagging process is not unlike a digital watermark, however, the G3P provides no means of authenticating whether or not any purported password hash is genuine or not, so there's plausible deniability baked into this watermarking process.
+In effect, this is an attempt to move towards a closer approximation of [closed-loop](https://en.wikipedia.org/wiki/Closed-loop_controller) detection of leaked password hashes. In the longer run, I hope that will disrupt the activities of the cybercriminal scene. That said, I expect the more profound change in behavior will ultimately be the promotion of more antifragile attitudes and practices among security departments.
+
+The tagging process is not unlike a digital watermark, however, the G3P provides no means of authenticating whether or not any purported password hash is genuine or not, so there's plausible deniability baked into this watermarking process.
 
 Rather, the tag is only readable during the password hashing process. This watermark represents a belief about where a password hash came from, a belief that must be correct to achieve offline attacks on truly genuine hashes.
-
-In effect, this is an attempt to move towards a closer approximation of [closed-loop](https://en.wikipedia.org/wiki/Closed-loop_controller) detection of leaked password hashes. In the longer run, I hope that will disrupt the activities of the cybercriminal scene. That said, I expect the more profound change in behavior will ultimately be the promotion of more antifragile attitudes and practices among security departments.
 
 The major design goals for the G3P were:
 
@@ -135,11 +135,11 @@ At 10x overhead, you might start to see a few oddball cases where people are wil
 
 At 4x overhead, you might actually start to see the adoption of tag obfuscation technology by password crackers. If that cost multiplier approaches 1x, then tag obscuration becomes essentially free, and I would expect the tag obscuration attack to be widely adopted by nefarious password crackers, leading to a total failure of the primary objective. However, such a failure would not represent a total failure for the overall cryptoacoustic effort, because such an attack would almost certainly be a real insight into the research topic of cryptoacoustics.
 
-A slow password hash function is probably a best-case scenario for cryptoacoustics. Without key stretching, even a 1000x overhead to compute a single application of HMAC or HKDF would be perfectly acceptable in some contexts.
+A slow password hash function is probably a best-case scenario for cryptoacoustics. With sufficient key stretching, a 100x overhead is likely more than enough to dissuade most anybody from deploying a tag obscuration attack. Without key stretching, say a single application of HMAC or HKDF, even a 1000x or greater overhead might not be out of the question for practical deployment.
 
-For example, the Seguid Protocol is HKDF that specifies constant salt and info parameters. Correspondingly, the Seguid Protocol uses these parameters as cryptoacoustic tags, narrating itself in an attempt to help out any reverse engineer who is examining code that implements the Seguid Protocol.
+For example, the Seguid Protocol is HKDF that specifies constant salt and info parameters. Correspondingly, the Seguid Protocol uses these parameters as cryptoacoustic tags, narrating itself in an attempt to help out any reverse engineer who is examining code that implements the Seguid Protocol contextualize what they are looking at.
 
-Since the Seguid Protocol applies no key stretching, millions of hashes can be computed per second. Thus the most efficient tag obscuration attack may need to impose 100,000x overhead or more in order to be truly effective. For this reason, slow password hashing seems to be a best-case scenario for the application of cryptoacoustics.
+Since the Seguid Protocol applies no key stretching, millions of hashes can be computed per second. Thus the most efficient tag obscuration attack may need to impose 100,000x overhead or more in order to be truly effective in this scenario. For this reason, slow password hashing seems to be a best-case scenario for the application of cryptoacoustics.
 
 Though it's presumably much easier in practice to deploy tag obscuration attacks against the Seguid Protocol compared to the G3P, it's also far less clear what practical benefits this might confer to an attacker. At my own currrent level of understanding of my own design, incorporating cryptoacoustics into the Seguid Protocol itself is mostly an issue of design consistency, though there may well be advantages and benefits I don't currently appreciate.
 
