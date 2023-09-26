@@ -10,7 +10,7 @@ Cryptography more typically depends on the property that if you know a key, then
 
 Conveying a message requires the use of a transmission medium. In our scenario, cryptographic state changes serve as a virtual transmission medium. This medium is purely mathematical and has no physical basis. It arises in the context of past communications that occurred via physical transmission media.
 
-In the case of the G3P, it arises because somebody hashed a password, and then somebody else stole that hash. Cryptoacoustics abstracts over the exact physical communication that created this context, and summarizes some of the valid inferences that parties must be able to draw in this scenario.
+In the case of the G3P, this context arises because somebody hashed a password, and then somebody else stole that hash. Cryptoacoustics abstracts over the exact physical communication that created this context, and summarizes some of the valid inferences that parties must be able to draw in this scenario.
 
 Since most (all?) common cryptographic hash functions exclusive-or their input into a state machine, suffixing a plaintext tag to the end of observer-supplied input plausibly exhibits desireable cryptoacoustic properties for most any cryptographic hash function.
 
@@ -69,11 +69,44 @@ Taking a higher-level view, PHKDF affirms the spirit of the HKDF's design princi
 
 Furthermore [`phkdfSimple`](phkdf/lib/Crypto/PHKDF.hs) and [`phkdfPass`](phkdf/lib/Crypto/PHKDF.hs) are fully worked examples about how one might use `phkdfStream` to implement a complete password hash function.  These are essentially slightly simplified design studies for the G3P, though they could conceivably be of interest for deployment.
 
+## Why Adopt Cryptoacoustics?
+
+From a certain point of view that is particularly cautious, the G3P's application of cryptoacoustics is nothing more than a novel justification for the `FixedInfo` parameters mentioned in [NIST SP 800-56C](https://csrc.nist.gov/pubs/sp/800/56/c/r2/final), or alternatively the `Label` and `Context` parameters mentioned in [NIST SP 800-108](https://csrc.nist.gov/pubs/sp/800/108/r1/final).
+
+Furthermore, the G3P applies these insights to the possibly-novel topic of password hashing to make specific suggestions about what kind of data to include in these contextual parameters. So from this point of view, the changes adopted by the G3P are particularly cautious and low-risk.
+
+I know of no theoretical basis for believing the cryptoacoustic constructions deployed by the G3P are workably secure in the way I conjecture they are. Clearly this situation is not ideal, and should not be tolerated in the long run.
+
+However, in the short run, I'm unconcerned about this state of affairs. Successfully attacking the G3P's cryptoacoustic properties requires a non-trivial response by somebody who cares enough. This scenario would be a secondary cybersecurity concern anyway, as this very concern has been largely or entirely neglected until now.
+
+Thus it seems smart to deploy some of the oldest password hash functions that have continued to be viable for new, well-informed, high-security deployments, in a way that provides incentives to more deeply understand our existing tools in a new way.
+
+Whether or not the particular cryptoacoustic constructions employed by the G3P stand up to scrutiny in the long term, deeper study of these issues might someday pave the way for new cryptographic hash functions that have enhanced cryptoacoustic potential by maximizing the _minimum obscuration overhead_ for contextual parameters.
+
+## Why call it "Cryptoacoustics"?
+
+[![German sound location, 1917. The photograph shows a junior officer and a soldier from an unidentified Feldartillerie regiment wearing combined acoustic/optical locating apparatus. The small-aperture goggles were apparently set so that when the sound was located by turning the head, the aircraft would be visible.](design-documents/media/acoustic_locator_13.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
+
+Some might take umbrage at the fanciful name I've chosen for this technique, but I'm pretty sure it's an important enough technique to deserve a memorable name, and I suspect that reactive resistance to the name tends to be more a symptom of the relatively small intersection between people with a less-than-naive background in cryptography and people with a similar background in signals and systems.
+
+The analogy between cryptography and signals is not completely clarified in my mind. However, I am confident that this analogy is reasonably deep and fertile, at least if you assume that some cryptographic construction exhibits high enough _minimum obfuscation overhead_ for the topic of cryptoacoustics to be viable in the long term. On that count, I am cautiously optimistic, but we need a theory of cryptoacoustics before answering that question is really possible.
+
+[![Aircraft engines produced unprecedented sound, so in order to hear them at a distance, the war efforts developed listening devices. A two-horn system at Bolling Field, USA, 1921.](design-documents/media/acoustic_locator_11.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
+
+There's no technical reason to go with acoustics as the name for the metaphor versus say, something that suggests a different physical transmission medium such as radio waves, visible light, electronic circuitry, or perhaps just a generic "cryptosignaling". However I don't feel cryptosignaling is nearly as memorable or descriptive, and sound is the primary means of communication for most humans in face-to-face physical interactions.
+
+I also went with cryptoacoustics because I am interested in hi-fi audio and professional sound reinforcement systems, and was thinking a fair bit about those topics while I was developing cryptoacoustics.
+
+I am sure I would have found cryptoacoustics to be a rather suprising concept as recently as July 2022. That reminded me of the pleasantly surprising acoustics of Chicago's Field Museum of Natural History, which I remember my swing choir exploring on performance-adjacent field trip.  While that kind of effect is better experienced in person, Malinda provides a reasonable demonstration of the kinds of acoustic effects that are possible in [Singing in Church](https://www.youtube.com/watch?v=H6zswBOzxig) on YouTube.
+
+[![Three Japanese acoustic locators, colloquially known as “war tubas”, mounted on four-wheel carriages, being inspected by Emperor Hirohito.](design-documents/media/acoustic_locator_8.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
+
+
 ## Cryptoacoustics as Watermarking
 
 Cryptoacoustics is an alternative form of _digital watermarking_. However, I don't expect the existing literature in this subfield to be of much direct benefit to developing a proper theoretical basis for cryptoacoustics, as there seems to always be differences in assumptions that often seem irreconcilable.
 
-For example, wikipedia describes [digital watermarking](https://en.wikipedia.org/wiki/Digital_watermarking) as "a kind of marker covertly embedded in a noise-tolerant signal such as audio, video or image data." By contrast, cryptoacoustics attempts to _overtly_ embed a tag into a noise-_in_tolerant signal, namely the inputs to a cryptographic function.  This intolerance for noise hopefully serves as a bulwark against obfuscation.
+For example, wikipedia describes [digital watermarking](https://en.wikipedia.org/wiki/Digital_watermarking) as "a kind of marker covertly embedded in a noise-tolerant signal such as audio, video or image data." By contrast, cryptoacoustics attempts to _overtly_ embed a tag into a noise-_intolerant_ signal, namely the inputs to a cryptographic function.  This intolerance for noise hopefully serves as a bulwark against obfuscation.
 
 The literature usually requires that a watermarked signal be nearly identical to the original signal. By contrast, a tagged hash should look nothing like an untagged hash, in that these two should be statistically independent and indistinguishable without access to the underlying cryptographic secrets. For this reason, cryptoacoustics should prove to be much more robust than more traditional forms of digital watermarking, as it's starting from much stronger assumptions.
 
@@ -95,7 +128,7 @@ However, cryptoacoustics need not rely a notion of "unobfuscatable" that is as s
 
 If a hypothetical tag obscuration attack imposes a 100x overhead on the overall password cracking process, it will probably never be used in practice. A weak-ish password that costs $100 to crack would then cost $10,000 to crack. That provides an $9900 incentive to either reveal the target to the cracker or insource the attack.
 
-At 10x overhead, you might start to see a few oddball cases where people are willing to employ tag obfuscation techniques, but I would expect such an approach to remain rather niche. In this scenario, I believe that a cryptoacoustic construction would liely remain reasonably effective at spreading a message, even if that particular construction would not appear to be cryptoacoustically viable going forward.
+At 10x overhead, you might start to see a few oddball cases where people are willing to employ tag obfuscation techniques, but I would expect such an approach to remain rather niche. In this scenario, I believe that a cryptoacoustic construction would likely remain reasonably effective at spreading a message, even if that particular construction would not appear to be cryptoacoustically viable going forward.
 
 At 4x overhead, you might actually start to see the adoption of tag obfuscation technology by password crackers. If that cost multiplier approaches 1x, then tag obscuration becomes essentially free, and I would expect the tag obscuration attack to be widely adopted by nefarious password crackers, leading to a total failure of the effort.
 
@@ -119,40 +152,8 @@ In a worst-case scenario, a total failure of cryptoacoustics would only mean tha
 
 This type of hedging is a major design theme in the G3P. Yes, my conjectures are shooting into the dark, but the point is that I'm not hunting grues, and my target might actually be quite large. Rather the G3P is placing design bets on techniques and tweaks that have little to no downside risk, and are reasonably likely to pay off big.
 
-Moreover, I'm not shooting into the dark once, but twice, hedging the cryptoacoustic properties of the G3P between PHKDF and bcrypt. If the obscuration overhead of either SHA256 or blowfish's expensive key expansion functions turns out to be impractically low, the G3P still has the other function family to pin its cryptoacoustic hopes on. The ultimate success of these two attempts are not likely entirely independent of each other, but they certainly are not making the same attempt twice.
+Moreover, I'm not shooting into the dark once, but twice, hedging the cryptoacoustic properties of the G3P between PHKDF and bcrypt. If the _minimum obscuration overhead_ of either SHA256 or blowfish's expensive key expansion functions turns out to be impractically low, the G3P still has the other function family to pin its cryptoacoustic hopes on. The ultimate success of these two attempts are not likely entirely independent of each other, but they certainly are not making the same attempt twice.
 
 Though qualitatively describing the similarites and differences between the cryptoacoustic properties of PHKDF and bcrypt can be a useful exercise, a quantitative comparison would almost certainly require a theoretical basis for cryptoacoustics.  At that point we definitely need a light to keep the grues away.
 
 Maybe someday humanity will even see low-level cryptographic hash functions designed to maximize the minimum obfuscation overhead, thus maximizing the cryptoacoustic potential of that specific hash function.
-
-## Why call it "Cryptoacoustics"?
-
-[![German sound location, 1917. The photograph shows a junior officer and a soldier from an unidentified Feldartillerie regiment wearing combined acoustic/optical locating apparatus. The small-aperture goggles were apparently set so that when the sound was located by turning the head, the aircraft would be visible.](design-documents/media/acoustic_locator_13.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
-
-Some might take umbrage at the fanciful name I've chosen for this technique, but I'm pretty sure it's an important enough technique to deserve a memorable name, and I suspect that reactive resistance to the name tends to be more a symptom of the relatively small intersection between people with a less-than-naive background in cryptography and people with a similar background in signals and systems.
-
-The analogy between cryptography and signals is not completely clarified in my mind. However, I am confident that this analogy is reasonably deep and fertile, at least if you assume that some crypographic construction exhibits high enough obfuscation overhead for the topic of cryptoacoustics to be viable in the long term. On that count, I am cautiously optimistic, but we need a theory of cryptoacoustics before answering that question is really possible.
-
-[![Aircraft engines produced unprecedented sound, so in order to hear them at a distance, the war efforts developed listening devices. A two-horn system at Bolling Field, USA, 1921.](design-documents/media/acoustic_locator_11.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
-
-There's no technical reason to go with acoustics as the name for the metaphor versus say, something that suggests a different physical transmission medium such as radio waves, visible light, electronic circuitry, or perhaps just a generic "cryptosignaling". However I don't feel cryptosignaling is nearly as memorable or descriptive, and sound is the primary means of communication for most humans in face-to-face physical interactions.
-
-I also went with cryptoacoustics because I am interested in hi-fi audio and professional sound reinforcement systems, and was thinking a fair bit about those topics while I was developing cryptoacoustics.
-
-I am sure I would have found cryptoacoustics to be a rather suprising concept as recently as July 2022. That reminded me of the pleasantly surprising acoustics of Chicago's Field Museum of Natural History, which I remember my swing choir exploring on performance-adjacent field trip.  While that kind of effect is better experienced in person, Malinda provides a reasonable demonstration of the kinds of acoustic effects that are possible in [Singing in Church](https://www.youtube.com/watch?v=H6zswBOzxig) on YouTube.
-
-[![Three Japanese acoustic locators, colloquially known as “war tubas”, mounted on four-wheel carriages, being inspected by Emperor Hirohito.](design-documents/media/acoustic_locator_8.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
-
-## Why Adopt Cryptoacoustics?
-
-From a certain point of view that is particularly cautious, the G3P's application of cryptoacoustics is nothing more than using novel justification for the `FixedInfo` parameters mentioned in [NIST SP 800-56C](https://csrc.nist.gov/pubs/sp/800/56/c/r2/final), or alternatively the `Label` and `Context` parameters mentioned in [NIST SP 800-108](https://csrc.nist.gov/pubs/sp/800/108/r1/final).
-
-Furthermore, the G3P applies these insights to password hashing to make specific suggestions about what kind of data to include in these contextual parameters in a specific application that may be novel. So from this point of view, the changes adopted by the G3P are particularly cautious and low-risk.
-
-I know of no theoretical basis for believing the cryptoacoustic constructions deployed by the G3P are workably secure in the way I conjecture they are. Clearly this situation is not ideal, and should not be tolerated in the long run.
-
-However, in the short run, I'm unconcerned about this state of affairs. Successfully attacking the G3P's cryptoacoustic properties requires a non-trivial response by somebody who cares enough. This scenario would be a secondary cybersecurity concern anyway.
-
-Thus it seems smart to deploy some of the oldest password hash functions that have continued to be viable for new, well-informed, high-security deployments, in a way that uses these novel justifications to provide incentives to more deeply understand our existing tools in a new way.
-
-Whether or not the particular cryptoacoustic constructions employed by the G3P stand up to scrutiny in the long term, deeper study of these issues might someday pave the way for new cryptographic hash functions that have enhanced cryptoacoustic potential by maximizing the minimum obscuration overhead for contextual parameters.
