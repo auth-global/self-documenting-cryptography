@@ -79,6 +79,12 @@ hkdfSimple salt ikms tag = out
     outCtr   = word32 "OUT\x00"
 @
 
+If the recommendations of NIST SP 800-108 are to be followed strictly, one
+shouldn't examine more than 2^32 output blocks which is about 137.4 GB of
+output from @hkdfSimple@. I don't think this will be a problem in practice,
+as this particular CSPRNG is not overly well suited to generating large amounts
+of pseudorandom data.
+
 However, we must be aware of the /echo args gotcha/: for reasons intimately
 related to the predictability of @phkdfStream@ with a non-secret key, counter,
 and tag, the @echoArgs@ parameter must not include any important new secrets.
@@ -91,7 +97,7 @@ keying material.
 
 Thus all secrets should be included in the derivation of the key, or possibly
 included in the tag parameter. A secret counter can also help, but cannot
-provide a sufficient level of entropy to secure the output all by itself.
+provide a sufficient level of entropy tmo secure the output all by itself.
 
 One of HKDF's design principles was to obtain a clean seperation between the
 extraction and expansion phases.  This seperation allows HKDF's design to avoid
@@ -126,34 +132,66 @@ Conceptually, the slow extraction function looks like this:
 
 @
 phkdfSlowExtract ::
-     BitString -> [BitString] -> Word32 -> BitString
-  -> ByteString -> Word32 -> [BitString] -> Stream ByteString
+    BitString -> [BitString] -> Word32 -> BitString ->
+    ByteString -> Word32 -> [BitString] -> Stream ByteString
 phkdfSlowExtract key args counter tag fnName rounds tweaks = out
   where
     blocks = take (rounds + 1) $ phkdfStream key args counter tag
-    header = [makePadding fnName rounds, makeLongString blocks]
+    header = [makePadding fnName rounds, makeLongString tag blocks]
     out = phkdfStream key (header ++ tweaks) (counter + rounds + 1) tag
 @
 
+Compared to PBKDF2, @phkdfSlowExtract@ uses essentially the same stream
+generator, but enhanced with counters and contextual parameters.  PBKDF2 proper
+then condenses that stream by xor-ing all the output blocks together.
+@phkdfSlowExtract@ condenses it's internal stream by feeding it to another call
+to HMAC. So @phkdfSlowExtract@ is very likely at least as strong as PBKDF2.
+
 Again, assuming key, counter, rounds, and tag are all publicly known, which is
-the primary intended use case of this function, then the output stream of this
-slow extract is predictable. Thus it must be subjected to the first or third
-mode of operation.  If more than 32 bytes ever need to be revealed, then
-another call to @phkdfStream@ with a secret key in the second mode of operation
-is required for final output expansion.
+the primary intended use case of this function, then the output stream is
+predictable. Thus the output of @phkdfSlowExtract@ must itself be subjected to
+the first or third mode of operation.
 
-The purpose of this function is that it provides a bit of key-stretching very
-similar in flavor to PBKDF2. Also, this extraction function repeatedly hashes
-the plaintext of the tag in order to amplify the overhead plausibly associated
-with any hypothetical virtual black-box tag obscuration attacks.
+If more than 32 bytes ever need to be revealed, then another call to
+@phkdfStream@ with a secret key in the second mode of operation is required
+for final output expansion. We do just this in our next example.
 
-Note that @phkdfSlowExtract@ is not hardened against changes to the number
-of rounds to be computed: it's possible to share portions of the key-stretching
-computation when the @rounds@ parameter is varied. To avoid this issue, our
-complete worked PHKDF examples include the number of PHKDF rounds to be computed
-among the initial arguments to @phkdfSlowExtract@. This means that any change
-to the phkdf rounds parameter must restart the key-stretching at some point in
-time before the slow extraction computation began.
+@mySimplePhkdf@ uses our flavor of not-quite-PBKDF2 to produce our own hash
+function with key stretching. The algorithm behind this construction is a
+portmandeau of the algorithms behind PBKDF2 and HKDF. Thus the name.
+
+@
+mySimplePhkdf ::
+    BitString -> BitString -> BitString -> BitString ->
+    Word32 -> Stream ByteString
+mySimplePhkdf seguid tag username password rounds = out
+  where
+    inArgs = [myLabel, username, password, encode rounds]
+
+    key = head $ phkdfSlowExtract seguid inArgs inCtr tag myLabel rounds []
+
+    out = phkdfStream key [myLabel] outCtr tag
+
+    myLabel = "my-simple-phkdf"
+    inCtr    = word32 "IN\x00\x00"
+    outCtr   = word32 "OUT\x00"
+@
+
+@mySimplePhkdf@ is a distillation of the core features of the examples exported
+from the 'Crypto.PHKDF' module, containing the most salient features of those
+more fully worked constructions. Not only does this function provide key
+stretching very similar in flavor to PBKDF2, but it also infuses the entire
+key-stretching process with repeated hashes of the plaintext of the tag in order
+to amplify the minimum obfuscation overhead associated with any tag obscuration
+attack that is secure against good reverse engineers.
+
+@mySimplePhkdf@ encodes the number of rounds to be performed in the
+key-stretching phase in order to ensure that changing the number of rounds
+requires a full key-stretching recomputation. This is necessary because it is
+possible to share portions of @phkdfSlowExtract@'s key-stretching computation
+when the @rounds@ parameter is varied while holding the input arguments
+constant. Including an encoding of the @rounds@ parameter in the input arguments
+forces both to be varied, thus forcing a full recomputation.
 -}
 
 module Crypto.PHKDF.Primitives
