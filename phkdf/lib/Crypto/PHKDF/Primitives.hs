@@ -156,9 +156,10 @@ If more than 32 bytes ever need to be revealed, then another call to
 @phkdfStream@ with a secret key in the second mode of operation is required
 for final output expansion. We do just this in our next example.
 
-@mySimplePhkdf@ uses our flavor of not-quite-PBKDF2 to produce our own hash
-function with key stretching. The algorithm behind this construction is a
-portmandeau of the algorithms behind PBKDF2 and HKDF. Thus the name.
+@mySimplePhkdf@ uses our flavor of not-quite-PBKDF2 to produce a pseudorandom
+key to use with our flavor of not-quite-HKDF for final output expansion. Thus
+the algorithm behind this construction is a portmanteau of the algorithms behind
+PBKDF2 and HKDF. Thus the name.
 
 @
 mySimplePhkdf ::
@@ -177,13 +178,17 @@ mySimplePhkdf seguid tag username password rounds = out
     outCtr   = word32 "OUT\x00"
 @
 
-@mySimplePhkdf@ is a distillation of the core features of the examples exported
-from the 'Crypto.PHKDF' module, containing the most salient features of those
-more fully worked constructions. Not only does this function provide key
-stretching very similar in flavor to PBKDF2, but it also infuses the entire
-key-stretching process with repeated hashes of the plaintext of the tag in order
-to amplify the minimum obfuscation overhead associated with any tag obscuration
-attack that is secure against good reverse engineers.
+@mySimplePhkdf@ is a distillation of the core features of the @phkdfSimple@
+function exported from the @Crypto.PHKDF@ module, containing the most salient
+features of that more fully worked construction.
+
+Not only does @mySimplePhkdf@ provide key stretching very similar in flavor
+to PBKDF2, but it also infuses the entire key-stretching process with
+cryptoacoustic repetitions of the plaintext of the tag. This amplifies the
+minimum obfuscation overhead associated with any tag obscuration attack that is
+truly secure against the best reverse engineers. This in turns reduces the
+minimum obfuscation overhead associated with a single application of SHA256
+in order for the overall construction to be cryptoacoustically viable.
 
 @mySimplePhkdf@ encodes the number of rounds to be performed in the
 key-stretching phase in order to ensure that changing the number of rounds

@@ -4,7 +4,7 @@ This repository introduces the concept of self-documenting cryptography, which i
 
 Most notably, the Global Password Prehash Protocol (G3P) proposes affixing a metaphorical property tag to password hash functions, so that being able to compute the correct password hash function implies knowledge of the tag. If you can crack a self-documenting password hash, you have to know where to report it stolen. If you don't know where to report it as stolen, then you shouldn't be able to crack it.
 
-This in turn implicates the topic of cryptoacoustics, which is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes in ways that are easily decoded and understood by observers, and that maximize the _minimum obfuscation overhead_. This is overhead imposed by the most efficient tag obfuscation attack that would be secure against a good reverse engineer.
+This in turn implicates the topic of cryptoacoustics, which is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes in ways that are easily decoded and understood by observers, and that maximize the _minimum obfuscation overhead_. This is overhead imposed by the most efficient tag obfuscation attack that would be secure against the best reverse engineers.
 
 Cryptography more typically depends on the property that if you know a key, then you can compute a cryptographic function. Cryptoacoustics depends upon the converse: if you can compute some cryptographic function, then you know (part of) its key. When this proposition holds, that part of the key can be used to convey a message.
 
@@ -135,13 +135,23 @@ At the time the paper was written, whether or not full homomorphic encryption wa
 
 ### Obfuscation Overhead
 
+> A language design should *at least* provide facilities which allow the comprehensible expression of algorithms: *at best* a language suggests better forms of expression. But language is *not* a panacea. A language cannot, for example, prevent the creation of obscure programs: the ingenious programmer can always find an infinite number of paths to obfuscation.
+>
+> - William Wulf (1977), via "Programming Language Concepts, 2/E" by Ghezzi and Jazayeri
+>
+> (See also the [International Obfuscated C Code Contest](https://www.ioccc.org/))
+
 Cracking a password hash is a rather costly endeavor that is particularly sensitive to inefficiency. For this reason, cryptoacoustics need not rely a notion of "unobfuscatable" that is as stringent as found in Barak et al.
 
 What is crucial is the _minimum obfuscation overhead_, that is, the overhead represented by the most efficient tag obscuration attack available on a tagging construction. My guess is that this minimum obfuscation overhead must be at least two orders of magnitude to sort of be minimally viable in the case of slow password hashing.
 
-Of course, if one is uploading a password hash to a botnet to be cracked, there are simple techniques that will keep the tag out of a dump of the string constants inside the blob of executable code. However, these simple techniques are all vulnerable to a competent reverse engineer.  Thus in order for an tag obscuration attack to be relevant to this section, it must be secure against a good reverse engineer. This suggests that some form of homomorphic encryption would be a required component of such an attack.
+Of course, if one is uploading a password hash to a botnet to be cracked, there are relatively simple techniques that will keep the tag out of a dump of the string constants inside the blob of executable code. The quotes above are suggestive of these kinds of simple techniques. These techniques often impose little or no runtime cost. However, these techniques are all vulnerable to a competent reverse engineer.
 
-If such a hypothetical tag obscuration attack imposes a 100x overhead on the overall password cracking process, it will probably never be used in practice. A weak-ish password that costs $100 to crack would then cost $10,000 to crack. That provides an $9900 incentive to either reveal the target to the cracker or bring the attack in-house.
+Thus in order for an tag obscuration attack to be considered legit in the context of this discussion, it must be secure against the best reverse engineers. In the context of PHKDF, it is intended that once one understands how the provided SHA256 implementation works, that it should be relatively easy for a reverse engineer to simply watch what inputs are fed into that implementation.
+
+This suggests that some form of encryption that is homomorphic on SHA256 is a required component of a truly secure tag obscuration attack on PHKDF. Since full homomorphic encryption (FHE) exists, the required component can presumably be constructed for any cryptographic hash function, not only SHA256. Fortunately the overhead of even state-of-the-art FHE is currently much too high for deployment as a practical tag obscuration attack, but such an attack need depend on any particular FHE framework.
+
+If a hypothetical tag obscuration attack imposes a 100x overhead on the overall password cracking process, it will probably never be used in practice. A weak-ish password that costs $100 to crack would then cost $10,000 to crack. That provides an $9900 incentive to either insource the attack or to disclose the target to the cracker.
 
 Even in the case of cracking attacks carried out using a botnet or other stolen computing resources, cutting the guessing rate by two orders of magnitude still represents a significant opportunity cost.
 
@@ -155,7 +165,9 @@ For example, the Seguid Protocol is HKDF that specifies constant salt and info p
 
 Since the Seguid Protocol applies no key stretching, millions of hashes can be computed per second. Thus the most efficient tag obscuration attack may need to impose 100,000x overhead or more in order to be truly effective in this scenario. For this reason, slow password hashing seems to be a best-case scenario for the application of cryptoacoustics.
 
-Though it's presumably much easier in practice to deploy tag obscuration attacks against the Seguid Protocol compared to the G3P, it's also far less clear what practical benefits this might confer to an attacker. At my own current level of understanding of my own design, incorporating cryptoacoustics into the Seguid Protocol itself is mostly an issue of design consistency, though there may well be advantages and benefits I don't currently appreciate.
+Thus the point of _cryptoacoustic repetition_ as employed by PHKDF and the G3P is to reduce the minimum obfuscation overhead required for a given cryptoacoustic construction to be viable. Though it's presumably much easier in practice to deploy tag obscuration attacks against the Seguid Protocol, it's also far less clear what practical benefits this might confer to an attacker.
+
+At my own current level of understanding of my own design, incorporating cryptoacoustics into the Seguid Protocol itself is mostly an issue of design consistency, though there may well be advantages and benefits I don't currently appreciate.
 
 ## Cryptoacoustic Safety
 
@@ -169,7 +181,7 @@ In a worst-case scenario, a total failure of cryptoacoustics would only mean tha
 
 This type of hedging is a major design theme in the G3P. Yes, my conjectures are shooting into the dark, but the point is that I'm not hunting grues, and my target might actually be quite large. Rather the G3P is placing design bets on techniques and tweaks that have little to no downside risk, and are reasonably likely to pay off big.
 
-Moreover, I'm not shooting into the dark once, but twice, hedging the cryptoacoustic properties of the G3P between PHKDF and bcrypt. If the _minimum obscuration overhead_ of either SHA256 or blowfish's expensive key expansion functions turns out to be impractically low, the G3P still has the other function family to pin its cryptoacoustic hopes on. The ultimate success of these two attempts at a secure cryptoacoustic construction are not likely entirely independent of each other, but they certainly are not repeating the exact same attempt.
+Moreover, I'm not shooting into the dark once, but twice, hedging the cryptoacoustic properties of the G3P between PHKDF and bcrypt. If the _minimum obscuration overhead_ of either SHA256 or blowfish's expensive key expansion functions turns out to be impractically low, the G3P still has the other function family to pin its cryptoacoustic hopes on. The ultimate success of these two attempts at a secure cryptoacoustic construction are not likely entirely independent of each other, but they certainly are not repeating the exact same attempt twice.
 
 Though qualitatively describing the similarities and differences between the cryptoacoustic properties of PHKDF and bcrypt can be a useful exercise, a quantitative comparison would almost certainly require a theoretical basis for cryptoacoustics.  At that point we definitely need a light to keep the grues away.
 
