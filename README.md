@@ -4,11 +4,11 @@ This repository introduces the concept of self-documenting cryptography, which i
 
 Most notably, the Global Password Prehash Protocol (G3P) proposes affixing a metaphorical property tag to password hash functions, so that being able to compute the correct password hash function implies knowledge of the tag. If you can crack a self-documenting password hash, you have to know where to report it stolen. If you don't know where to report it as stolen, then you shouldn't be able to crack it.
 
-The G3P is an example of a design for reverse engineering. In a certain secondary yet fundamental sense, the unknown reverse engineer toiling away on some obfuscated implementation of your deployment of the G3P is the most important customer of the G3P. You've never met this reverse engineer, they probably don't know that you exist. They've certainly never heard of the G3P, and they probably aren't directly familiar with the techniques used by the G3P.
+The G3P is an example of a design for reverse engineering. In a certain secondary yet fundamental sense, the unknown reverse engineer toiling away on some obfuscated implementation of your deployment of the G3P is the most important customer of the G3P. You've certainly never met this reverse engineer, and they  probably also don't know that you exist. They've certainly never heard of the G3P, and they probably aren't directly familiar with the techniques used by it either.
 
-Yet at the same time, whether a individual or team, this unknown reverse engineer is VIP #1. For this reason, easing the job of a reverse engineer across all possible implementations of the G3P is frequently an overriding factor driving design decisions.
+Yet at the same time, whether a individual or team, this unknown reverse engineer is VIP #1. For this reason, simplifying the job of a reverse engineer across all possible implementations of the G3P is frequently an overriding factor driving design decisions.
 
-This in turn implicates the topic of cryptoacoustics, which is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes in ways that are easily decoded and understood by observers, and that maximize the _minimum obfuscation overhead_. This is overhead imposed by the most efficient tag obfuscation attack that would be secure against the best reverse engineers.
+This in turn implicates the topic of cryptoacoustics, which is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes in ways that are easily decoded and understood by observers, and that maximize the _minimum obfuscation overhead_. This is the overhead imposed by the most efficient tag obfuscation attack that would be secure against the best reverse engineers.
 
 Cryptography more typically depends on the property that if you know a key, then you can compute a cryptographic function. Cryptoacoustics depends upon the converse: if you can compute some cryptographic function, then you know (part of) its key. When this proposition holds, that part of the key can be used to convey a message.
 
@@ -16,13 +16,15 @@ Conveying a message requires the use of a transmission medium. In our scenario, 
 
 Since most (all?) common cryptographic hash functions exclusive-or their input into a state machine, suffixing a plaintext tag to the end of observer-supplied input plausibly exhibits desirable cryptoacoustic properties for most any cryptographic hash function.
 
+The intuition behind this is that once a reverse engineer understands the correspondence between an insecurely obfuscated implementation of SHA256 or other hash function, they can watch a memory replay of the hash computation and read off the inputs being fed into it. This in turn reveals the tags hidden inside the implementation. This technique is reasonably likely to work well in practice before the exact correspondence is understood.
+
 This tagging process is not unlike a digital watermark, however, the G3P provides no means of authenticating whether or not any purported password hash is genuine or not, so there's plausible deniability baked into this watermarking process.
 
 Rather, the tag is only readable during the password hashing process. Thus, this watermark represents a belief about where a password hash came from, a belief that must be correct to achieve offline attacks on truly genuine hashes.
 
 This is not an interactive communication protocol, yet non-interactive communication protocols can be extremely useful. Consider for example broadcast television, broadcast radio, [WSPR](https://en.wikipedia.org/wiki/WSPR_\(amateur_radio_software\)) and other radio beacon protocols, or a physical property tag.
 
-This project follows various philosophies of documentation-driven design. Not only does this philosophy nice complement the design for reverse engineering, I find it to be an indispensible way to find bugs and produce higher quality software.
+This project follows various philosophies of documentation-driven design. Not only does this nicely complement the design for reverse engineering, I find it to be an indispensible way to find bugs and produce higher quality software.
 
 ## Global Password Prehash Protocol (G3P)
 
@@ -40,7 +42,7 @@ In effect, this is an attempt to move towards a closer approximation of [closed-
 
 The major design goals for the G3P were:
 
-1. All HMAC calls and the overwhelming majority of SHA256 blocks should be covered by at least one self-documenting constant.
+1. All HMAC calls and the overwhelming majority of SHA256 blocks should be tagged with at least one self-documenting constant.
 
 2. Follow the guidance of [RFC 5869](https://datatracker.ietf.org/doc/html/rfc5869) and [NIST Special Publication 800-108r1](https://csrc.nist.gov/publications/detail/sp/800-108/rev-1/final) as closely as possible
 
@@ -73,9 +75,9 @@ One of the practical advantages of using a strongly-randomized seguid as part of
 
 PHKDF is a unification and synthesis of PBKDF2, HKDF, and TupleHash.  The name was chosen because the construction itself is a portmanteau of the PBKDF2 algorithm and the HKDF algorithm.
 
-For example, it's not a great idea to use literal PBKDF2 to generate more than one output block worth of data. It would make much more sense to take HKDF apart into it's constituent HKDF-Extract and HKDF-Expand, and then replace the HMAC that is used as the extraction function with a call to PBKDF2, and feed exactly one output block from PBKDF2 as the pseudorandom key to HKDF-Expand.
+For example, it's not a great idea to use literal PBKDF2 to generate more than one output block worth of data. It would make much more sense to take HKDF apart into it's constituent `HKDF-Extract` and `HKDF-Expand`, and then replace the HMAC that is used as the extraction function with a call to PBKDF2, and feed exactly one output block from PBKDF2 as the pseudorandom key to `HKDF-Expand`.
 
-This is more or less exactly what the [`verySimplePhkdf`](phkdf/lib/Crypto/PHKDF/Primitives.hs) function does.  This is included in API documentation as a conceptual simplification of the [`phkdfSimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs), which is a more fully worked example with a reference implementation.
+This is more or less exactly what the [`phkdfVerySimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs) function does. This is included in API documentation as a conceptual simplification of the [`phkdfSimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs), which is a more fully worked example with a reference implementation.
 
 The difference between these examples and the sketch above is that they actually use [`phkdfStream`](phkdf/lib/Crypto/PHKDF/Primitives.hs) instead of literal PBKDF2 and HKDF. This low-level primitive is a mildly dangerous modification of `HKDF-Expand` which is specified in [RFC 5869](https://datatracker.ietf.org/doc/html/rfc5869).
 
@@ -85,13 +87,13 @@ Taking a higher-level view, PHKDF affirms the spirit of the HKDF's design princi
 
 A minimal example of a complete high-level application of PHKDF without key stretching is included in API documentation as [`hkdfSimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs). This demonstrates using two calls to `phkdfStream` in order to taking initial keying material and turning those secrets into an unbounded pseudorandom stream. Any two non-overlapping portions of this pseudorandom stream may be safely revealed or otherwise used independently of each other.
 
-Taking a step up in complexity, [`verySimplePhkdf`]((phkdf/lib/Crypto/PHKDF/Primitives.hs)) adds key stretching via a single call to the similarly dangerous and low-level `phkdfSlowExtract` function, which itself is two calls `phkdfStream`. Adding in one more call for safe final output expansion, this high-level protocol involves three calls to `phkdfStream` in total. This example is the simplest demonstration of the actual portmanteau that PHKDF recommends using.
+Taking a step up in complexity, [`phkdfVerySimple`]((phkdf/lib/Crypto/PHKDF/Primitives.hs)) adds key stretching via a single call to the similarly dangerous and low-level `phkdfSlowExtract` function, which itself is two calls `phkdfStream`. Adding in one more call for safe final output expansion, this high-level protocol involves three calls to `phkdfStream` in total. This example is the simplest demonstration of the actual portmanteau that PHKDF recommends using.
 
 The next step up in complextiy is [`phkdfSimple`](phkdf/lib/Crypto/PHKDF.hs), which is the simplest worked example that is provided an actual reference implementation instead of being relegated to API documentation. All the additional features are various niceties. For example, generous length padding is added so that even multi-kilobyte passwords are processed in constant number of cryptographic operations.
 
 This length padding creates another tagging opportunity which is exposed as the `long-tag` parameter which is ideal for conveying longer messages. Another addition is the `echo-tags` vector of bitstrings. The plaintext of each individual bitstring gets hashed exactly three times, providing another great option for longer messages. Finally, the `credentials` vector is added with the intention of supporting Two-Secret Key Derivation (2SKD) schemes not unlike 1Password.
 
-Finally [`phkdfPass`](phkdf/lib/Crypto/PHKDF.hs) adds the ability to safely add additional tweaks and secrets to the final output stream after the expensive key-stretching computation has been completed. While it is essentially a design study for the G3P, it might possibly be of interest for deployment. This function is the G3P minus bcrypt, as the G3P provides a wrap-around integration of bcrypt via PHKDF.
+Finally [`phkdfPass`](phkdf/lib/Crypto/PHKDF.hs) adds the ability to safely add additional tweaks and secrets to the final output stream after the expensive key-stretching computation has been completed. While it is essentially a design study for the G3P, it might possibly be of interest for deployment. This function is the G3P minus bcrypt, as the G3P uses PHKDF in a wrap-around integration of bcrypt.
 
 ## Why Adopt Cryptoacoustics?
 
@@ -101,7 +103,9 @@ Furthermore, the G3P applies these insights to the topic of password hashing to 
 
 I know of no theoretical basis for believing the cryptoacoustic constructions deployed by the G3P are workably secure in the way I conjecture they are. Clearly this situation is not ideal, and should not be tolerated in the long run.
 
-However, in the short run, I'm unconcerned about this state of affairs. Successfully attacking the G3P's cryptoacoustic properties requires a non-trivial response by somebody who cares enough. This scenario would be a secondary cybersecurity concern anyway, as this very concern has been largely or entirely neglected until now. A failure of a cryptoacoustic construction would not represent a security vulnerability according to standard cybersecurity practices in 2023, and thus a failure of cryptoacoustics would mean only a return to the current status quo.
+However, in the short run, I'm unconcerned about this state of affairs. Successfully attacking the G3P's cryptoacoustic properties requires a non-trivial response by somebody who cares enough. This scenario would be a secondary cybersecurity concern anyway, as this very concern has been largely or entirely neglected until now.
+
+A failure of a cryptoacoustic construction would not represent a security vulnerability according to common cybersecurity practices of 2023, and thus a failure of cryptoacoustics would mean only a return to the current status quo.
 
 Thus it seems smart to take some of the oldest password hash functions that have continued to be viable for new, well-informed, high-security deployments, and deploy them in a new way that provides incentives to more deeply understand our existing tools from a new point of view.
 
@@ -139,7 +143,7 @@ For example, wikipedia describes [digital watermarking](https://en.wikipedia.org
 
 The literature usually requires that a watermarked signal be nearly identical to the original signal. By contrast, a tagged hash should be statistically independent from any untagged hash without access to the underlying cryptographic secrets. This property helps provide the plausible deniability of any given tag.
 
-The tagged hash and untagged hash should be completely different hashes, yet without access to the secret password, these two hashes should also be indistinguishable in the sense of determining which hash has which tag. For this reason, cryptoacoustics should prove to be much more robust than more traditional forms of digital watermarking, as it's starting from much stronger assumptions.
+The tagged hash and untagged hash should be completely different hashes, yet without access to the secret password, these two hashes should also be indistinguishable in the sense of determining which hash is associated with which tag. For this reason, cryptoacoustics should prove to be much more robust than more traditional forms of digital watermarking, as it's starting from much stronger assumptions.
 
 ## Cryptoacoustics and Obfuscation
 
@@ -148,6 +152,10 @@ The tagged hash and untagged hash should be completely different hashes, yet wit
 > - William Wulf (1977), via "Programming Language Concepts, 2/E" by Ghezzi and Jazayeri
 >
 > (See also the [International Obfuscated C Code Contest](https://www.ioccc.org/))
+
+Of course, if one is uploading a password hash to a botnet to be cracked, there are relatively simple techniques that will keep the tag out of a dump of the string constants inside the blob of executable code. The quotes above are suggestive of these kinds of simple techniques. These techniques often impose little or no runtime cost.
+
+However, these techniques are all vulnerable to a competent reverse engineer. Thus in order for an tag obscuration attack to be considered legit in the context of this discussion, it must be secure against the best reverse engineers.
 
 The existing literature on [program obfuscation](https://blog.cryptographyengineering.com/2014/02/21/cryptographic-obfuscation-and/) is much more likely to be relevant to building a proper theoretical foundation for cryptoacoustics. Most famous is the paper "[On the (Im)possibility of Obfuscating Programs](https://www.iacr.org/archive/crypto2001/21390001.pdf)" by Barak et al.
 
@@ -163,11 +171,9 @@ Cracking a password hash is a rather costly endeavor that is particularly sensit
 
 What is crucial is the _minimum obfuscation overhead_, that is, the overhead represented by the most efficient tag obscuration attack available on a tagging construction. My guess is that this minimum obfuscation overhead must be at least two orders of magnitude to sort of be minimally viable in the case of slow password hashing.
 
-Of course, if one is uploading a password hash to a botnet to be cracked, there are relatively simple techniques that will keep the tag out of a dump of the string constants inside the blob of executable code. The quotes above are suggestive of these kinds of simple techniques. These techniques often impose little or no runtime cost. However, these techniques are all vulnerable to a competent reverse engineer.
+In the context of PHKDF, it is intended that once one understands how the provided SHA256 implementation works, that it should be relatively easy for a reverse engineer to simply watch what inputs are fed into that implementation. This suggests that some form of encryption that is homomorphic on SHA256 is a required component of a truly secure tag obscuration attack.
 
-Thus in order for an tag obscuration attack to be considered legit in the context of this discussion, it must be secure against the best reverse engineers. In the context of PHKDF, it is intended that once one understands how the provided SHA256 implementation works, that it should be relatively easy for a reverse engineer to simply watch what inputs are fed into that implementation.
-
-This suggests that some form of encryption that is homomorphic on SHA256 is a required component of a truly secure tag obscuration attack on PHKDF. Since full homomorphic encryption (FHE) exists, the required component can presumably be constructed for any cryptographic hash function, not only SHA256. Fortunately the overhead of even state-of-the-art FHE is currently much too high for deployment as a practical tag obscuration attack, but such an attack need depend on any particular FHE framework.
+Since full homomorphic encryption (FHE) exists, the required component can presumably be constructed for any cryptographic hash function, not only SHA256. Fortunately the overhead of even state-of-the-art FHE is currently much too high for deployment as a practical tag obscuration attack.  However, such an attack need not depend on a particular FHE framework, and need not depend on any FHE framework whatsoever.
 
 If a hypothetical tag obscuration attack imposes a 100x overhead on the overall password cracking process, it will probably never be used in practice. A weak-ish password that costs $100 to crack would then cost $10,000 to crack. That provides an $9900 incentive to either insource the attack or to disclose the target to the cracker.
 
