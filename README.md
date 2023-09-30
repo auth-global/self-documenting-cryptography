@@ -1,3 +1,5 @@
+# Overview of Self-Documenting Cryptography
+
 ![Property of YOUR COMPANY INC.](design-documents/media/property-tag.png)
 
 > A language design should *at least* provide facilities which allow the comprehensible expression of algorithms: *at best* a language suggests better forms of expression. But language is *not* a panacea. A language cannot, for example, prevent the creation of obscure programs: the ingenious programmer can always find an infinite number of paths to obfuscation.
@@ -10,9 +12,13 @@ This repository introduces the concept of self-documenting cryptography, which i
 
 Most notably, the Global Password Prehash Protocol (G3P) proposes affixing a metaphorical property tag to password hash functions, so that being able to compute the correct password hash function implies knowledge of the tag. If you can crack a self-documenting password hash, you have to know where to report it stolen. If you don't know where to report it as stolen, then you shouldn't be able to crack it.
 
-The G3P is an example of a design for reverse engineering. In a certain secondary yet fundamental sense, the unknown reverse engineer toiling away on some obfuscated implementation of your deployment of the G3P is the most important customer of the G3P. You've certainly never met this reverse engineer, and they  probably also don't know that you exist. They've certainly never heard of the G3P, and they probably aren't directly familiar with the techniques used by it either.
+Let's say you deploy the G3P for a company, club, or other organization. Now one of your self-documenting password hashes gets stolen. The entity who stole that hash decides to use a botnet or other stolen computing resources to try to crack that password. A security analyst observes that payload.
 
-Yet at the same time, whether a individual or team, this unknown reverse engineer is VIP #1. For this reason, simplifying the job of a reverse engineer across all possible implementations of the G3P is frequently an overriding factor that drives design decisions.
+Neither this analyst nor your organization have any knowledge of the other's existence, but now this analyst has some kind of executable implementation of your deployment of the G3P in addition to the stolen password hash itself.
+
+If this implementation is written in a relatively straightforward way, all the security analyst would have to do is dump the strings contained in the payload, after which they should have zero difficulty disclosing their observations back to your organization's counterintelligence tip line.[^tipline]
+
+Of course there are many techniques a botnet cracker can use to keep your tags out of a simple scan for string constants. This is why the G3P is designed to be reverse engineered. In a certain secondary yet fundamental sense, the unknown reverse engineers toiling away on some obfuscated implementation of your deployment are the #1 VIP customers of the G3P. The design is driven by a desire to simplify their task as much as possible across all possible implementations of the G3P.
 
 This in turn implicates the topic of cryptoacoustics, which is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes in ways that are easily decoded and understood by observers, and that maximize the _minimum obfuscation overhead_. This is the overhead imposed by the most efficient tag obscuration attack that would be secure against the best reverse engineers.
 
@@ -22,11 +28,11 @@ Conveying a message requires the use of a transmission medium. In our scenario, 
 
 Since most (all?) common cryptographic hash functions exclusive-or their input into a state machine, suffixing a plaintext tag to the end of observer-supplied input plausibly exhibits desirable cryptoacoustic properties for most any cryptographic hash function.[^blake3]
 
-The intuition behind this is that once a reverse engineer understands the correspondence between an insecurely obfuscated implementation and SHA256 or other hash function, they can watch a memory replay of the hash computation and read off the inputs being fed into it. This in turn reveals the tags hidden inside the implementation. This technique is reasonably likely to work well in practice before the exact correspondence is understood.
+The intuition behind this is that once a reverse engineer understands the correspondence between an insecurely obfuscated implementation and a hash function such as SHA256, they can watch a memory replay of the hash computation and read off the strings being fed into it. This in turn reveals the tags hidden inside the implementation.
 
-This tagging process is not unlike a digital watermark, however, the G3P provides no means of authenticating whether or not any purported password hash is genuine or not, so there's plausible deniability baked into this watermarking process.
+This tagging process is not unlike a digital watermark, however, the G3P provides no means of authenticating whether or not any purported password hash is genuine or not, so there's plausible deniability baked into this process.
 
-Rather, the tag is only readable during the password hashing process. Thus, this kind of watermark represents a belief about where a password hash came from, a belief that must be correct to achieve offline attacks on truly genuine hashes.
+Rather, the tag is only readable during the password hashing process. Thus, this kind of watermark represents a belief about where a password hash came from, a belief that must be correct before offline attacks on truly genuine hashes can be achieved.
 
 This is not an interactive communication protocol, yet non-interactive communication protocols can be extremely useful. Consider for example broadcast television, broadcast radio, [WSPR](https://en.wikipedia.org/wiki/WSPR_\(amateur_radio_software\)) and other radio beacon protocols, or a physical property tag.
 
@@ -34,17 +40,15 @@ This project follows various philosophies of documentation-driven design. Not on
 
 ## Global Password Prehash Protocol (G3P)
 
-The [G3P](g3p-hash/lib/Crypto/G3P.hs) is a self-documenting password hash function based on PHKDF wrapped around [bcrypt](https://www.usenix.org/publications/loginonline/bcrypt-25-retrospective-password-security). It is [designed](design-documents/g3p.md) to be particularly suitable for use on the user's endpoint before a password is sent to an authentication server.
+The [G3P](g3p-hash/lib/Crypto/G3P.hs) is a self-documenting password hash function that provides a wrap-around integration of [bcrypt](https://www.usenix.org/publications/loginonline/bcrypt-25-retrospective-password-security) inside of PHKDF. It is [designed](design-documents/g3p.md) to be particularly suitable for use on the user's endpoint before a password is sent to an authentication server.
 
-The G3P is self-documenting in the sense that password hashes are supposed to be _traceable_ or _useless_ after they have been _stolen_. If Acme Corporation were to deploy the G3P, and their password hash database was stolen, then it is supposed to be impossible for the thief to outsource any brute force attacks on Acme's password database without announcing that the password hashes are Acme's.
+The G3P is self-documenting in the sense that password hashes are supposed to be _traceable_ or _useless_ after they have been _stolen_. In addition to being cracked, a password hash might be replayable depending on context. However, we assume that if one knows where to replay a password hash, then one also knows where to report it stolen, so this isn't a problem for our slogan of being _traceable_ or _useless_.
 
-The purpose is to point their conspirator in the correct direction to sell out the endeavor to Acme and report the hashes as stolen. In doing so, I hope to make it increasingly untenable to post meaningful password hashes where they can be widely seen without drawing the attention of relevant security departments.
+Though we are using a hypothetical password cracker running on a botnet as a running example throughout this readme, that's really just one of the more surprising and illuminating examples. The cryptoacoustic medium doesn't care about the physical situation that gave rise to a password cracking attack. It abstracts over that entirely. Rather the concept behind cryptoacoustics summarizes over the context of past communications, no matter how these communications occurred.
 
-Similarly, if a botnet is used to try to crack Acme's password hashes using stolen computing resources, then the G3P is designed to make it easy for a security analyst who observes this payload on the botnet to report the payload(s) and other observations back to Acme's security tip line.
+For example, if the hash thief were to instead post a crackable version of your password database on an underground forum, then it will be either trivial or at least possible for any individual on that forum to get in contact with you and sell out the thief. In doing so, I hope that it will become increasingly untenable to post password databases where they can be seen by others without drawing the attention of the relevant security departments.
 
-These are two concrete examples of the way cryptoacoustics abstracts over the exact physical communication that created a given context. Cryptoacoustics summarizes some of the valid inferences that parties must be able to draw as a result of past communications.
-
-In effect, this is an attempt to move towards a closer approximation of [closed-loop](https://en.wikipedia.org/wiki/Closed-loop_controller) detection of leaked password hashes. In the longer run, I hope that will disrupt the activities of the cybercriminal scene. That said, I expect the more profound change in behavior will ultimately be the promotion of more antifragile attitudes and practices among security departments.
+In effect, this is an attempt to move towards a closer approximation of [closed-loop](https://en.wikipedia.org/wiki/Closed-loop_controller) detection of leaked password hashes. In the longer run, I hope that will disrupt the activities of the cybercriminal scene. That said, I expect the more profound change in behavior will ultimately be the promotion of [antifragile](https://en.wikipedia.org/wiki/Antifragile_\(book\)) attitudes and practices among security departments.
 
 The major design goals for the G3P were:
 
@@ -53,6 +57,30 @@ The major design goals for the G3P were:
 2. Follow the guidance of [RFC 5869](https://datatracker.ietf.org/doc/html/rfc5869) and [NIST Special Publication 800-108r1](https://csrc.nist.gov/publications/detail/sp/800-108/rev-1/final) as closely as possible
 
 3. Offer the strongest API guarantees that are reasonably possible, without introducing extravagant complexity to do so.  Any implementation complexity must result in meaningful payoffs.
+
+## PHKDF
+
+PHKDF is a unification and synthesis of PBKDF2, HKDF, and TupleHash.  The name was chosen because the construction it suggests is quite literally a portmanteau of the PBKDF2 algorithm and the HKDF algorithm.
+
+For example, it's not a great idea to use literal PBKDF2 to generate more than one output block worth of data. It would make much more sense to take HKDF apart into it's constituent `HKDF-Extract` and `HKDF-Expand`, and then replace the extraction function with a call to PBKDF2, and feed exactly one output block from PBKDF2 as the pseudorandom key to `HKDF-Expand`.
+
+This is more or less exactly what the [`phkdfVerySimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs) function does. This is included in API documentation as a conceptual simplification of the [`phkdfSimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs), which is a more fully worked example with a reference implementation.
+
+The difference between these examples and the sketch above is that they actually use [`phkdfStream`](phkdf/lib/Crypto/PHKDF/Primitives.hs) instead of literal PBKDF2 and HKDF. This low-level primitive is a mildly dangerous modification of `HKDF-Expand` which is specified in [RFC 5869](https://datatracker.ietf.org/doc/html/rfc5869).
+
+The reason `phkdfStream` is mildly dangerous is because it intentionally violates the letter of HKDF's design philosophy of maintaining a clean separation between extraction and expansion. Therefore, naive use of `phkdfStream` can result in some nasty security gotchas. However, it's relatively straightforward to bundle up multiple calls to produce a hash function that is a much safer construction, one that doesn't come with esoteric low-level side-conditions.
+
+Taking that higher-level view, PHKDF affirms the spirit of the HKDF's design principle. It is highly recommended that any complete application of `phkdfStream` itself express a clear distinction between extraction and expansion, even if the lower level building block does not.
+
+A minimal example of a complete high-level application of PHKDF without key stretching is included in API documentation as [`hkdfSimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs). This demonstrates using two calls to `phkdfStream` in order to taking initial keying material and turning those secrets into an unbounded pseudorandom stream. Any two non-overlapping portions of this pseudorandom stream may be safely revealed or otherwise used independently of each other.
+
+Taking a step up in complexity, [`phkdfVerySimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs) adds key stretching via a single call to the similarly dangerous and low-level `phkdfSlowExtract` function, which itself is two calls `phkdfStream`. Adding in one more call for safe final output expansion, this high-level protocol involves three calls to `phkdfStream` in total. This example is the simplest demonstration of the actual portmanteau that PHKDF recommends using.
+
+The next step is [`phkdfSimple`](phkdf/lib/Crypto/PHKDF.hs), which is the simplest worked example that is provided an actual reference implementation instead of being relegated to API documentation. All the additional features are various niceties. For example, generous length padding is added so that even multi-kilobyte passwords are processed in constant number of cryptographic operations.
+
+This length padding creates another tagging opportunity which is exposed as the `long-tag` parameter which is ideal for conveying longer messages. Another addition is the `echo-tags` vector of bitstrings. The plaintext of each individual bitstring gets hashed exactly three times, providing another great option for longer messages. Finally, the `credentials` vector is added with the intention of supporting Two-Secret Key Derivation (2SKD) schemes not unlike 1Password.
+
+Finally [`phkdfPass`](phkdf/lib/Crypto/PHKDF.hs) adds the ability to safely add additional tweaks and secrets to the final output stream after the expensive key-stretching computation has been completed. While it is essentially a design study for the G3P, it might possibly be of interest for deployment. This function is the G3P minus bcrypt, as the G3P provides a full wrap-around integration of bcrypt inside PHKDF.
 
 ## Seguid Protocol
 
@@ -69,7 +97,7 @@ Heritage Toronto 2018](design-documents/media/toronto-recursive-history.jpg)](ht
 
 The [Seguid Protocol](design-documents/seguid.md) is a domain-specific hash function that produces Self-Documenting Globally Unique Identifiers, or _seguids_. Seguids are self-documenting in the sense that they cryptographically attest to their own provenance and their own official documentation for y'all to follow.
 
-The Seguid Protocol turns HMAC keys (e.g. HKDF salts) into self-documenting tags.  The ability to compute an HMAC function does not imply direct knowledge of the HMAC key, and so therefore the key does not have any plaintext cryptoacoustic properties.  However, the ability to compute an HMAC function does imply knowledge of a cryptographic hash of the HMAC key, so HMAC keys do have indirect cryptoacoustic properties.
+The Seguid Protocol turns HMAC's key parameter into a self-documenting tagging location.  The ability to compute an HMAC function does not imply direct knowledge of the HMAC key, and so therefore the key does not have any plaintext cryptoacoustic properties.  However, the ability to compute an HMAC function does imply knowledge of a cryptographic hash of the HMAC key, so HMAC keys do have indirect cryptoacoustic properties with mild limitations.
 
 Seguids improve coverage of the G3P by self-documenting tags, thus advancing its first design goal. It also plausibly advances the G3P's second design goal as well, as the seguid protocol is intended to produce outputs that qualify as a [_key derivation key_ (KDK)](https://csrc.nist.gov/glossary/term/key_derivation_key) in NIST parlance.
 
@@ -77,57 +105,31 @@ The Seguid Protocol aspires to be a meta-KDK that can produce the highest qualit
 
 One of the practical advantages of using a strongly-randomized seguid as part of the salt for a deployment of the G3P is that any precomputation of a password hash dictionary is out of the question until after the seguid is created.
 
-## PHKDF
-
-PHKDF is a unification and synthesis of PBKDF2, HKDF, and TupleHash.  The name was chosen because the construction itself is a portmanteau of the PBKDF2 algorithm and the HKDF algorithm.
-
-For example, it's not a great idea to use literal PBKDF2 to generate more than one output block worth of data. It would make much more sense to take HKDF apart into it's constituent `HKDF-Extract` and `HKDF-Expand`, and then replace the HMAC that is used as the extraction function with a call to PBKDF2, and feed exactly one output block from PBKDF2 as the pseudorandom key to `HKDF-Expand`.
-
-This is more or less exactly what the [`phkdfVerySimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs) function does. This is included in API documentation as a conceptual simplification of the [`phkdfSimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs), which is a more fully worked example with a reference implementation.
-
-The difference between these examples and the sketch above is that they actually use [`phkdfStream`](phkdf/lib/Crypto/PHKDF/Primitives.hs) instead of literal PBKDF2 and HKDF. This low-level primitive is a mildly dangerous modification of `HKDF-Expand` which is specified in [RFC 5869](https://datatracker.ietf.org/doc/html/rfc5869).
-
-The reason `phkdfStream` is mildly dangerous is because it intentionally violates the letter of HKDF's design philosophy of maintaining a clean separation between extraction and expansion. Naive use of `phkdfStream` can result in some nasty security gotchas.
-
-Taking a higher-level view, PHKDF affirms the spirit of the HKDF's design principle. It is highly recommended that any complete application of `phkdfStream` itself express a clear distinction between extraction and expansion, even if the low level building block does not.
-
-A minimal example of a complete high-level application of PHKDF without key stretching is included in API documentation as [`hkdfSimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs). This demonstrates using two calls to `phkdfStream` in order to taking initial keying material and turning those secrets into an unbounded pseudorandom stream. Any two non-overlapping portions of this pseudorandom stream may be safely revealed or otherwise used independently of each other.
-
-Taking a step up in complexity, [`phkdfVerySimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs) adds key stretching via a single call to the similarly dangerous and low-level `phkdfSlowExtract` function, which itself is two calls `phkdfStream`. Adding in one more call for safe final output expansion, this high-level protocol involves three calls to `phkdfStream` in total. This example is the simplest demonstration of the actual portmanteau that PHKDF recommends using.
-
-The next step up in complextiy is [`phkdfSimple`](phkdf/lib/Crypto/PHKDF.hs), which is the simplest worked example that is provided an actual reference implementation instead of being relegated to API documentation. All the additional features are various niceties. For example, generous length padding is added so that even multi-kilobyte passwords are processed in constant number of cryptographic operations.
-
-This length padding creates another tagging opportunity which is exposed as the `long-tag` parameter which is ideal for conveying longer messages. Another addition is the `echo-tags` vector of bitstrings. The plaintext of each individual bitstring gets hashed exactly three times, providing another great option for longer messages. Finally, the `credentials` vector is added with the intention of supporting Two-Secret Key Derivation (2SKD) schemes not unlike 1Password.
-
-Finally [`phkdfPass`](phkdf/lib/Crypto/PHKDF.hs) adds the ability to safely add additional tweaks and secrets to the final output stream after the expensive key-stretching computation has been completed. While it is essentially a design study for the G3P, it might possibly be of interest for deployment. This function is the G3P minus bcrypt, as the G3P provides a full wrap-around integration of bcrypt inside PHKDF.
-
-## Why Adopt Cryptoacoustics?
-
-From a certain point of view that is particularly cautious, the G3P's application of cryptoacoustics is nothing more than a novel justification for the `FixedInfo` parameters mentioned in [NIST SP 800-56C](https://csrc.nist.gov/pubs/sp/800/56/c/r2/final), or alternatively the `Label` and `Context` parameters mentioned in [NIST SP 800-108](https://csrc.nist.gov/pubs/sp/800/108/r1/final), which this section refers to as _contextual parameters_.
-
-Furthermore, the G3P applies these insights to the topic of password hashing to make specific suggestions about what kind of data to include in these contextual parameters. So from this point of view, the changes adopted by the G3P are particularly low-risk.
-
-I know of no theoretical basis for believing the cryptoacoustic constructions deployed by the G3P are workably secure in the way I conjecture they are. Clearly this situation is not ideal, and should not be tolerated in the long run.
-
-However, in the short run, I'm unconcerned about this state of affairs. Successfully attacking the G3P's cryptoacoustic properties requires a non-trivial response by somebody who cares enough. This scenario would be a secondary cybersecurity concern anyway, as this very concern has been largely or entirely neglected until now.
-
-I often agree with Imre Lakatos's philosophy of science, especially his notion of a _research program_, and suggest treating the idea of cryptoacoustics as a research program.
-
-A total failure of the cryptoacoustic research program, which is relatively unlikely, would only represent a return to today's status quo. A total failure of any specific cryptoacoustic construction, which is well within the realm of plausibility, would not even be recognized as a vulnerability at all by today's standards.
-
-Thus it seems smart to take some of the oldest password hash functions that have continued to be viable for new, well-informed, high-security deployments, and deploy them in a new way that provides incentives to more deeply understand our existing tools from a new point of view.
-
-Whether or not the particular cryptoacoustic constructions employed by the G3P stand up to scrutiny in the long term, deeper study of these issues might someday pave the way for new cryptographic hash functions that have enhanced cryptoacoustic potential by maximizing the _minimum obscuration overhead_ for contextual parameters.
+Technically, the Seguid Protocol is `HKDF-SHA512` specified with constant salt and info parameters. Since these parameters of HKDF exhibit plausibly-secure cryptoacoustic properties, the Seguid Protocol applies the ideas of self-documenting cryptography and narrates what it is doing. This is to help reverse engineers who are looking at code that implements the Seguid Protocol contextualize what they are looking at. This is a relatively incidental, secondary design feature of the Seguid Protocol.
 
 ## Why call it "Cryptoacoustics"?
 
+Building upon the intuition I shared for thinking about reverse engineering a cryptoacoustic hash function, the G3P algorithm itself is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape](https://en.wikipedia.org/wiki/Cassette_tape) [deck](https://en.wikipedia.org/wiki/Reel-to-reel_audio_tape_recording) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker).
+
+The position of the G3P's rotors are initialized by the seguid. Then the user types their username and password on the keyboard, which causes the position of the rotors to change. After this, the username and password are no longer needed. For this reason, the G3P design document describes these parameters as _horn-loaded_.
+
+Finally, the user plays a prerecorded message on the tape deck, which narrates the precise purpose of this particular password. As the message is played back on the loudspeaker, the process causes the position of the rotors to change accordingly. After this song-and-dance routine is complete, the final position of the rotors provides the derived key, which is also suitable as a traditional password hash.
+
+That is why I call the mechanism behind the overall process _cryptoacoustics_. What I call _self-documenting cryptography_ is the thing that would result if the policy suggestions for how to use these mechanisms are more-or-less adopted.
+
+I think there's likely to be a number of intriguing opportunities for applying the ideas behind self-documenting cryptography to other contexts, especially self-narration and blockchain applications.
+
 [![German sound location, 1917. The photograph shows a junior officer and a soldier from an unidentified Feldartillerie regiment wearing combined acoustic/optical locating apparatus. The small-aperture goggles were apparently set so that when the sound was located by turning the head, the aircraft would be visible.](design-documents/media/acoustic_locator_13.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
+
+The above picture is of a German officer and soldier from 1917 wearing a combined acoustic/optical apparatus used for locating aircraft and gunfire in WWI. These are strictly passive devices, but they would certainly improve both the sensitivity and the directionality of human hearing, combined with some degree of telescopic magnification of human vision.
 
 Some might take umbrage at the fanciful name I've chosen for this technique, but I'm pretty sure it's an important enough technique to deserve a memorable name, and I suspect that reactive resistance to the name tends to be more a symptom of the relatively small intersection between people with a less-than-naive background in cryptography and people with a similar background in signals and systems.
 
 The analogy between cryptography and signals is not completely clarified in my mind. However, I am confident that this analogy is reasonably deep and fertile, at least if you assume that some cryptographic construction exhibits high enough _minimum obfuscation overhead_ for the topic of cryptoacoustics to be viable in the long term. On that count, I am cautiously optimistic, but we need a theory of cryptoacoustics before answering that question is really possible.
 
 [![Aircraft engines produced unprecedented sound, so in order to hear them at a distance, the war efforts developed listening devices. A two-horn system at Bolling Field, USA, 1921.](design-documents/media/acoustic_locator_11.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
+
+The above picture is of a American officer from 1921 using an entirely passive, but extremely large two-horn acoustic aircraft locator at Bolling Field, USA.
 
 There's no technical reason to go with acoustics as the name for the metaphor versus say, something that suggests a different physical transmission medium such as radio waves, visible light, electronic circuitry, or perhaps just a generic "cryptosignaling". However I don't feel cryptosignaling is nearly as memorable or descriptive, and sound is the primary means of communication for most humans in face-to-face physical interactions.
 
@@ -141,6 +143,30 @@ I was also amused to first read Niels Provos' retrospective on [Bcrypt at 25](ht
 
 [![Three Japanese acoustic locators, colloquially known as “war tubas”, mounted on four-wheel carriages, being inspected by Emperor Hirohito.](design-documents/media/acoustic_locator_8.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
 
+Above is a historical photograph from the 1930s of the Japanese Emperor Hirohito inspecting three military acoustic locators on carts, colloquially known as "war tubas". Each locator has four horns, and each horn is a key part of a highly sensitive directional microphone, which were electrically amplified. They could be turned into potent bass horns if one were to replace the microphones with loudspeaker drivers.
+
+The primary intended use is for pointing the anti-aircraft guns also seen in this picture. Acoustic location soon lost out to radar, but continued to play niche roles for locating aircraft throughout World War II, and for locating artillery fire even after WWII.
+
+Acoustic location for all kinds of purposes, including aircraft, has seen a renaissance during Putin's invasion of the Ukraine. Listening for sound has the distinct tactical advantage of being an entirely passive endeavor, unlike radar. Furthermore, high-quality sound reception equipment has become far more affordable. Finally and most importantly, listening for particular sounds at scale has become possible thanks to integrated circuits and artificial intelligence.
+
+## Why Adopt Cryptoacoustics?
+
+From a certain point of view that is particularly cautious, the G3P's application of _cryptoacoustics_ is nothing more than a novel justification for the `FixedInfo` parameters mentioned in [NIST SP 800-56C](https://csrc.nist.gov/pubs/sp/800/56/c/r2/final), or alternatively the `Label` and `Context` parameters mentioned in [NIST SP 800-108](https://csrc.nist.gov/pubs/sp/800/108/r1/final), which this section refers to as _contextual parameters_.
+
+Furthermore, the G3P applies these insights to make specific suggestions about what kind of data to include in these contextual parameters when applied to password hashing.[^contextual_parameters_and_password_hashing] This suggested application of cryptoacoustics results in an example of self-documenting cryptography.
+
+I know of no theoretical basis for believing the cryptoacoustic constructions deployed by the G3P are workably secure in the way I conjecture they are. Clearly this situation is not ideal, and should not be tolerated in the long run.
+
+However, in the short run, I'm unconcerned about this state of affairs. Successfully attacking the G3P's cryptoacoustic properties requires a non-trivial response by somebody who cares enough. This scenario would be a secondary cybersecurity concern anyway, as this very concern has been largely or entirely neglected until now.
+
+I often agree with Imre Lakatos's philosophy of science, especially his notion of a _research program_, and suggest treating the idea of cryptoacoustics as a research program.
+
+A total failure of the cryptoacoustic research program, which is relatively unlikely, would only represent a return to today's status quo. A total failure of any specific cryptoacoustic construction, which is well within the realm of plausibility, would not even be recognized as a vulnerability at all by today's standards.
+
+Thus it seems smart to take some of the oldest password hash functions that have continued to be viable for new, well-informed, high-security deployments, and deploy them in a new way that provides incentives to more deeply understand our existing tools from a new point of view.
+
+Whether or not the particular cryptoacoustic constructions employed by the G3P stand up to scrutiny in the long term, deeper study of these issues might someday pave the way for new cryptographic hash functions that have enhanced cryptoacoustic potential by maximizing the _minimum obscuration overhead_ for contextual parameters.
+
 ## Cryptoacoustics as Watermarking
 
 Cryptoacoustics is an alternative form of _digital watermarking_. However, I don't expect the existing literature in this subfield to be of much direct benefit to developing a proper theoretical basis for cryptoacoustics, as there seems to always be differences in assumptions that often seem irreconcilable.
@@ -149,7 +175,7 @@ For example, wikipedia describes [digital watermarking](https://en.wikipedia.org
 
 The literature usually requires that a watermarked signal be nearly identical to the original signal. By contrast, a tagged hash should be statistically independent from any untagged hash without access to the underlying cryptographic secrets. This property helps provide the plausible deniability of any given tag.
 
-The tagged hash and untagged hash should be completely different hashes, yet without access to the secret password, these two hashes should also be indistinguishable in the sense of determining which hash is associated with which tag. For this reason, cryptoacoustics should prove to be much more robust than more traditional forms of digital watermarking, as it's starting from much stronger assumptions.
+The tagged hash and untagged hash should be completely different hashes, yet these two hashes should also be indistinguishable in the sense of determining which hash is associated with which tag. For this reason, cryptoacoustics should prove to be much more robust than more traditional forms of digital watermarking, as it's starting from much stronger assumptions.
 
 ## Cryptoacoustics and Obfuscation
 
@@ -161,7 +187,7 @@ In particular, the unobfuscatable property demonstrated in the aforementioned pa
 
 At the time the paper was written, whether or not full homomorphic encryption was even possible was still an open question. Surprisingly, FHE does exist, which seems to rule out many or most practical use cases for a truly unobfuscatable program property in the sense of Barak et al.
 
-### Obfuscation Overhead
+### Minimum Obfuscation Overhead
 
 Cracking a password hash is a rather costly endeavor that is particularly sensitive to inefficiency. For this reason, cryptoacoustics need not rely a notion of "unobfuscatable" that is as stringent as found in Barak et al.
 
@@ -185,13 +211,24 @@ At a 4x cost multiplier, you might actually start to see the adoption of tag obf
 
 A slow password hash function is probably a best-case scenario for cryptoacoustics. With sufficient key stretching, 100x overhead is likely more than enough to dissuade most anybody from deploying a practical attack. Without key stretching, say a single application of HMAC or HKDF, deploying an attack with an 1000x or greater overhead might not be out of the question in other applications.
 
-For example, the Seguid Protocol is HKDF that specifies constant salt and info parameters. Correspondingly, the Seguid Protocol uses these parameters as cryptoacoustic tags, narrating itself in an attempt to help out any reverse engineer who is examining code that implements the Seguid Protocol contextualize what they are looking at.
+For example, the Seguid Protocol is HKDF-SHA512 that specifies constant salt and info parameters. Correspondingly, the Seguid Protocol uses these parameters as cryptoacoustic tags, narrating itself in an attempt to help out any reverse engineer who is examining code that implements the Seguid Protocol contextualize what they are looking at.
 
 Since the Seguid Protocol applies no key stretching, millions of hashes can be computed per second. Thus the most efficient tag obscuration attack may need to impose 100,000x overhead or more in order to be truly effective in this scenario. For this reason, slow password hashing seems to be a best-case scenario for the application of cryptoacoustics.
 
-Thus the point of _cryptoacoustic repetition_ as employed by PHKDF and the G3P is to reduce the minimum obfuscation overhead required for a given cryptoacoustic construction to be viable. Though it's presumably much easier in practice to deploy tag obscuration attacks against the Seguid Protocol, it's also far less clear what practical benefits this might confer to an attacker.
+Thus the point of _cryptoacoustic repetition_ as employed by PHKDF and the G3P is to reduce the minimum obfuscation overhead that is required of a "small" cryptoacoustic construction in order for a larger protocol that depends on it to be viable.
+
+For this reason, it is much easier to deploy practical tag obscuration attacks against the Seguid Protocol than PHKDF or the G3P. On the other hand, it's also far less clear what practical benefits this might confer to an attacker.
 
 At my own current level of understanding of my own design, incorporating cryptoacoustics into the Seguid Protocol itself is mostly an issue of design consistency, though there may well be advantages and benefits I don't currently appreciate.
+
+On the other hand, this is a problem for password hash functions such as argon2.
+While appending a tag _after_ the password has cryptoacoustic properties, that input is a horn-loaded parameter into the internal argon2 algorithm. This means we can discard the password _and tag_ during the key-stretching computation.
+
+In our metaphor of the cryptoacoustic Enigma machine applied to argon2, it's a bit like as if the prerecorded tape played one little thing quietly, and then went completely silent for the rest of the song-and-dance routine. Unfortunately, this arrangement is inherent to argon2 because there simply no way to include cryptoacoustic repititions of the tag during the key-stretching phase.
+
+As a result, the cryptoacoustic security of this argon2-based construction is relatively dependent on blake2 exhibiting high minimum obfuscation overhead, in much the same way that the Seguid Protocol is similarly dependent on the cryptoacoustic efficiency of SHA512.
+
+I don't believe it would be particularly difficult to tweak argon2 in some way to enable cryptoacoustic repetition throughout the key-stretching phase, but then it wouldn't be argon2.
 
 ## Cryptoacoustic Safety
 
@@ -211,4 +248,11 @@ Though qualitatively describing the similarities and differences between the cry
 
 Maybe someday humanity will even see low-level cryptographic hash functions designed to maximize the minimum obfuscation overhead, thus maximizing the cryptoacoustic potential of that specific hash function.
 
-[^blake3]: The internal hash tree structure adopted by Blake3 poses some notable challenges to the application of cryptoacoustics. This tree structure enables the hash of long input strings to be computed with some degree of parallelism. There's plausibly usable properties there, but simply suffixing a plaintext tag after observer-supplied input isn't unconditionally secure like it is with most any more traditional hash function.
+[^tipline]: Of course this requires your organization to do three things. First, you must operate a tip line for gathering counterintelligence information. Second, you must rise above the utterly worn-out IT cliché of metaphorically shooting the messenger who reports any cybersecurity issue. If you don't treat your informants with respect, they won't come back. Futhermore you run the risk of developing a bad reputation so that another potential informant declines to engage with your tipline. Third, you must learn to adopt [antifragile](https://en.wikipedia.org/wiki/Antifragile_\(book\)) attitudes and practices, and learn to take the information being given to you on your tipline cautiously but seriously.
+
+[^blake3]: Blake3's internal hash tree structure, which allows for parallel processing on long inputs, provides a notable counterexample to this observation. Suffixing a tag is not unconditionally a plausibly-secure cryptoacoustic construction in this case because doing this unthinkingly naive way can then allow for the plaintext of a tag to be replaced by a cryptographic hash or the internal memory contents of some cryptographic state machine. However Blake3 still has plausible cryptoacoustic possibilities, even if they are atypical.
+
+[^contextual_parameters_and_password_hashing]:
+    The application of contextual parameters to password hashing is an idea I originated independently. Though I don't have any references at hand, it also feels like an idea that probably isn't exactly entirely novel. In any case, the use of contextual parameters during password hashing is not widely practiced or advocated for.
+
+    On the other hand, the interrelated ideas of cryptoacoustics and self-documenting cryptography feels rather novel to me. I still find parts of the idea surprising. To me, the trick feels vaguely reminscient of the [100 prisoners problem](https://en.wikipedia.org/wiki/100_prisoners_problem).
