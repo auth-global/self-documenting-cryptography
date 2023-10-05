@@ -2,7 +2,7 @@
 
 ![Property of YOUR COMPANY INC.](design-documents/media/property-tag.png)
 
-The Global Password Prehash Protocol (G3P) is a slow password hash function based on PHKDF and bcrypt. The algorithm behind G3P is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape deck](https://en.wikipedia.org/wiki/Digital_Audio_Tape) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker) which provides a form of _digital watermarking_.
+The Global Password Prehash Protocol (G3P) is a slow password hash function based on PHKDF and bcrypt. The algorithm behind G3P is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape deck](https://en.wikipedia.org/wiki/Digital_Audio_Tape) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker) which provides a form of _digital watermarking_.[^steampunk]
 
 The position of the G3P's rotors are initialized by a _seguid_. Then the user types their username and password on the keyboard, which causes the position of the rotors to change.
 
@@ -50,11 +50,11 @@ Many of the techniques evoked by William Wulf's quote are relatively simple and 
 
 Our hash-based cryptoacoustic enigma machine has a built-in backstop against insecure obfuscation attacks. Once a reverse engineering team understands the correspondence between an implementation and the hash algorithm, they can watch a memory replay and read off the strings being fed into the function. This in turn reveals the tags hidden inside the implementation.
 
-This works because most every hash function exclusive-or's their input into a state machine. This also works when any kind of easily invertible group operation is used to perturb the state machine.
+This works because most every hash function exclusive-or's their input into a state machine. This also works when any kind of easily invertible group operation is used to perturb the state machine. These perturbations are intolerant to noise, which hopefully serves as a bulwark against obfuscation.
 
 A securely obfuscated cryptoacoustic implementation must stand up against the best reverse engineers on their best days. The built-in backstop suggests that any obfuscated implementation of the G3P would require an encryption scheme that is homomorphic on SHA256 and blowfish's expensive key setup.
 
-Surprisingly, Full Homomorphic Encryption (FHE) exists, so it would seem that thev necessary components can in principle be built. Fortunately, the run-time overhead of even state-of-the-art FHE is much too high to be deployed in a practical tag obscuration attack. Therefore it seems plausible that any truly secure tag obscuration attack would impose signficant run-time overhead.
+Surprisingly, Full Homomorphic Encryption (FHE) exists, so it would seem that the necessary components can in principle be built. Fortunately, the run-time overhead of even state-of-the-art FHE is much too high to be deployed in a practical tag obscuration attack. Therefore it seems plausible that any truly secure tag obscuration attack would impose signficant run-time overhead.
 
 Experimenting with practical tag obscuration attacks using FHE would establish an upper bounds on _minimum obfuscation overhead_.  This the run-time cost imposed by the most efficient tag obscuration attack that would be secure against the best reverse engineers. This provides a notion of _cryptoacoustic efficiency_, or _cryptoacoustic advantage_.
 
@@ -80,7 +80,7 @@ The purpose of _cryptoacoustic repetition_ as employed by PHKDF and the G3P is t
 
 ## The Cryptoacoustic Medium
 
-Cryptoacoustics is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes so that our tags are easily decoded and understood by observers, and that maximize the advantage to run-time efficency of being either forthright or insecurely obfuscated.
+Cryptoacoustics is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes so that our tags are easily decoded and understood by observers, and that maximize the advantage to run-time efficency of being either forthright or insecurely obfuscated.  This medium hopefully serves as a bulwark against obfuscation because it is _intolerant to noise_.
 
 Cryptography more typically depends on the property that if you know a key, then you can compute a cryptographic function. Cryptoacoustics depends upon the converse: if you can compute some cryptographic function, then you know (part of) its key. When this proposition holds, that part of the key can be used to convey a message, or _tag_.
 
@@ -193,7 +193,7 @@ The Seguid Protocol aspires to be a meta-KDK that can produce the highest qualit
 
 One of the practical advantages of using a strongly-randomized seguid as part of the salt for a deployment of the G3P is that any precomputation of a password hash dictionary is out of the question until after the seguid is created.
 
-Technically, the Seguid Protocol is `HKDF-SHA512` specified with constant salt and info parameters. Since these parameters of HKDF exhibit plausibly-secure cryptoacoustic properties, the Seguid Protocol applies the ideas of self-documenting cryptography and narrates what it is doing. This is to help reverse engineers who are looking at code that implements the Seguid Protocol contextualize what they are looking at. This is a relatively incidental, secondary design feature of the Seguid Protocol.
+Technically, the Seguid Protocol is `HKDF-SHA512` specified with constant salt and info parameters. Since these parameters of HKDF exhibit plausibly-secure cryptoacoustic properties, the Seguid Protocol applies the ideas of self-documenting cryptography to itself and narrates what it is doing. This is to help reverse engineers who are looking at code that implements the Seguid Protocol contextualize what they are looking at. This is a relatively incidental, secondary design feature of the Seguid Protocol.
 
 ## Why Adopt Cryptoacoustics?
 
@@ -273,7 +273,12 @@ Though qualitatively describing the similarities and differences between the cry
 
 Maybe someday humanity will even see low-level cryptographic hash functions designed to maximize the minimum obfuscation overhead, thus maximizing the cryptoacoustic potential of that specific hash function.
 
-{^
+[^steampunk]:
+    If this metaphor is taken a bit too literally, it does have a subtle but undeniably steampunk vibe. Analog audio introduces noise, but inputs to a cryptographic hash function are noise-intolerant. Digital audio requires electronics that can operate much faster than electromechanical switches, so why would the Cryptoacoustic Enigma Machine still be using rotors?
+
+    On the other hand, a mechanical "cryptoacoustic" enigma machine based off of teletype terminals might be sort-of viable, at least by the standards of decades gone by. But that's not as memorable a metaphor.
+
+[^replaying_hashes]: Depending upon how a hash is intended to be used, it may or may not be possible to replay it as an authentication credential. I assume that if one knows where to replay the hash, one knows where to report it stolen, which doesn't really pose a problem for our slogan of _traceable-or-useless_.
 
 [^blake3]: Blake3's embedded Merkle tree enables parallel processing on long inputs, but it also presents challenges to cryptoacoustic applications. If one were to simply append a tag after user-supplied inputs, then (parts of) a tag might be replaceable by some other value. From this naive point of view, blake3 replaces it's tape deck with something a bit more esoteric.
 
