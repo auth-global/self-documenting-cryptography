@@ -1,6 +1,34 @@
-# Overview of Self-Documenting Cryptography
+## The Cryptoacoustic Enigma Machine
 
 ![Property of YOUR COMPANY INC.](design-documents/media/property-tag.png)
+
+The Global Password Prehash Protocol (G3P) is a slow password hash function based on PHKDF and bcrypt. The algorithm behind G3P is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape deck](https://en.wikipedia.org/wiki/Digital_Audio_Tape) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker) which provides a form of _digital watermarking_.
+
+The position of the G3P's rotors are initialized by a _seguid_. Then the user types their username and password on the keyboard, which causes the position of the rotors to change.
+
+The G3P has no internal state beyond the position of the rotors. After the data entry process is complete, the username and password are no longer needed for the key-stretching phase. This is why the G3P design document describes these parameters as _horn-loaded_.
+
+Finally, the user plays a prerecorded message on the tape deck. This message should narrate the precise purpose of this particular password, thus serving as a digital variant of a physical property _tag_.  As the message is played back on the loudspeaker, the process causes the position of the rotors to change accordingly. After this song-and-dance routine is complete, the final position of the rotors provides the derived key, which is also suitable as a traditional password hash.
+
+The G3P's primary security model is traditional: it must be impossible to decrypt a password hash, and the algorithm must consist of non-shortcuttable computations that are somewhat slow. Any failure of the sound system integrated into the G3P must not impact this primary mission.
+
+Thus G3P's secondary security goal is that password hashes should be _traceable_ or _useless_ after they have been _stolen_. If you know how to crack a password hash, you should know where to report it as stolen. If you don't know where to report a password hash as stolen, you shouldn't be able to crack it.[^replaying_hashes]
+
+The mechanisms behind this overall process is what I call _cryptoacoustics_. The use cases I suggest adopting result in an example of what I call _self-documenting cryptography_.
+
+Self-documenting cryptography is the use of self-narration and self-reference in cryptographic constructions in order to communicate certain indelible facts to legitimate users and other observers.  It depends upon cryptoacoustics to deliver those messages.
+
+It's important to play the tape _after_ the user inputs the username and password. If one were to initialize the rotors and then play the tape, then the overall construction wouldn't be cryptoacoustically secure. Somebody could simply initialize the machine, play the tape, and then use the resulting rotor position to initialize multiple other machines to compute the correct hash function without listening to the tape at all.
+
+This is my intuition behind the design patterns that the G3P employs. Our `seguid` corresponds to HMAC's `key` parameter, and any `tag` is part of the pre-recorded message. These parameters are what G3P uses as salt, in addition to the username.
+
+Indeed, HMAC-SHA256 is already it's own Cryptoacoustic Enigma Machine, one that the G3P builds up into a larger machine. In fact, it would seem that most or all existing cryptographic hash functions already are their own Cryptoacoustic Enigma Machine in some form or another. For example, affixing a tag _after_ user-supplied input is plausibly a cryptoacoustically secure construction for most any common hash function other than Blake3, which still has it's own cryptoacoustic possibilities.[^blake3]
+
+From a certain point of view that is particularly cautious, this tagging process is nothing more than a novel justification for the `FixedInfo` parameters mentioned in [NIST SP 800-56C](https://csrc.nist.gov/pubs/sp/800/56/c/r2/final), or alternatively the `Label` and `Context` parameters mentioned in [NIST SP 800-108](https://csrc.nist.gov/pubs/sp/800/108/r1/final), which this document refers to as _contextual parameters_, and which correspond to the prerecorded message on the tape in our metaphor.
+
+From the point of view of the G3P's primary security model, this tagging process results in domain-specific hash functions that are particularly low-risk substitutes for the underlying, untagged hash function. The next section disucsses the G3P's secondary cryptoacoustic security model.
+
+## Attacking and Defending Cryptoacoustics
 
 > A language design should *at least* provide facilities which allow the comprehensible expression of algorithms: *at best* a language suggests better forms of expression. But language is *not* a panacea. A language cannot, for example, prevent the creation of obscure programs: the ingenious programmer can always find an infinite number of paths to obfuscation.
 >
@@ -8,27 +36,55 @@
 >
 > (See also the [International Obfuscated C Code Contest](https://www.ioccc.org/))
 
-This repository introduces the concept of self-documenting cryptography, which is the art of using self-reference and self-narration in cryptographic constructions in order to communicate certain indelible facts to legitimate users and other observers.
+Let's say you deploy the G3P for a company, club, or other organization. Now one of your password hashes gets stolen. The entity who stole that hash decides to use a botnet or other stolen computing resources to try to crack that password. A security analyst observes that payload.
 
-Most notably, the Global Password Prehash Protocol (G3P) proposes affixing a metaphorical property tag to password hash functions, so that being able to compute the correct password hash function implies knowledge of the tag. If you can crack a self-documenting password hash, you have to know where to report it stolen. If you don't know where to report it as stolen, then you shouldn't be able to crack it.
+Neither this analyst nor your organization have any knowledge of the other's existence, but now they have some kind of executable implementation of your deployment of the G3P in addition to the stolen password hash itself.
 
-Let's say you deploy the G3P for a company, club, or other organization. Now one of your self-documenting password hashes gets stolen. The entity who stole that hash decides to use a botnet or other stolen computing resources to try to crack that password. A security analyst observes that payload.
+If this implementation is written in a relatively straightforward way, all the security analyst would have to do is dump the strings contained in the payload, after which they should have zero difficulty disclosing their observations back to your organization's counterintelligence tip line.
 
-Neither this analyst nor your organization have any knowledge of the other's existence, but now this analyst has some kind of executable implementation of your deployment of the G3P in addition to the stolen password hash itself.
+Of course there are many techniques a botnet-based cracker can use to keep your tags out of a simple scan for string constants. This is why the G3P is designed to be reverse engineered. In the cryptoacoustic security model, attackers obfuscate programs, and defenders reverse engineer them.
 
-If this implementation is written in a relatively straightforward way, all the security analyst would have to do is dump the strings contained in the payload, after which they should have zero difficulty disclosing their observations back to your organization's counterintelligence tip line.[^tipline]
+Thus in a secondary yet very fundamental sense, the #1 VIP stakeholders in the G3P are the unknown reverse engineers toiling away on some obfuscated implementation of your deployment. Thus the design is driven a desire to simplify this task as much as possible, across all possible implementations of the G3P.
 
-Of course there are many techniques a botnet cracker can use to keep your tags out of a simple scan for string constants. This is why the G3P is designed to be reverse engineered. In a certain secondary yet fundamental sense, the unknown reverse engineers toiling away on some obfuscated implementation of your deployment are the #1 VIP customers of the G3P. The design is driven by a desire to simplify their task as much as possible across all possible implementations of the G3P.
+Many of the techniques evoked by William Wulf's quote are relatively simple and often impose highly manageable runtime costs. Some of these techniques are very clever and devious, as studying IOCCC contest entries can attest. They certainly can slow down many good reverse engineers for days. However, these sorts of techniques will eventually yield to competent reverse engineering, and thus they tend to be examples of an _insecure_ tag obfuscation attack.
 
-This in turn implicates the topic of cryptoacoustics, which is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes in ways that are easily decoded and understood by observers, and that maximize the _minimum obfuscation overhead_. This is the overhead imposed by the most efficient tag obscuration attack that would be secure against the best reverse engineers.
+Our hash-based cryptoacoustic enigma machine has a built-in backstop against insecure obfuscation attacks. Once a reverse engineering team understands the correspondence between an implementation and the hash algorithm, they can watch a memory replay and read off the strings being fed into the function. This in turn reveals the tags hidden inside the implementation.
 
-Cryptography more typically depends on the property that if you know a key, then you can compute a cryptographic function. Cryptoacoustics depends upon the converse: if you can compute some cryptographic function, then you know (part of) its key. When this proposition holds, that part of the key can be used to convey a message.
+This works because most every hash function exclusive-or's their input into a state machine. This also works when any kind of easily invertible group operation is used to perturb the state machine.
+
+A securely obfuscated cryptoacoustic implementation must stand up against the best reverse engineers on their best days. The built-in backstop suggests that any obfuscated implementation of the G3P would require an encryption scheme that is homomorphic on SHA256 and blowfish's expensive key setup.
+
+Surprisingly, Full Homomorphic Encryption (FHE) exists, so it would seem that thev necessary components can in principle be built. Fortunately, the run-time overhead of even state-of-the-art FHE is much too high to be deployed in a practical tag obscuration attack. Therefore it seems plausible that any truly secure tag obscuration attack would impose signficant run-time overhead.
+
+Experimenting with practical tag obscuration attacks using FHE would establish an upper bounds on _minimum obfuscation overhead_.  This the run-time cost imposed by the most efficient tag obscuration attack that would be secure against the best reverse engineers. This provides a notion of _cryptoacoustic efficiency_, or _cryptoacoustic advantage_.
+
+This is in an analogy to the efficiency of a loudspeaker. The sound pressure level produced by a pair of bookshelf speakers at 1 watt is typically around 85 dB or so.  In the context of slow password hashing, my guess is that a cryptoacoustic efficiency of +20 dB would dissuade nearly everbody from adopting truly secure tag obscuration attacks. This corresponds to two orders of magnitude, or a minimum obfuscation overhead of 100x.
+
+If it would cost $100 to crack a mildly weak password, then a +20 dB cryptoacoustic advantage means that a securely obfuscated cracking attack would cost $10,000. That's 9900 incentives to either in-source the attack or disclose the target of the attack to the cracker. This disclosure need not be forthright, the attacker might decide to take a chance and deploy an insecurely obfuscated cracker.
+
+Even if the cracker is running on stolen resources, a 99% reduction in password guessing throughput is a very significant opportunity cost, one that the defenders might even be satisfied with exacting.
+
+A cryptoacoustic efficiency of +10 dB would correspond to cost multiplier of 10x, or a 90% reduction in guessing throughput. At this point you might see a few nefarious entities deploy secure tag obscuration attacks, but I would expect this to be extremely niche and sporadic.
+
+Therefore, a cryptoacoustic construction with a +10 dB advantage would likely still be reasonably effective at spreading the tags of a slow password hash function on average, even if the viability of the construction might be dubious in specific cases, and would be dubious going forward.
+
+My guess is that at +6 dB, or a 4x cost multiplier representing a 75% reduction in guessing throughput, is about where you'd start to see limited but steady deployments of secure tag obscuration attacks against password hashes. As the advantage drops to 0 dB, the cost multiplier approaches 1x. The opportunity cost of deploying a proper attack becomes negligable. This in turn could lead to the widespread adoption of secure tag obscuration attacks by nefarious password crackers.
+
+This would represent a total failure of the secondary security goal of cryptoacoustics. However it would also represent a significant insight into the research program for cryptoacoustics.
+
+Slow password hashing is something of a best case for cryptoacoustics. Other applications of cryptoacoustics may need +60 dB or +90 dB or more to be viable, making an securely obfuscated computation a million or billion times more expensive.
+
+Though there's a couple different interpretations of what a negative cryptoacoustic advantage might represent, none of them are terribly plausible. In particular, a securely-obfuscated implementation is almost certainly not going to be _faster_ than a native implementation. And because the G3P's tags are _contextual parameters_, a failure of the cryptoacoustic security model doesn't imply a failure of the classical security model.
+
+The purpose of _cryptoacoustic repetition_ as employed by PHKDF and the G3P is that it reduces the advantage that a smaller construction must exhibit in order for a larger construction to be viable. This is especially important because we don't know what the actual cryptoacoustic advantage of SHA256 or blowfish might be, but we want to maximize the advantage of the G3P anyway.
+
+## The Cryptoacoustic Medium
+
+Cryptoacoustics is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes so that our tags are easily decoded and understood by observers, and that maximize the advantage to run-time efficency of being either forthright or insecurely obfuscated.
+
+Cryptography more typically depends on the property that if you know a key, then you can compute a cryptographic function. Cryptoacoustics depends upon the converse: if you can compute some cryptographic function, then you know (part of) its key. When this proposition holds, that part of the key can be used to convey a message, or _tag_.
 
 Conveying a message requires the use of a transmission medium. In our scenario, cryptographic state changes serve as a virtual transmission medium. This medium is purely mathematical and has no physical basis. It arises in the context of past communications that occurred via physical transmission media. In the case of the G3P, this context is that somebody hashed a password, and then somebody else stole that hash.
-
-Since most (all?) common cryptographic hash functions exclusive-or their input into a state machine, suffixing a plaintext tag to the end of observer-supplied input plausibly exhibits desirable cryptoacoustic properties for most any cryptographic hash function.[^blake3]
-
-The intuition behind this is that once a reverse engineer understands the correspondence between an insecurely obfuscated implementation and a hash function such as SHA256, they can watch a memory replay of the hash computation and read off the strings being fed into it. This in turn reveals the tags hidden inside the implementation.
 
 This tagging process is not unlike a digital watermark, however, the G3P provides no means of authenticating whether or not any purported password hash is genuine or not, so there's plausible deniability baked into this process.
 
@@ -38,19 +94,51 @@ This is not an interactive communication protocol, yet non-interactive communica
 
 This project follows various philosophies of documentation-driven design. Not only does this nicely complement the design for reverse engineering, I find it to be an indispensible way to find bugs and produce higher quality software.
 
-## Global Password Prehash Protocol (G3P)
+I think there's likely to be a number of intriguing opportunities for applying the ideas behind self-documenting cryptography to other contexts, especially self-narration and blockchain applications.
 
-The [G3P](g3p-hash/lib/Crypto/G3P.hs) is a self-documenting password hash function that provides a wrap-around integration of [bcrypt](https://www.usenix.org/publications/loginonline/bcrypt-25-retrospective-password-security) inside of PHKDF. It is [designed](design-documents/g3p.md) to be particularly suitable for use on the user's endpoint before a password is sent to an authentication server.
+## Why call it "Cryptoacoustics"?
 
-The G3P is self-documenting in the sense that password hashes are supposed to be _traceable_ or _useless_ after they have been _stolen_. In addition to being cracked, a password hash might be replayable depending on context. However, we assume that if one knows where to replay a password hash, then one also knows where to report it stolen, so this isn't a problem for our slogan of being _traceable_ or _useless_.
+[![German sound location, 1917. The photograph shows a junior officer and a soldier from an unidentified Feldartillerie regiment wearing combined acoustic/optical locating apparatus. The small-aperture goggles were apparently set so that when the sound was located by turning the head, the aircraft would be visible.](design-documents/media/acoustic_locator_13.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
 
-Though we are using a hypothetical password cracker running on a botnet as a running example throughout this readme, that's really just one of the more surprising and illuminating examples. The cryptoacoustic medium doesn't care about the physical situation that gave rise to a password cracking attack. It abstracts over that entirely. Rather the concept behind cryptoacoustics summarizes over the context of past communications, no matter how these communications occurred.
+The above picture is of a German officer and soldier from 1917 wearing a combined acoustic/optical apparatus used for locating aircraft and gunfire in WWI. These are strictly passive devices, but they would certainly improve both the sensitivity and the directionality of human hearing, combined with some degree of telescopic magnification of human vision.
 
-For example, if the hash thief were to instead post a crackable version of your password database on an underground forum, then it will be either trivial or at least possible for any individual on that forum to get in contact with you and sell out the thief. In doing so, I hope that it will become increasingly untenable to post password databases where they can be seen by others without drawing the attention of the relevant security departments.
+Some might take umbrage at the fanciful name I've chosen for this technique, but I'm pretty sure it's an important enough technique to deserve a memorable name, and I suspect that reactive resistance to the name tends to be more a symptom of the relatively small intersection between people with a less-than-naive background in cryptography and people with a similar background in signals and systems.
 
-In effect, this is an attempt to move towards a closer approximation of [closed-loop](https://en.wikipedia.org/wiki/Closed-loop_controller) detection of leaked password hashes. In the longer run, I hope that will disrupt the activities of the cybercriminal scene. That said, I expect the more profound change in behavior will ultimately be the promotion of [antifragile](https://en.wikipedia.org/wiki/Antifragile_\(book\)) attitudes and practices among security departments.
+The analogy between cryptography and signals is not completely clarified in my mind. However, I am confident that this analogy is reasonably deep and fertile, at least if you assume that some cryptographic construction exhibits high enough _minimum obfuscation overhead_ for the topic of cryptoacoustics to be viable in the long term. On that count, I am cautiously optimistic, but we need a theory of cryptoacoustics before answering that question is really possible.
 
-The major design goals for the G3P were:
+[![Aircraft engines produced unprecedented sound, so in order to hear them at a distance, the war efforts developed listening devices. A two-horn system at Bolling Field, USA, 1921.](design-documents/media/acoustic_locator_11.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
+
+The above picture is of a American officer from 1921 using an entirely passive, but extremely large two-horn acoustic aircraft locator at Bolling Field, USA.
+
+There's no technical reason to go with acoustics as the name for the metaphor versus say, something that suggests a different physical transmission medium such as radio waves, visible light, electronic circuitry, or perhaps just a generic "cryptosignaling". However I don't feel cryptosignaling is nearly as memorable or descriptive, and sound is the primary means of communication for most humans in face-to-face physical interactions.
+
+I also went with cryptoacoustics because I am interested in hi-fi audio and professional sound reinforcement systems, and was thinking a fair bit about those topics while I was developing cryptoacoustics.
+
+I am sure I would have found cryptoacoustics to be a rather surprising concept as recently as July 2022. That reminded me of the pleasantly surprising acoustics of [Chicago's Field Museum of Natural History](https://www.fieldmuseum.org/), which I remember my [swing choir](https://en.wikipedia.org/wiki/Glee_\(TV_series\)) exploring on a performance-adjacent field trip. While that kind of effect is better experienced in person, Malinda provides a reasonable YouTube demonstration of the kinds of acoustic effects that are possible in [Singing in Church](https://www.youtube.com/watch?v=H6zswBOzxig).
+
+Other classic examples of surprising acoustic effects include [whispering galleries](https://en.wikipedia.org/wiki/Whispering_gallery) and pairs of [acoustic mirrors](https://en.wikipedia.org/wiki/Acoustic_mirror).
+
+I was also amused to first read Niels Provos' retrospective on [Bcrypt at 25](https://www.usenix.org/publications/loginonline/bcrypt-25-retrospective-password-security) sometime in late August or early September of 2023, in a context where I had already compared the cryptoacoustics of bcrypt in the G3P to a subwoofer. I found out that Niels has a cybersecurity-themed EDM (Electronic Dance Music) project under his moniker [activ8te](https://activ8te.bandcamp.com/). EDM music is certainly known for it's relatively heavy use of synth bass, which makes those subs woof.
+
+[![Three Japanese acoustic locators, colloquially known as “war tubas”, mounted on four-wheel carriages, being inspected by Emperor Hirohito.](design-documents/media/acoustic_locator_8.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
+
+Above is a historical photograph from the 1930s of the Japanese Emperor Hirohito inspecting three military acoustic locators on carts, colloquially known as "war tubas". Each locator has four horns, and each horn is a key part of a highly sensitive directional microphone, which were electrically amplified. They could be turned into potent bass horns if one were to replace the microphones with loudspeaker drivers.
+
+The primary intended use is for pointing the anti-aircraft guns also seen in this picture. Acoustic location soon lost out to radar, but continued to play niche roles for locating aircraft throughout World War II, and for locating artillery fire even after WWII.
+
+Acoustic location for all kinds of purposes, including aircraft, has seen a renaissance during Putin's invasion of the Ukraine. Listening for sound has the distinct tactical advantage of being an entirely passive endeavor, unlike radar. Furthermore, high-quality sound reception equipment has become far more affordable. Finally and most importantly, listening for particular sounds at scale has become possible thanks to integrated circuits and artificial intelligence.
+
+## The Goals of the G3P
+
+Our recurring example of a botnet-based password cracker is really just one of the more surprising and illuminating examples. The cryptoacoustic medium doesn't care about the physical mechanisms that gave rise to a password cracking attack. It abstracts over that entirely. Rather it summarizes over the context of past communications, no matter how these communications occurred.
+
+For example, if the hash thief were to post a crackable version of your password database on an underground forum, then it will be either trivial or at least possible for any individual on that forum to get in contact with you and sell out the thief.
+
+Of course this requires your organization to do three things. First, you must operate a tip line for gathering counterintelligence information. Second, you must rise above the utterly worn-out IT cliché of metaphorically shooting the messenger who reports any cybersecurity issue. If you don't treat your informants with respect, they won't come back. Futhermore you run the risk of developing a bad reputation so that another potential informant declines to engage with your tipline. Third, you must learn to adopt [antifragile](https://en.wikipedia.org/wiki/Antifragile_\(book\)) attitudes and practices, and learn to take the information being given to you on your tipline cautiously but seriously.
+
+In doing so, I hope that it will become increasingly untenable to post password databases where they can be seen by others without drawing the attention of the relevant security departments. In effect, this is an attempt to move towards a closer approximation of [closed-loop](https://en.wikipedia.org/wiki/Closed-loop_controller) detection of leaked password hashes. In the longer run, I hope that will disrupt the activities of the cybercriminal scene. That said, I expect the more profound change in behavior will ultimately be on the part of security departments.
+
+The major design goals for the G3P are that:
 
 1. All HMAC calls and the overwhelming majority of SHA256 blocks should be tagged with at least one self-documenting constant.
 
@@ -97,7 +185,7 @@ Heritage Toronto 2018](design-documents/media/toronto-recursive-history.jpg)](ht
 
 The [Seguid Protocol](design-documents/seguid.md) is a domain-specific hash function that produces Self-Documenting Globally Unique Identifiers, or _seguids_. Seguids are self-documenting in the sense that they cryptographically attest to their own provenance and their own official documentation for y'all to follow.
 
-The Seguid Protocol turns HMAC's key parameter into a self-documenting tagging location.  The ability to compute an HMAC function does not imply direct knowledge of the HMAC key, and so therefore the key does not have any plaintext cryptoacoustic properties.  However, the ability to compute an HMAC function does imply knowledge of a cryptographic hash of the HMAC key, so HMAC keys do have indirect cryptoacoustic properties with mild limitations.
+The Seguid Protocol turns HMAC's key parameter into a cryptoacoustic tagging location with a few mild limitations. The ability to compute an HMAC function does not imply direct knowledge of the HMAC key, and so therefore the key does not have any plaintext cryptoacoustic properties. However, the ability to compute an HMAC function does imply knowledge of a cryptographic hash of the HMAC key, so HMAC keys do have indirect cryptoacoustic properties.
 
 Seguids improve coverage of the G3P by self-documenting tags, thus advancing its first design goal. It also plausibly advances the G3P's second design goal as well, as the seguid protocol is intended to produce outputs that qualify as a [_key derivation key_ (KDK)](https://csrc.nist.gov/glossary/term/key_derivation_key) in NIST parlance.
 
@@ -107,53 +195,9 @@ One of the practical advantages of using a strongly-randomized seguid as part of
 
 Technically, the Seguid Protocol is `HKDF-SHA512` specified with constant salt and info parameters. Since these parameters of HKDF exhibit plausibly-secure cryptoacoustic properties, the Seguid Protocol applies the ideas of self-documenting cryptography and narrates what it is doing. This is to help reverse engineers who are looking at code that implements the Seguid Protocol contextualize what they are looking at. This is a relatively incidental, secondary design feature of the Seguid Protocol.
 
-## Why call it "Cryptoacoustics"?
-
-Building upon the intuition I shared for thinking about reverse engineering a cryptoacoustic hash function, the G3P algorithm itself is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape](https://en.wikipedia.org/wiki/Cassette_tape) [deck](https://en.wikipedia.org/wiki/Reel-to-reel_audio_tape_recording) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker).
-
-The position of the G3P's rotors are initialized by the seguid. Then the user types their username and password on the keyboard, which causes the position of the rotors to change. After this, the username and password are no longer needed. For this reason, the G3P design document describes these parameters as _horn-loaded_.
-
-Finally, the user plays a prerecorded message on the tape deck, which narrates the precise purpose of this particular password. As the message is played back on the loudspeaker, the process causes the position of the rotors to change accordingly. After this song-and-dance routine is complete, the final position of the rotors provides the derived key, which is also suitable as a traditional password hash.
-
-That is why I call the mechanism behind the overall process _cryptoacoustics_. What I call _self-documenting cryptography_ is the thing that would result if the policy suggestions for how to use these mechanisms are more-or-less adopted.
-
-I think there's likely to be a number of intriguing opportunities for applying the ideas behind self-documenting cryptography to other contexts, especially self-narration and blockchain applications.
-
-[![German sound location, 1917. The photograph shows a junior officer and a soldier from an unidentified Feldartillerie regiment wearing combined acoustic/optical locating apparatus. The small-aperture goggles were apparently set so that when the sound was located by turning the head, the aircraft would be visible.](design-documents/media/acoustic_locator_13.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
-
-The above picture is of a German officer and soldier from 1917 wearing a combined acoustic/optical apparatus used for locating aircraft and gunfire in WWI. These are strictly passive devices, but they would certainly improve both the sensitivity and the directionality of human hearing, combined with some degree of telescopic magnification of human vision.
-
-Some might take umbrage at the fanciful name I've chosen for this technique, but I'm pretty sure it's an important enough technique to deserve a memorable name, and I suspect that reactive resistance to the name tends to be more a symptom of the relatively small intersection between people with a less-than-naive background in cryptography and people with a similar background in signals and systems.
-
-The analogy between cryptography and signals is not completely clarified in my mind. However, I am confident that this analogy is reasonably deep and fertile, at least if you assume that some cryptographic construction exhibits high enough _minimum obfuscation overhead_ for the topic of cryptoacoustics to be viable in the long term. On that count, I am cautiously optimistic, but we need a theory of cryptoacoustics before answering that question is really possible.
-
-[![Aircraft engines produced unprecedented sound, so in order to hear them at a distance, the war efforts developed listening devices. A two-horn system at Bolling Field, USA, 1921.](design-documents/media/acoustic_locator_11.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
-
-The above picture is of a American officer from 1921 using an entirely passive, but extremely large two-horn acoustic aircraft locator at Bolling Field, USA.
-
-There's no technical reason to go with acoustics as the name for the metaphor versus say, something that suggests a different physical transmission medium such as radio waves, visible light, electronic circuitry, or perhaps just a generic "cryptosignaling". However I don't feel cryptosignaling is nearly as memorable or descriptive, and sound is the primary means of communication for most humans in face-to-face physical interactions.
-
-I also went with cryptoacoustics because I am interested in hi-fi audio and professional sound reinforcement systems, and was thinking a fair bit about those topics while I was developing cryptoacoustics.
-
-I am sure I would have found cryptoacoustics to be a rather surprising concept as recently as July 2022. That reminded me of the pleasantly surprising acoustics of [Chicago's Field Museum of Natural History](https://www.fieldmuseum.org/), which I remember my [swing choir](https://en.wikipedia.org/wiki/Glee_\(TV_series\)) exploring on a performance-adjacent field trip. While that kind of effect is better experienced in person, Malinda provides a reasonable YouTube demonstration of the kinds of acoustic effects that are possible in [Singing in Church](https://www.youtube.com/watch?v=H6zswBOzxig).
-
-Other classic examples of surprising acoustic effects include [whispering galleries](https://en.wikipedia.org/wiki/Whispering_gallery) and pairs of [acoustic mirrors](https://en.wikipedia.org/wiki/Acoustic_mirror).
-
-I was also amused to first read Niels Provos' retrospective on [Bcrypt at 25](https://www.usenix.org/publications/loginonline/bcrypt-25-retrospective-password-security) sometime in late August or early September of 2023, in a context where I had already compared the cryptoacoustics of bcrypt in the G3P to a subwoofer. I found out that Niels has a cybersecurity-themed EDM (Electronic Dance Music) project under his moniker [activ8te](https://activ8te.bandcamp.com/). EDM music is certainly known for it's relatively heavy use of synth bass, which makes those subs woof.
-
-[![Three Japanese acoustic locators, colloquially known as “war tubas”, mounted on four-wheel carriages, being inspected by Emperor Hirohito.](design-documents/media/acoustic_locator_8.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
-
-Above is a historical photograph from the 1930s of the Japanese Emperor Hirohito inspecting three military acoustic locators on carts, colloquially known as "war tubas". Each locator has four horns, and each horn is a key part of a highly sensitive directional microphone, which were electrically amplified. They could be turned into potent bass horns if one were to replace the microphones with loudspeaker drivers.
-
-The primary intended use is for pointing the anti-aircraft guns also seen in this picture. Acoustic location soon lost out to radar, but continued to play niche roles for locating aircraft throughout World War II, and for locating artillery fire even after WWII.
-
-Acoustic location for all kinds of purposes, including aircraft, has seen a renaissance during Putin's invasion of the Ukraine. Listening for sound has the distinct tactical advantage of being an entirely passive endeavor, unlike radar. Furthermore, high-quality sound reception equipment has become far more affordable. Finally and most importantly, listening for particular sounds at scale has become possible thanks to integrated circuits and artificial intelligence.
-
 ## Why Adopt Cryptoacoustics?
 
-From a certain point of view that is particularly cautious, the G3P's application of _cryptoacoustics_ is nothing more than a novel justification for the `FixedInfo` parameters mentioned in [NIST SP 800-56C](https://csrc.nist.gov/pubs/sp/800/56/c/r2/final), or alternatively the `Label` and `Context` parameters mentioned in [NIST SP 800-108](https://csrc.nist.gov/pubs/sp/800/108/r1/final), which this section refers to as _contextual parameters_.
-
-Furthermore, the G3P applies these insights to make specific suggestions about what kind of data to include in these contextual parameters when applied to password hashing.[^contextual_parameters_and_password_hashing] This suggested application of cryptoacoustics results in an example of self-documenting cryptography.
+From a point of view that is particular cautious, my argument for cryptoacoustis is a novel justification for _contextual parameters_. Furthermore, the G3P applies these insights to make specific suggestions about what kind of data to include when contextual parameters are applied to password hashing.[^contextual_parameters_and_password_hashing] This suggested application of cryptoacoustics results in an example of self-documenting cryptography.
 
 I know of no theoretical basis for believing the cryptoacoustic constructions deployed by the G3P are workably secure in the way I conjecture they are. Clearly this situation is not ideal, and should not be tolerated in the long run.
 
@@ -187,33 +231,15 @@ In particular, the unobfuscatable property demonstrated in the aforementioned pa
 
 At the time the paper was written, whether or not full homomorphic encryption was even possible was still an open question. Surprisingly, FHE does exist, which seems to rule out many or most practical use cases for a truly unobfuscatable program property in the sense of Barak et al.
 
-### Minimum Obfuscation Overhead
-
 Cracking a password hash is a rather costly endeavor that is particularly sensitive to inefficiency. For this reason, cryptoacoustics need not rely a notion of "unobfuscatable" that is as stringent as found in Barak et al.
 
-What is crucial is the _minimum obfuscation overhead_, that is, the overhead represented by the most efficient tag obscuration attack available on a tagging construction. My guess is that this minimum obfuscation overhead must be at least two orders of magnitude to sort of be minimally viable in the case of slow password hashing.
+What is crucial is _cryptoacoustic advantage_, which seems to be (nearly) synonymous with _cryptoacoustic efficiency_ and _minimum obfuscation overhead_.
 
-Of course, if one is uploading a password hash to a botnet to be cracked, there are relatively simple techniques that will keep the tag out of a dump of the string constants inside the blob of executable code. These techniques often impose little or no runtime cost.
+As mentioned before, +20 dB would probably be enough to make slow password hashing cryptoacoustically viable, but other applications may need more like +60 dB or more.
 
-However, even though these types of obfuscation techniques might be able to slow down many good reverse engineers for days, they will eventually yield to competent reverse engineering. To be a legitimate tag obscuration attack, it must be secure against the best reverse engineers on their best days.
+For example, the Seguid Protocol is HKDF-SHA512 that specifies constant salt and info parameters. Correspondingly, the Seguid Protocol uses these parameters as cryptoacoustic tags, narrating itself in an attempt to help out any reverse engineer who is examining such implementations contextualize what they are looking at.
 
-In the case of PHKDF, it is intended that once one understands how the provided SHA256 implementation works, that it should be relatively easy for a reverse engineer to simply watch what inputs are fed into that implementation. This suggests that some form of encryption that is homomorphic on SHA256 is a required component of a truly secure tag obscuration attack.
-
-Since full homomorphic encryption (FHE) exists, the required component can presumably be constructed for any cryptographic hash function, not only SHA256. Fortunately the overhead of even state-of-the-art FHE is currently much too high for deployment as a practical tag obscuration attack.  However, such an attack need not depend on a particular FHE framework, and need not depend on any FHE framework whatsoever.
-
-If a hypothetical tag obscuration attack imposes a 100x overhead on the overall password cracking process, it will probably never be used in practice. A weak-ish password that costs $100 to crack would then cost $10,000 to crack. That provides an $9900 incentive to either insource the attack or to disclose the target to the cracker.
-
-Even in the case that cracking attacks are carried out using a botnet or other stolen computing resources, cutting the guessing rate by two orders of magnitude still represents a significant opportunity cost.
-
-At 10x overhead, you might start to see a few oddball cases where people are willing to employ tag obfuscation techniques, but I would expect such an approach to remain rather niche. In this scenario, I believe that a cryptoacoustic construction would likely remain reasonably effective at spreading a message, even if that particular construction would not appear to be cryptoacoustically viable going forward.
-
-At a 4x cost multiplier, you might actually start to see the adoption of tag obfuscation technology by password crackers. If that cost multiplier approaches 1x, then tag obscuration becomes essentially free, and I would expect the attack to be widely adopted by nefarious password crackers. This would represent a total failure of the primary objective. However, such a failure would not represent a total failure for the overall effort. Such an attack would almost certainly provide real insight into the research program for cryptoacoustics.
-
-A slow password hash function is probably a best-case scenario for cryptoacoustics. With sufficient key stretching, 100x overhead is likely more than enough to dissuade most anybody from deploying a practical attack. Without key stretching, say a single application of HMAC or HKDF, deploying an attack with an 1000x or greater overhead might not be out of the question in other applications.
-
-For example, the Seguid Protocol is HKDF-SHA512 that specifies constant salt and info parameters. Correspondingly, the Seguid Protocol uses these parameters as cryptoacoustic tags, narrating itself in an attempt to help out any reverse engineer who is examining code that implements the Seguid Protocol contextualize what they are looking at.
-
-Since the Seguid Protocol applies no key stretching, millions of hashes can be computed per second. Thus the most efficient tag obscuration attack may need to impose 100,000x overhead or more in order to be truly effective in this scenario. For this reason, slow password hashing seems to be a best-case scenario for the application of cryptoacoustics.
+Since the Seguid Protocol applies no key stretching, millions of hashes can be computed per second. Thus the most efficient tag obscuration attack may need to impose 1,000,000x overhead or more in order to be truly effective in this scenario. For this reason, slow password hashing seems to be a best-case scenario for the application of cryptoacoustics.
 
 Thus the point of _cryptoacoustic repetition_ as employed by PHKDF and the G3P is to reduce the minimum obfuscation overhead that is required of a "small" cryptoacoustic construction in order for a larger protocol that depends on it to be viable.
 
@@ -221,8 +247,7 @@ For this reason, it is much easier to deploy practical tag obscuration attacks a
 
 At my own current level of understanding of my own design, incorporating cryptoacoustics into the Seguid Protocol itself is mostly an issue of design consistency, though there may well be advantages and benefits I don't currently appreciate.
 
-On the other hand, this is a problem for password hash functions such as argon2.
-While appending a tag _after_ the password has cryptoacoustic properties, that input is a horn-loaded parameter into the internal argon2 algorithm. This means we can discard the password _and tag_ during the key-stretching computation.
+On the other hand, this is a problem for password hash functions such as argon2. While appending a tag after the password has cryptoacoustic properties, that input is a horn-loaded parameter into the internal argon2 algorithm. This means we can discard the password _and tag_ during the key-stretching computation.
 
 In our metaphor of the cryptoacoustic Enigma machine applied to argon2, it's a bit like as if the prerecorded tape played one little thing quietly, and then went completely silent for the rest of the song-and-dance routine. Unfortunately, this arrangement is inherent to argon2 because there simply no way to include cryptoacoustic repititions of the tag during the key-stretching phase.
 
@@ -248,9 +273,9 @@ Though qualitatively describing the similarities and differences between the cry
 
 Maybe someday humanity will even see low-level cryptographic hash functions designed to maximize the minimum obfuscation overhead, thus maximizing the cryptoacoustic potential of that specific hash function.
 
-[^tipline]: Of course this requires your organization to do three things. First, you must operate a tip line for gathering counterintelligence information. Second, you must rise above the utterly worn-out IT cliché of metaphorically shooting the messenger who reports any cybersecurity issue. If you don't treat your informants with respect, they won't come back. Futhermore you run the risk of developing a bad reputation so that another potential informant declines to engage with your tipline. Third, you must learn to adopt [antifragile](https://en.wikipedia.org/wiki/Antifragile_\(book\)) attitudes and practices, and learn to take the information being given to you on your tipline cautiously but seriously.
+{^
 
-[^blake3]: Blake3's internal hash tree structure, which allows for parallel processing on long inputs, provides a notable counterexample to this observation. Suffixing a tag is not unconditionally a plausibly-secure cryptoacoustic construction in this case because doing this unthinkingly naive way can then allow for the plaintext of a tag to be replaced by a cryptographic hash or the internal memory contents of some cryptographic state machine. However Blake3 still has plausible cryptoacoustic possibilities, even if they are atypical.
+[^blake3]: Blake3's embedded Merkle tree enables parallel processing on long inputs, but it also presents challenges to cryptoacoustic applications. If one were to simply append a tag after user-supplied inputs, then (parts of) a tag might be replaceable by some other value. From this naive point of view, blake3 replaces it's tape deck with something a bit more esoteric.
 
 [^contextual_parameters_and_password_hashing]:
     The application of contextual parameters to password hashing is an idea I originated independently. Though I don't have any references at hand, it also feels like an idea that probably isn't exactly entirely novel. In any case, the use of contextual parameters during password hashing is not widely practiced or advocated for.
