@@ -2,15 +2,17 @@
 
 ![Property of YOUR COMPANY INC.](design-documents/media/property-tag.png)
 
-The Global Password Prehash Protocol (G3P) is a slow password hash function based on PHKDF and bcrypt. The algorithm behind G3P is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape deck](https://en.wikipedia.org/wiki/Digital_Audio_Tape) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker) which provides a form of _digital watermarking_.[^steampunk]
+The [Global Password Prehash Protocol (G3P)](g3p-hash/lib/Crypto/G3P.hs) is [designed](design-documents/g3p.md) to be slow password hash function, based on PHKDF and bcrypt. The algorithm behind the G3P is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape deck](https://en.wikipedia.org/wiki/Digital_Audio_Tape) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker) which provides a form of _digital watermarking_.[^steampunk]
 
 The position of the G3P's rotors are initialized by a _seguid_. Then the user types their username and password on the keyboard, which causes the position of the rotors to change.
 
 The G3P has no internal state beyond the position of the rotors. After the data entry process is complete, the username and password are no longer needed for the key-stretching phase. This is why the G3P design document describes these parameters as _horn-loaded_.
 
-Finally, the user plays a prerecorded message on the tape deck. This message should narrate the precise purpose of this particular password, thus serving as a digital variant of a physical property _tag_.  As the message is played back on the loudspeaker, the process causes the position of the rotors to change accordingly. After this song-and-dance routine is complete, the final position of the rotors provides the derived key, which is also suitable as a traditional password hash.
+Finally, the user plays a prerecorded message on the tape deck. This message is typically provided by the deployment to the user, and is typically not a secret. A reasonable choice of message might be something like "this password hash function is for employees of Your Company, Inc, to log into the website https://employees.your-company.example. If you run across any stolen password hashes, please call 555-YOUR-SPY and report them."[^tipline]
 
-The G3P's primary security model is traditional: it must be impossible to decrypt a password hash, and the algorithm must consist of non-shortcuttable computations that are somewhat slow. Any failure of the sound system integrated into the G3P must not impact this primary mission.
+This message should narrate the precise purpose of this particular password, thus serving as a digital variant of a physical _property tag_ that you can affix to tangible property. As the message is played back on the loudspeaker, the watermarking process causes the position of the rotors to change accordingly. After this song-and-dance routine is complete, the final position of the rotors provides the derived key, which is also suitable as a traditional password hash.
+
+The G3P's primary security model is traditional: it must be impossible to decrypt a password hash, the algorithm must provide key stretching, and it should also be perfectly suitable for use as a key derivation function. Any failure of the sound system integrated into the G3P must not impact this primary mission.
 
 Thus G3P's secondary security goal is that password hashes should be _traceable_ or _useless_ after they have been _stolen_. If you know how to crack a password hash, you should know where to report it as stolen. If you don't know where to report a password hash as stolen, you shouldn't be able to crack it.[^replaying_hashes]
 
@@ -20,11 +22,11 @@ Self-documenting cryptography is the use of self-narration and self-reference in
 
 It's important to play the tape _after_ the user inputs the username and password. If one were to initialize the rotors and then play the tape, then the overall construction wouldn't be cryptoacoustically secure. Somebody could simply initialize the machine, play the tape, and then use the resulting rotor position to initialize multiple other machines to compute the correct hash function without listening to the tape at all.
 
-This is my intuition behind the design patterns that the G3P employs. Our `seguid` corresponds to HMAC's `key` parameter, and any `tag` is part of the pre-recorded message. These parameters are what G3P uses as salt, in addition to the username.
+This is my intuition behind the design patterns that the G3P employs. Our `seguid` corresponds to HMAC's `key` parameter, and any `tag` is part of the pre-recorded message and appended _after_ a user-supplied message. These parameters are what G3P uses as salt, in addition to the username.
 
-Indeed, HMAC-SHA256 is already it's own Cryptoacoustic Enigma Machine, one that the G3P builds up into a larger machine. In fact, it would seem that most or all existing cryptographic hash functions already are their own Cryptoacoustic Enigma Machine in some form or another. For example, affixing a tag _after_ user-supplied input is plausibly a cryptoacoustically secure construction for most any common hash function other than Blake3, which still has it's own cryptoacoustic possibilities.[^blake3]
+Indeed, HMAC-SHA256 is already it's own Cryptoacoustic Enigma Machine, one that the G3P builds up into a larger machine. In fact, it would seem that most or all existing cryptographic hash functions already are their own Cryptoacoustic Enigma Machine in some form or another. For example, affixing a tag after user-supplied input is plausibly a cryptoacoustically-secure construction for most any common hash function other than Blake3, which still has it's own cryptoacoustic possibilities.[^blake3]
 
-From a certain point of view that is particularly cautious, this tagging process is nothing more than a novel justification for the `FixedInfo` parameters mentioned in [NIST SP 800-56C](https://csrc.nist.gov/pubs/sp/800/56/c/r2/final), or alternatively the `Label` and `Context` parameters mentioned in [NIST SP 800-108](https://csrc.nist.gov/pubs/sp/800/108/r1/final), which this document refers to as _contextual parameters_, and which correspond to the prerecorded message on the tape in our metaphor.
+From a point of view that is particularly cautious, this tagging process is nothing more than a novel justification for the `FixedInfo` parameters mentioned in [NIST SP 800-56C](https://csrc.nist.gov/pubs/sp/800/56/c/r2/final), or alternatively the `Label` and `Context` parameters mentioned in [NIST SP 800-108](https://csrc.nist.gov/pubs/sp/800/108/r1/final), which this document refers to as _contextual parameters_, and which correspond to the prerecorded message on the tape in our metaphor.
 
 From the point of view of the G3P's primary security model, this tagging process results in domain-specific hash functions that are particularly low-risk substitutes for the underlying, untagged hash function. The next section disucsses the G3P's secondary cryptoacoustic security model.
 
@@ -36,43 +38,63 @@ From the point of view of the G3P's primary security model, this tagging process
 >
 > (See also the [International Obfuscated C Code Contest](https://www.ioccc.org/))
 
-Let's say you deploy the G3P for a company, club, or other organization. Now one of your password hashes gets stolen. The entity who stole that hash decides to use a botnet or other stolen computing resources to try to crack that password. A security analyst observes that payload.
+Cryptography more typically depends on the property that if you know a key, then you can compute a cryptographic function. Cryptoacoustics depends upon the converse: if you can compute some cryptographic function, then you know (part of) its key. When this proposition holds, that part of the key can be used to convey a message, or _tag_.
 
-Neither this analyst nor your organization have any knowledge of the other's existence, but now they have some kind of executable implementation of your deployment of the G3P in addition to the stolen password hash itself.
+Let's say you deploy the G3P for a company, club, or other organization. Now one of your password hashes gets stolen. The thief decides to use a [botnet](https://en.wikipedia.org/wiki/Botnet) or [other stolen computing resources](https://www.reddit.com/r/aws/comments/x03vay/hacked_aws_account_is_facing_200000_in_charges/) to try to crack that password.
 
-If this implementation is written in a relatively straightforward way, all the security analyst would have to do is dump the strings contained in the payload, after which they should have zero difficulty disclosing their observations back to your organization's counterintelligence tip line.
+A security analyst investigating this incident uncovers the thief's executable payload, perhaps because their company has already tapped into the command and control network of the botnet, or perhaps the fraudlent cloud server instance was suspended and terminated, and snapshot of the machine was given to the analyst to decipher.
 
-Of course there are many techniques a botnet-based cracker can use to keep your tags out of a simple scan for string constants. This is why the G3P is designed to be reverse engineered. In the cryptoacoustic security model, attackers obfuscate programs, and defenders reverse engineer them.
+Neither this analyst nor your organization have any knowledge of the other's existence, but now they have an implementation of your deployment of the G3P, which must include an invitation to call 555-YOUR-SPY.
 
-Thus in a secondary yet very fundamental sense, the #1 VIP stakeholders in the G3P are the unknown reverse engineers toiling away on some obfuscated implementation of your deployment. Thus the design is driven a desire to simplify this task as much as possible, across all possible implementations of the G3P.
+If this implementation is written in a relatively straightforward way, all the security analyst would have to do is dump the strings contained in the payload, after which they should have zero difficulty disclosing their observations back to your company's counterintelligence tip line.
 
-Many of the techniques evoked by William Wulf's quote are relatively simple and often impose highly manageable runtime costs. Some of these techniques are very clever and devious, as studying IOCCC contest entries can attest. They certainly can slow down many good reverse engineers for days. However, these sorts of techniques will eventually yield to competent reverse engineering, and thus they tend to be examples of an _insecure_ tag obfuscation attack.
+Of course the thief might anticipate this scenario, and try to prevent it happening. Many simple obfuscation techniques can keep your tags out of a simple scan for string constants. If they do that, the thief becomes a (less-than-trivial) attacker of the G3P's secondary cryptoacoustic security model, in furtherance of an attack on the G3P's primary goal of being a password hash function.
 
-Our hash-based cryptoacoustic enigma machine has a built-in backstop against insecure obfuscation attacks. Once a reverse engineering team understands the correspondence between an implementation and the hash algorithm, they can watch a memory replay and read off the strings being fed into the function. This in turn reveals the tags hidden inside the implementation.
+This is why the G3P is designed to be reverse engineered. In a secondary yet very fundamental sense, the #1 VIP stakeholders in the G3P are the unknown reverse engineers toiling away on some obfuscated implementation of your deployment. Thus the design is driven a desire to simplify reverse engineering as much as possible, across all possible implementations of the G3P.
 
-This works because most every hash function exclusive-or's their input into a state machine. This also works when any kind of easily invertible group operation is used to perturb the state machine. These perturbations are intolerant to noise, which hopefully serves as a bulwark against obfuscation.
+In the cryptoacoustic security model, attackers obfuscate programs, and defenders reverse engineer them. This is the opposite of Full Homomorphic Encryption (FHE), where defenders obfuscate programs and attackers reverse engineers them. So in this sense, cryptoacoustics is an anti-problem associated with FHE.
 
-A securely obfuscated cryptoacoustic implementation must stand up against the best reverse engineers on their best days. The built-in backstop suggests that any obfuscated implementation of the G3P would require an encryption scheme that is homomorphic on SHA256 and blowfish's expensive key setup.
+Many of the techniques evoked by William Wulf's quote are relatively simple and often impose highly manageable runtime costs. Some of these techniques are very clever and devious, as studying IOCCC contest entries can attest. They certainly can slow down many good reverse engineers for days.
+
+However, these sorts of techniques will eventually yield to competent, persistent reverse engineering, and thus they tend to be examples of _insecure_ tag obfuscation attacks. Insecure obfuscation attacks means that the defenders are capable of winning, at least in principle.
+
+For the attacker to definitively win your cryptoacoustic security game, they must provide a _securely obfuscated_ implementation of your password hash function. This means that the invitation to call 555-YOUR-SPY _must_ remain out of reach of the best reverse engineers on their best days, thus preventing a win by the defense.
+
+In order for the defenders to definitively win your cryptoacoustic security game, a defender must find one of your stolen hashes and report it back to your counterintelligence tip line.
+
+The G3P has a built-in backstop against insecure obfuscation attacks. Once a reverse engineering team understands the correspondence between an implementation and SHA256, they can watch a memory replay and read off the strings being fed into that function. This in turn reveals all the tags hidden inside the implementation.
+
+This works because most every hash function exclusive-or's their input into a state machine.[^group_operation] These perturbations of the cryptographic state are intolerant to noise, which hopefully serves as a bulwark against obfuscation.
+
+This is in fact my intuition for thinking about the cryptoacoustic properties of a hash function: I get to specify the password, I don't get to directly observe any of the other inputs, but do I get to watch a memory replay of the computation associated with my password input.
+
+My goal as a observer is to decode those other parameters from the memory replay. My goal as a designer is to ensure that decoding process is as simple and straightforward as possible.
+
+In the metaphor of the Cryptoacoustic Enigma Machine, I assume that an attacker's implementation muted the speaker. However, reverse engineers can also deduce what the loudspeaker would have said by carefully observing the exact motions that the rotors make.  Thus the attacker must also obscure the rotors if the attacker is to win the cryptoacoustic security game.
+
+The G3P's rotors correspond to the internal state of SHA256, and blowfish's expensive key setup function. This internal state must be kept hidden from the reverse engineers. This suggests that any truly secure tag obscuration attack must incorporate encryption that is homomorphic on these state machines.
 
 Surprisingly, Full Homomorphic Encryption (FHE) exists, so it would seem that the necessary components can in principle be built. Fortunately, the run-time overhead of even state-of-the-art FHE is much too high to be deployed in a practical tag obscuration attack. Therefore it seems plausible that any truly secure tag obscuration attack would impose signficant run-time overhead.
 
-Experimenting with practical tag obscuration attacks using FHE would establish an upper bounds on _minimum obfuscation overhead_.  This the run-time cost imposed by the most efficient tag obscuration attack that would be secure against the best reverse engineers. This provides a notion of _cryptoacoustic efficiency_, or _cryptoacoustic advantage_.
+By trying to maximize this run-time overhead, the G3P tries to deter attackers from deploying secure obfuscation attacks, or at least offer a meaningful consolation prize to the defenders if they do.
 
-This is in an analogy to the efficiency of a loudspeaker. The sound pressure level produced by a pair of bookshelf speakers at 1 watt is typically around 85 dB or so.  In the context of slow password hashing, my guess is that a cryptoacoustic efficiency of +20 dB would dissuade nearly everbody from adopting truly secure tag obscuration attacks. This corresponds to two orders of magnitude, or a minimum obfuscation overhead of 100x.
+We want to maximize the _minimum obfuscation overhead_ imposed by the most efficient tag obfuscation attack that is secure against the best reverse engineers. The notion is nearly synonymous with _cryptoacoustic advantage_, or _cryptoacoustic efficiency_.
 
-If it would cost $100 to crack a mildly weak password, then a +20 dB cryptoacoustic advantage means that a securely obfuscated cracking attack would cost $10,000. That's 9900 incentives to either in-source the attack or disclose the target of the attack to the cracker. This disclosure need not be forthright, the attacker might decide to take a chance and deploy an insecurely obfuscated cracker.
+This is in an analogy to the efficiency of a loudspeaker. The sound pressure level produced by a pair of bookshelf speakers at 1 watt is typically around 85 dB or so. In the context of slow password hashing, my guess is that a cryptoacoustic efficiency of +20 dB would dissuade nearly everbody from adopting truly secure tag obscuration attacks. This corresponds to a cost multiplier of two orders of magnitude, or a minimum obfuscation overhead of 100x.
 
-Even if the cracker is running on stolen resources, a 99% reduction in password guessing throughput is a very significant opportunity cost, one that the defenders might even be satisfied with exacting.
+If it would cost $100 to crack a mildly weak password, then a +20 dB cryptoacoustic advantage means that a securely obfuscated cracking attack would cost at least $10,000. That's 9900 incentives to either in-source the attack or disclose the target of the attack to the cracker. This disclosure need not be forthright, the attacker might decide to take a chance and deploy an insecurely obfuscated cracker, thus providing the defenders an opportunity to win.
+
+Even if the cracker is running on stolen resources, a 99% reduction in password guessing throughput is a very significant opportunity cost. This is one the defenders might even be satisfied with in exacting, because in exchange for losing the cryptoacoustic security game, the defenders gain a signficant advantage in the password security game.
 
 A cryptoacoustic efficiency of +10 dB would correspond to cost multiplier of 10x, or a 90% reduction in guessing throughput. At this point you might see a few nefarious entities deploy secure tag obscuration attacks, but I would expect this to be extremely niche and sporadic.
 
 Therefore, a cryptoacoustic construction with a +10 dB advantage would likely still be reasonably effective at spreading the tags of a slow password hash function on average, even if the viability of the construction might be dubious in specific cases, and would be dubious going forward.
 
-My guess is that at +6 dB, or a 4x cost multiplier representing a 75% reduction in guessing throughput, is about where you'd start to see limited but steady deployments of secure tag obscuration attacks against password hashes. As the advantage drops to 0 dB, the cost multiplier approaches 1x. The opportunity cost of deploying a proper attack becomes negligable. This in turn could lead to the widespread adoption of secure tag obscuration attacks by nefarious password crackers.
+My guess is that at +6 dB advantage, or a 4x cost multiplier representing a 75% reduction in guessing throughput, is about where you'd start to see limited but steady deployments of secure tag obscuration attacks against password hashes. As the advantage drops to 0 dB, the cost multiplier approaches 1x. The opportunity cost of deploying a proper attack becomes negligable. This in turn could lead to the widespread adoption of secure tag obscuration attacks by nefarious password crackers.
 
 This would represent a total failure of the secondary security goal of cryptoacoustics. However it would also represent a significant insight into the research program for cryptoacoustics.
 
-Slow password hashing is something of a best case for cryptoacoustics. Other applications of cryptoacoustics may need +60 dB or +90 dB or more to be viable, making an securely obfuscated computation a million or billion times more expensive.
+Slow password hashing is something of a best case for cryptoacoustics. Other applications of cryptoacoustics may need +60 dB or +90 dB advantage or more to be viable, making a securely obfuscated attack a million or billion times more expensive.
 
 Though there's a couple different interpretations of what a negative cryptoacoustic advantage might represent, none of them are terribly plausible. In particular, a securely-obfuscated implementation is almost certainly not going to be _faster_ than a native implementation. And because the G3P's tags are _contextual parameters_, a failure of the cryptoacoustic security model doesn't imply a failure of the classical security model.
 
@@ -81,8 +103,6 @@ The purpose of _cryptoacoustic repetition_ as employed by PHKDF and the G3P is t
 ## The Cryptoacoustic Medium
 
 Cryptoacoustics is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes so that our tags are easily decoded and understood by observers, and that maximize the advantage to run-time efficency of being either forthright or insecurely obfuscated.  This medium hopefully serves as a bulwark against obfuscation because it is _intolerant to noise_.
-
-Cryptography more typically depends on the property that if you know a key, then you can compute a cryptographic function. Cryptoacoustics depends upon the converse: if you can compute some cryptographic function, then you know (part of) its key. When this proposition holds, that part of the key can be used to convey a message, or _tag_.
 
 Conveying a message requires the use of a transmission medium. In our scenario, cryptographic state changes serve as a virtual transmission medium. This medium is purely mathematical and has no physical basis. It arises in the context of past communications that occurred via physical transmission media. In the case of the G3P, this context is that somebody hashed a password, and then somebody else stole that hash.
 
@@ -274,9 +294,14 @@ Though qualitatively describing the similarities and differences between the cry
 Maybe someday humanity will even see low-level cryptographic hash functions designed to maximize the minimum obfuscation overhead, thus maximizing the cryptoacoustic potential of that specific hash function.
 
 [^steampunk]:
-    If this metaphor is taken a bit too literally, it does have a subtle but undeniably steampunk vibe. Analog audio introduces noise, but inputs to a cryptographic hash function are noise-intolerant. Digital audio requires electronics that can operate much faster than electromechanical switches, so why would the Cryptoacoustic Enigma Machine still be using rotors?
+    If this metaphor is taken a bit too literally, it does have a subtle but undeniably steampunk vibe. Analog audio introduces noise, but inputs to a cryptographic hash function are noise-intolerant. This kind of fundamental incompatibility is rarely a problem in a steampunk storyline.
 
-    On the other hand, a mechanical "cryptoacoustic" enigma machine based off of teletype terminals might be sort-of viable, at least by the standards of decades gone by. But that's not as memorable a metaphor.
+    On the other hand, digital audio requires electronics that can operate much faster than electromechanical switches, so why would the Cryptoacoustic Enigma Machine still be using rotors?
+
+    On the other hand, a non-aural mechanical "cryptoacoustic" enigma machine based off of teletype terminals or punched tape might be sort-of viable, at least by the standards of decades gone by. But that's not as memorable a metaphor.
+
+[^tipline]:
+    Of course, I would recommend your tipline consist of a website and/or email address, not (just) a telephone answering machine. Also, you might not want to advertise the tipline directly, because a G3P deployment can be very difficult to change. Thus it may be sensible to provide a URI to further documentation, and then advertise your counterintelligence tipline at that URI. In any case, a URI for more complete and detailed documentation is highly recommended.
 
 [^replaying_hashes]: Depending upon how a hash is intended to be used, it may or may not be possible to replay it as an authentication credential. I assume that if one knows where to replay the hash, one knows where to report it stolen, which doesn't really pose a problem for our slogan of _traceable-or-useless_.
 
@@ -286,3 +311,5 @@ Maybe someday humanity will even see low-level cryptographic hash functions desi
     The application of contextual parameters to password hashing is an idea I originated independently. Though I don't have any references at hand, it also feels like an idea that probably isn't exactly entirely novel. In any case, the use of contextual parameters during password hashing is not widely practiced or advocated for.
 
     On the other hand, the interrelated ideas of cryptoacoustics and self-documenting cryptography feels rather novel to me. I still find parts of the idea surprising. To me, the trick feels vaguely reminscient of the [100 prisoners problem](https://en.wikipedia.org/wiki/100_prisoners_problem).
+
+[^group_operation]: This also works when any kind of easily invertible group operation is used to perturb the state machine.
