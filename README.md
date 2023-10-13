@@ -2,7 +2,7 @@
 
 ![Property of YOUR COMPANY INC.](design-documents/media/property-tag.png)
 
-The [Global Password Prehash Protocol (G3P)](g3p-hash/lib/Crypto/G3P.hs) is [designed](design-documents/g3p.md) to be slow password hash function, based on PHKDF and bcrypt. The algorithm behind the G3P is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape deck](https://en.wikipedia.org/wiki/Digital_Audio_Tape) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker) which provides a form of _digital watermarking_.[^steampunk]
+The [Global Password Prehash Protocol (G3P)](g3p-hash/lib/Crypto/G3P.hs) is [designed](design-documents/g3p.md) to be a password hash function and key derivation function, based on PHKDF and bcrypt. The algorithm behind the G3P is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape deck](https://en.wikipedia.org/wiki/Digital_Audio_Tape) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker) which provides a form of _digital watermarking_.[^steampunk]
 
 The position of the G3P's rotors are initialized by a _seguid_. Then the user types their username and password on the keyboard, which causes the position of the rotors to change.
 
@@ -40,19 +40,19 @@ From the point of view of the G3P's primary security model, this tagging process
 
 Cryptography more typically depends on the property that if you know a key, then you can compute a cryptographic function. Cryptoacoustics depends upon the converse: if you can compute some cryptographic function, then you know (part of) its key. When this proposition holds, that part of the key can be used to convey a message, or _tag_.
 
+In the cryptoacoustic security model, attackers obfuscate programs in order to hide these tags, and defenders use reverse engineering to reveal these tags. This reverses the roles of Fully Homomorphic Encryption (FHE), where defenders obfuscate programs and attackers reverse engineer them. So in this sense, cryptoacoustics is an anti-problem associated with FHE.
+
 Let's say you deploy the G3P for a company, club, or other organization. Now one of your password hashes gets stolen. The thief decides to use a [botnet](https://en.wikipedia.org/wiki/Botnet) or [other stolen computing resources](https://www.reddit.com/r/aws/comments/x03vay/hacked_aws_account_is_facing_200000_in_charges/) to try to crack that password.
 
 A security analyst investigating this incident uncovers the thief's executable payload, perhaps because their company has already tapped into the command and control network of the botnet, or perhaps the fraudlent cloud server instance was suspended and terminated, and snapshot of the machine was given to the analyst to decipher.
 
-Neither this analyst nor your organization have any knowledge of the other's existence, but now they have an implementation of your deployment of the G3P, which must include an invitation to call 555-YOUR-SPY.
+Neither this analyst nor your organization have any knowledge of the other's existence, but now they have an implementation of your deployment of the G3P, which includes an invitation to call 555-YOUR-SPY.
 
 If this implementation is written in a relatively straightforward way, all the security analyst would have to do is dump the strings contained in the payload, after which they should have zero difficulty disclosing their observations back to your company's counterintelligence tip line.
 
 Of course the thief might anticipate this scenario, and try to prevent it happening. Many simple obfuscation techniques can keep your tags out of a simple scan for string constants. If they do that, the thief becomes a (less-than-trivial) attacker of the G3P's secondary cryptoacoustic security model, in furtherance of an attack on the G3P's primary goal of being a password hash function.
 
 This is why the G3P is designed to be reverse engineered. In a secondary yet very fundamental sense, the #1 VIP stakeholders in the G3P are the unknown reverse engineers toiling away on some obfuscated implementation of your deployment. Thus the design is driven a desire to simplify reverse engineering as much as possible, across all possible implementations of the G3P.
-
-In the cryptoacoustic security model, attackers obfuscate programs, and defenders reverse engineer them. This is the opposite of Full Homomorphic Encryption (FHE), where defenders obfuscate programs and attackers reverse engineers them. So in this sense, cryptoacoustics is an anti-problem associated with FHE.
 
 Many of the techniques evoked by William Wulf's quote are relatively simple and often impose highly manageable runtime costs. Some of these techniques are very clever and devious, as studying IOCCC contest entries can attest. They certainly can slow down many good reverse engineers for days.
 
@@ -74,7 +74,7 @@ In the metaphor of the Cryptoacoustic Enigma Machine, I assume that an attacker'
 
 The G3P's rotors correspond to the internal state of SHA256, and blowfish's expensive key setup function. This internal state must be kept hidden from the reverse engineers. This suggests that any truly secure tag obscuration attack must incorporate encryption that is homomorphic on these state machines.
 
-Surprisingly, Full Homomorphic Encryption (FHE) exists, so it would seem that the necessary components can in principle be built. Fortunately, the run-time overhead of even state-of-the-art FHE is much too high to be deployed in a practical tag obscuration attack. Therefore it seems plausible that any truly secure tag obscuration attack would impose signficant run-time overhead.
+Surprisingly, Fully Homomorphic Encryption (FHE) exists, so it would seem that the necessary components can in principle be built. Fortunately, the run-time overhead of even state-of-the-art FHE is much too high to be deployed in a practical tag obscuration attack. Therefore it seems plausible that any truly secure tag obscuration attack would impose signficant run-time overhead.
 
 By trying to maximize this run-time overhead, the G3P tries to deter attackers from deploying secure obfuscation attacks, or at least offer a meaningful consolation prize to the defenders if they do.
 
