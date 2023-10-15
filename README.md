@@ -44,7 +44,7 @@ In the cryptoacoustic security model, attackers obfuscate programs in order to h
 
 Let's say you deploy the G3P for a company, club, or other organization. Now one of your password hashes gets stolen. The thief decides to use a [botnet](https://en.wikipedia.org/wiki/Botnet) or [other stolen computing resources](https://www.reddit.com/r/aws/comments/x03vay/hacked_aws_account_is_facing_200000_in_charges/) to try to crack that password.
 
-A security analyst investigating this incident uncovers the thief's executable payload, perhaps because their company has already tapped into the command and control network of the botnet, or perhaps the fraudlent cloud server instance was suspended and terminated, and snapshot of the machine was given to the analyst to decipher.
+A security analyst investigating this incident uncovers the thief's executable payload. Perhaps btheir company has already tapped into the command and control network of the botnet. Perhaps the fraudlent cloud server instance was suspended and terminated, and snapshot of the machine was given to the analyst to decipher.
 
 Neither this analyst nor your organization have any knowledge of the other's existence, but now they have an implementation of your deployment of the G3P, which includes an invitation to call 555-YOUR-SPY.
 
@@ -52,15 +52,15 @@ If this implementation is written in a relatively straightforward way, all the s
 
 Of course the thief might anticipate this scenario, and try to prevent it happening. Many simple obfuscation techniques can keep your tags out of a simple scan for string constants. If they do that, the thief becomes a (less-than-trivial) attacker of the G3P's secondary cryptoacoustic security model, in furtherance of an attack on the G3P's primary goal of being a password hash function.
 
-This is why the G3P is designed to be reverse engineered. In a secondary yet very fundamental sense, the #1 VIP stakeholders in the G3P are the unknown reverse engineers toiling away on some obfuscated implementation of your deployment. Thus the design is driven a desire to simplify reverse engineering as much as possible, across all possible implementations of the G3P.
+For the attacker to definitively win your cryptoacoustic security game, they must provide a _securely obfuscated_ implementation of your deployed password hash function. This means that the invitation to call 555-YOUR-SPY _must_ remain out of reach of the best reverse engineers on their best days, thus preventing a win by the defense.
+
+In order for the defenders to definitively win your cryptoacoustic security game, a defender must find one of your stolen hashes and report it back to your counterintelligence tip line. This is why the G3P is designed to be reverse engineered.
+
+In a secondary yet very fundamental sense, the #1 VIP stakeholders in the G3P are the unknown reverse engineers toiling away on some obfuscated implementation of your deployment. Thus the design is driven a desire to simplify reverse engineering as much as possible, across all possible implementations of the G3P.
 
 Many of the techniques evoked by William Wulf's quote are relatively simple and often impose highly manageable runtime costs. Some of these techniques are very clever and devious, as studying IOCCC contest entries can attest. They certainly can slow down many good reverse engineers for days.
 
 However, these sorts of techniques will eventually yield to competent, persistent reverse engineering, and thus they tend to be examples of _insecure_ tag obfuscation attacks. Insecure obfuscation attacks means that the defenders are capable of winning, at least in principle.
-
-For the attacker to definitively win your cryptoacoustic security game, they must provide a _securely obfuscated_ implementation of your password hash function. This means that the invitation to call 555-YOUR-SPY _must_ remain out of reach of the best reverse engineers on their best days, thus preventing a win by the defense.
-
-In order for the defenders to definitively win your cryptoacoustic security game, a defender must find one of your stolen hashes and report it back to your counterintelligence tip line.
 
 The G3P has a built-in backstop against insecure obfuscation attacks. Once a reverse engineering team understands the correspondence between an implementation and SHA256, they can watch a memory replay and read off the strings being fed into that function. This in turn reveals all the tags hidden inside the implementation.
 
@@ -70,7 +70,7 @@ This is in fact my intuition for thinking about the cryptoacoustic properties of
 
 My goal as a observer is to decode those other parameters from the memory replay. My goal as a designer is to ensure that decoding process is as simple and straightforward as possible.
 
-In the metaphor of the Cryptoacoustic Enigma Machine, I assume that an attacker's implementation muted the speaker. However, reverse engineers can also deduce what the loudspeaker would have said by carefully observing the exact motions that the rotors make.  Thus the attacker must also obscure the rotors if the attacker is to win the cryptoacoustic security game.
+In the metaphor of the Cryptoacoustic Enigma Machine, I assume that an attacker's implementation muted the speaker. However, I've arranged it so that reverse engineers have the ability to deduce what the loudspeaker would have said by carefully observing the exact motions that the rotors make. Thus the attacker must also obscure the rotors if the attacker is to win the cryptoacoustic security game.
 
 The G3P's rotors correspond to the internal state of SHA256, and blowfish's expensive key setup function. This internal state must be kept hidden from the reverse engineers. This suggests that any truly secure tag obscuration attack must incorporate encryption that is homomorphic on these state machines.
 
@@ -172,7 +172,7 @@ PHKDF is a unification and synthesis of PBKDF2, HKDF, and TupleHash.  The name w
 
 For example, it's not a great idea to use literal PBKDF2 to generate more than one output block worth of data. It would make much more sense to take HKDF apart into it's constituent `HKDF-Extract` and `HKDF-Expand`, and then replace the extraction function with a call to PBKDF2, and feed exactly one output block from PBKDF2 as the pseudorandom key to `HKDF-Expand`.
 
-This is more or less exactly what the [`phkdfVerySimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs) function does. This is included in API documentation as a conceptual simplification of the [`phkdfSimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs), which is a more fully worked example with a reference implementation.
+This is more or less exactly what the [`phkdfVerySimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs) function does. This is included in API documentation as a conceptual simplification of the [`phkdfSimple`](phkdf/lib/Crypto/PHKDF.hs), which is a more fully worked example with a reference implementation.
 
 The difference between these examples and the sketch above is that they actually use [`phkdfStream`](phkdf/lib/Crypto/PHKDF/Primitives.hs) instead of literal PBKDF2 and HKDF. This low-level primitive is a mildly dangerous modification of `HKDF-Expand` which is specified in [RFC 5869](https://datatracker.ietf.org/doc/html/rfc5869).
 
