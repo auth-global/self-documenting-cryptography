@@ -44,7 +44,7 @@ In the cryptoacoustic security model, attackers obfuscate programs in order to h
 
 Let's say you deploy the G3P for a company, club, or other organization. Now one of your password hashes gets stolen. The thief decides to use a [botnet](https://en.wikipedia.org/wiki/Botnet) or [other stolen computing resources](https://www.reddit.com/r/aws/comments/x03vay/hacked_aws_account_is_facing_200000_in_charges/) to try to crack that password.
 
-A security analyst investigating this incident uncovers the thief's executable payload. Perhaps their company has already tapped into the command and control network of the botnet. Perhaps the fraudlent cloud server instance was suspended and terminated, and snapshot of the machine was given to the analyst to decipher.
+A security analyst investigating this incident uncovers the thief's executable payload. Perhaps their company has already tapped into the command and control network of the botnet. Perhaps the fraudulent cloud server instance was suspended and terminated, and snapshot of the machine was given to the analyst to decipher.
 
 Neither this analyst nor your organization have any knowledge of the other's existence, but now they have an implementation of your deployment of the G3P, which includes an invitation to call 555-YOUR-SPY.
 
@@ -74,23 +74,23 @@ In the metaphor of the Cryptoacoustic Enigma Machine, I assume that an attacker'
 
 The G3P's rotors correspond to the internal state of SHA256, and blowfish's expensive key setup function. The need to hide this internal state suggests that any truly secure tag obscuration attack must incorporate encryption that is homomorphic on these state machines.
 
-Surprisingly, Fully Homomorphic Encryption (FHE) exists. Thus it would seem that the necessary components can be built, at least in principle. Fortunately, the run-time overhead of even state-of-the-art FHE is much too high to be deployed in a practical tag obscuration attack, at least for the time being. Although a truly secure tag obscuration attack need not depend on any particular FHE implementaiton, it seems plausible that such attack would still impose signficant run-time overhead.
+Surprisingly, Fully Homomorphic Encryption (FHE) exists. Thus it would seem that the necessary components can be built, at least in principle. Fortunately, the run-time overhead of even state-of-the-art FHE is much too high to be deployed in a practical tag obscuration attack, at least for the time being. Although a truly secure tag obscuration attack need not depend on any particular FHE implementation, it seems plausible that such attack would still impose significant run-time overhead.
 
 The G3P tries to maximize this presumed run-time overhead. In doing so, it is trying to deter attackers from deploying secure tag obfuscation attacks, or at least offering the defenders a meaningful consolation prize if this does happen.
 
-This deterrence is a [pure, unmitigated opportunity cost](https://arxiv.org/abs/2211.16626). Few nefarious password crackers would accept a 99% reduction in guessing throughput, or a 100x cost multiplier, in exchange for "winning" the cryptoacoustic security game. If an attacker accepts, the defenders gain a signficant advantage in keeping their plaintext passwords secret.
+This deterrence is a [pure, unmitigated opportunity cost](https://arxiv.org/abs/2211.16626). Few nefarious password crackers would accept a 99% reduction in guessing throughput, or a 100x cost multiplier, in exchange for "winning" the cryptoacoustic security game. If an attacker accepts, the defenders gain a significant advantage in keeping their plaintext passwords secret.
 
 If it would cost $100 for an attacker to crack some mildly weak password, then a securely obfuscated attack would cost $10,000. That's 9900 incentives to either in-source the attack or disclose the target of the attack to the cracker. This disclosure need not be forthright, the attacker might decide to take a chance and deploy an insecurely obfuscated cracker, thus providing the defenders an opportunity to win.
 
 Of course, a 99.9% reduction in guessing throughput, or 1000x cost multiplier, would be even better. It turns out to be convenient to discuss this cost multiplier in terms of _decibels_. Thus a 100x cost multiplier corresponds to 20 dB advantage, and a 1000x cost multiplier corresponds to a 30 dB advantage.
 
-In the context of slow password hashing, I estimate that 20 dB is roughly the minimum _cryptoacoustic advantage_[^cryptoacoustic_efficiency] in order for a cryptoacoustic construction to be sort of minimally viable. Cryptoacoustic advantiage corresponds to the _minimum obfuscation overhead_ imposed by the most efficient tag obfuscation attack that is secure against the best reverse engineers.
+In the context of slow password hashing, I estimate that 20 dB is roughly the minimum _cryptoacoustic advantage_[^cryptoacoustic_efficiency] in order for a cryptoacoustic construction to be sort of minimally viable. Cryptoacoustic advantage corresponds to the _minimum obfuscation overhead_ imposed by the most efficient tag obfuscation attack that is secure against the best reverse engineers.
 
 Even if the cracker is running on stolen resources, a 99% reduction in password guessing throughput is a significant opportunity cost. A cryptoacoustic advantage of +10 dB would correspond to cost multiplier of 10x, or a 90% reduction in guessing throughput. At this point you might see a few nefarious entities deploy secure tag obscuration attacks, but I would expect this to be extremely niche and sporadic.
 
 Therefore, a cryptoacoustic construction with a +10 dB advantage would likely still be reasonably effective at spreading the tags of a slow password hash function on average, even if the viability of the construction might be dubious in specific cases, and would be dubious going forward.
 
-My guess is that at +6 dB advantage, or a 4x cost multiplier representing a 75% reduction in guessing throughput, is about where you'd start to see limited but steady deployments of secure tag obscuration attacks against password hashes. As the advantage drops to 0 dB, the cost multiplier approaches 1x. The opportunity cost of deploying a proper attack becomes negligable. This in turn could lead to the widespread adoption of secure tag obscuration attacks by nefarious password crackers.
+My guess is that at +6 dB advantage, or a 4x cost multiplier representing a 75% reduction in guessing throughput, is about where you'd start to see limited but steady deployments of secure tag obscuration attacks against password hashes. As the advantage drops to 0 dB, the cost multiplier approaches 1x. The opportunity cost of deploying a proper attack becomes negligible. This in turn could lead to the widespread adoption of secure tag obscuration attacks by nefarious password crackers.
 
 This would represent a total failure of the secondary security goal of cryptoacoustics. However it would also represent a significant insight into the research program for cryptoacoustics.
 
@@ -102,7 +102,7 @@ The purpose of _cryptoacoustic repetition_ as employed by PHKDF and the G3P is t
 
 ## The Cryptoacoustic Medium
 
-Cryptoacoustics is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes so that our tags are easily decoded and understood by observers, and that maximize the advantage to run-time efficency of being either forthright or insecurely obfuscated.  This medium hopefully serves as a bulwark against obfuscation because it is _intolerant to noise_.
+Cryptoacoustics is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes so that our tags are easily decoded and understood by observers, and that maximize the advantage to run-time efficiency of being either forthright or insecurely obfuscated.  This medium hopefully serves as a bulwark against obfuscation because it is _intolerant to noise_.
 
 Conveying a message requires the use of a transmission medium. In our scenario, cryptographic state changes serve as a virtual transmission medium. This medium is purely mathematical and has no physical basis. It arises in the context of past communications that occurred via physical transmission media. In the case of the G3P, this context is that somebody hashed a password, and then somebody else stole that hash.
 
@@ -112,7 +112,7 @@ Rather, the tag is only readable during the password hashing process. Thus, this
 
 This is not an interactive communication protocol, yet non-interactive communication protocols can be extremely useful. Consider for example broadcast television, broadcast radio, [WSPR](https://en.wikipedia.org/wiki/WSPR_\(amateur_radio_software\)) and other radio beacon protocols, or a physical property tag.
 
-This project follows various philosophies of documentation-driven design. Not only does this nicely complement the design for reverse engineering, I find it to be an indispensible way to find bugs and produce higher quality software.
+This project follows various philosophies of documentation-driven design. Not only does this nicely complement the design for reverse engineering, I find it to be an indispensable way to find bugs and produce higher quality software.
 
 I think there's likely to be a number of intriguing opportunities for applying the ideas behind self-documenting cryptography to other contexts, especially self-narration and blockchain applications.
 
@@ -124,7 +124,7 @@ The above picture is of a German officer and soldier from 1917 wearing a combine
 
 Some might take umbrage at the fanciful name I've chosen for this technique, but I'm pretty sure it's an important enough technique to deserve a memorable name, and I suspect that reactive resistance to the name tends to be more a symptom of the relatively small intersection between people with a less-than-naive background in cryptography and people with a similar background in signals and systems.
 
-The analogy between cryptography and signals is not completely clarified in my mind. However, I am confident that this analogy is reasonably deep and fertile, at least if you assume that some cryptographic construction exhibits high enough _minimum obfuscation overhead_ for the topic of cryptoacoustics to be viable in the long term. On that count, I am cautiously optimistic, but we need a theory of cryptoacoustics before answering that question is really possible.
+The analogy between cryptography and signals is not completely clarified in my mind. However, I am confident that this analogy is reasonably deep and fertile, at least if you assume that some cryptographic construction exhibits high enough advantage for the topic of cryptoacoustics to be viable in the long term. On that count, I am cautiously optimistic, but we need a theory of cryptoacoustics before answering that question is really possible.
 
 [![Aircraft engines produced unprecedented sound, so in order to hear them at a distance, the war efforts developed listening devices. A two-horn system at Bolling Field, USA, 1921.](design-documents/media/acoustic_locator_11.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
 
@@ -154,7 +154,7 @@ Our recurring example of a botnet-based password cracker is really just one of t
 
 For example, if the hash thief were to post a crackable version of your password database on an underground forum, then it will be either trivial or at least possible for any individual on that forum to get in contact with you and sell out the thief.
 
-Of course this requires your organization to do three things. First, you must operate a tip line for gathering counterintelligence information. Second, you must rise above the [utterly worn-out IT cliché of metaphorically shooting the messenger who reports any cybersecurity issue](https://soatok.blog/2022/06/14/when-soatok-used-bugcrowd/). If you don't treat your informants with respect, they won't come back. Futhermore you run the risk of developing a bad reputation so that another potential informant declines to engage with your tipline. Third, you must learn to adopt [antifragile](https://en.wikipedia.org/wiki/Antifragile_\(book\)) [attitudes and practices](https://www.securitychaoseng.com/), and learn to take the information being given to you on your tipline cautiously but seriously.
+Of course this requires your organization to do three things. First, you must operate a tip line for gathering counterintelligence information. Second, you must rise above the [utterly worn-out IT cliché of metaphorically shooting the messenger who reports any cybersecurity issue](https://soatok.blog/2022/06/14/when-soatok-used-bugcrowd/). If you don't treat your informants with respect, they won't come back. Furthermore you run the risk of developing a bad reputation so that another potential informant declines to engage with your tipline. Third, you must learn to adopt [antifragile](https://en.wikipedia.org/wiki/Antifragile_\(book\)) [attitudes](https://kellyshortridge.com/blog/posts/what-does-the-word-security-mean/) and [practices](https://www.securitychaoseng.com/), and learn to take the information being given to you on your tipline cautiously but seriously.[^inductive_attitude]
 
 In doing so, I hope that it will become increasingly untenable to post password databases where they can be seen by others without drawing the attention of the relevant security departments. In effect, this is an attempt to move towards a closer approximation of [closed-loop](https://en.wikipedia.org/wiki/Closed-loop_controller) detection of leaked password hashes. In the longer run, I hope that will disrupt the activities of the cybercriminal scene. That said, I expect the more profound change in behavior will ultimately be on the part of security departments.
 
@@ -172,7 +172,7 @@ PHKDF is a unification and synthesis of PBKDF2, HKDF, and TupleHash.  The name w
 
 For example, it's not a great idea to use literal PBKDF2 to generate more than one output block worth of data. It would make much more sense to take HKDF apart into it's constituent `HKDF-Extract` and `HKDF-Expand`, and then replace the extraction function with a call to PBKDF2, and feed exactly one output block from PBKDF2 as the pseudorandom key to `HKDF-Expand`.
 
-This is more or less exactly what the [`phkdfVerySimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs) function does. This is included in API documentation as a conceptual simplification of the [`phkdfSimple`](phkdf/lib/Crypto/PHKDF.hs), which is a more fully worked example with a reference implementation.
+This is more or less exactly what the [`phkdfVerySimple`](phkdf/lib/Crypto/PHKDF/Primitives.hs) function does. This is included in API documentation as a conceptual simplification of [`phkdfSimple`](phkdf/lib/Crypto/PHKDF.hs), which is a more fully worked example with a reference implementation.
 
 The difference between these examples and the sketch above is that they actually use [`phkdfStream`](phkdf/lib/Crypto/PHKDF/Primitives.hs) instead of literal PBKDF2 and HKDF. This low-level primitive is a mildly dangerous modification of `HKDF-Expand` which is specified in [RFC 5869](https://datatracker.ietf.org/doc/html/rfc5869).
 
@@ -205,7 +205,7 @@ Heritage Toronto 2018](design-documents/media/toronto-recursive-history.jpg)](ht
 
 The [Seguid Protocol](design-documents/seguid.md) is a domain-specific hash function that produces Self-Documenting Globally Unique Identifiers, or _seguids_. Seguids are self-documenting in the sense that they cryptographically attest to their own provenance and their own official documentation for y'all to follow.
 
-The self-referential sign above isn't quite a proper seguid, but there is certainly a meaningful connection. The supply-chain attack alluded to Ken Thompson's famous 1983 lecture "Reflections on Trusting Trust" is an example of a [offensive Quine](https://research.swtch.com/nih) used to deliver a self-replicating exploit. By contrast, a seguid is an example of a defensive [Quine](https://en.wikipedia.org/wiki/Quine_\(computing\)) used to deliver self-replicating documentation.
+The self-referential sign above isn't quite a proper seguid, but there is certainly a meaningful connection. The supply-chain attack alluded to in Ken Thompson's famous 1983 lecture "Reflections on Trusting Trust" is an example of a [offensive Quine](https://research.swtch.com/nih) used to deliver a self-replicating exploit. By contrast, a seguid is an example of a defensive [Quine](https://en.wikipedia.org/wiki/Quine_\(computing\)) used to deliver self-replicating documentation.
 
 The Seguid Protocol turns HMAC's key parameter into a cryptoacoustic tagging location subject to a few mild limitations. The ability to compute an HMAC function does not imply direct knowledge of the HMAC key, and so therefore the key does not have any plaintext cryptoacoustic properties. However, the ability to compute an HMAC function does imply knowledge of a cryptographic hash of the HMAC key, so HMAC keys do have indirect cryptoacoustic properties.
 
@@ -237,7 +237,7 @@ Whether or not the particular cryptoacoustic constructions employed by the G3P s
 
 Cryptoacoustics is an alternative form of _digital watermarking_. However, I don't expect the existing literature in this subfield to be of much direct benefit to developing a proper theoretical basis for cryptoacoustics, as there seems to always be differences in assumptions that often seem irreconcilable.
 
-For example, wikipedia describes [digital watermarking](https://en.wikipedia.org/wiki/Digital_watermarking) as "a kind of marker covertly embedded in a noise-tolerant signal such as audio, video or image data." By contrast, cryptoacoustics attempts to _overtly_ embed a tag into a noise-_intolerant_ signal, namely the inputs to a cryptographic function.  This intolerance for noise hopefully serves as a bulwark against obfuscation.
+For example, Wikipedia describes [digital watermarking](https://en.wikipedia.org/wiki/Digital_watermarking) as "a kind of marker covertly embedded in a noise-tolerant signal such as audio, video or image data." By contrast, cryptoacoustics attempts to _overtly_ embed a tag into a noise-_intolerant_ signal, namely the inputs to a cryptographic function.  This intolerance for noise hopefully serves as a bulwark against obfuscation.
 
 The literature usually requires that a watermarked signal be nearly identical to the original signal. By contrast, a tagged hash should be statistically independent from any untagged hash without access to the underlying cryptographic secrets. This property helps provide the plausible deniability of any given tag.
 
@@ -271,7 +271,7 @@ At my own current level of understanding of my own design, incorporating cryptoa
 
 On the other hand, this is a problem for password hash functions such as argon2. While appending a tag after the password has cryptoacoustic properties, that input is a horn-loaded parameter into the internal argon2 algorithm. This means we can discard the password _and tag_ during the key-stretching computation.
 
-In our metaphor of the cryptoacoustic Enigma machine applied to argon2, it's a bit like as if the prerecorded tape played one little thing quietly, and then went completely silent for the rest of the song-and-dance routine. Unfortunately, this arrangement is inherent to argon2 because there simply no way to include cryptoacoustic repititions of the tag during the key-stretching phase.
+In our metaphor of the cryptoacoustic Enigma machine applied to argon2, it's a bit like as if the prerecorded tape played one little thing quietly, and then went completely silent for the rest of the song-and-dance routine. Unfortunately, this arrangement is inherent to argon2 because there simply no way to include cryptoacoustic repetitions of the tag during the key-stretching phase.
 
 As a result, the cryptoacoustic security of this argon2-based construction is relatively dependent on blake2 exhibiting high minimum obfuscation overhead, in much the same way that the Seguid Protocol is similarly dependent on the cryptoacoustic efficiency of SHA512.
 
@@ -296,7 +296,7 @@ Though qualitatively describing the similarities and differences between the cry
 Maybe someday humanity will even see low-level cryptographic hash functions designed to maximize the minimum obfuscation overhead, thus maximizing the cryptoacoustic potential of that specific hash function.
 
 [^steampunk]:
-    If this metaphor is taken a bit too literally, it does have a subtle but undeniably steampunk vibe. Analog audio introduces noise, but inputs to a cryptographic hash function are noise-intolerant. This kind of fundamental incompatibility is rarely a problem in a steampunk storyline.
+    If this metaphor is taken a bit too literally, it does have a subtle but undeniably steampunk vibe. Analog audio introduces noise, but inputs to a cryptographic hash function are noise-intolerant. This kind of fundamental incompatibility is rarely a problem in a steampunk story line.
 
     On the other hand, digital audio requires electronics that can operate much faster than electromechanical switches, so why would the Cryptoacoustic Enigma Machine still be using rotors?
 
@@ -312,9 +312,31 @@ Maybe someday humanity will even see low-level cryptographic hash functions desi
 [^contextual_parameters_and_password_hashing]:
     The application of contextual parameters to password hashing is an idea I originated independently. Though I don't have any references at hand, it also feels like an idea that probably isn't exactly entirely novel. In any case, the use of contextual parameters during password hashing is not widely practiced or advocated for.
 
-    On the other hand, the interrelated ideas of cryptoacoustics and self-documenting cryptography feels rather novel to me. I still find parts of the idea surprising. To me, the trick feels vaguely reminscient of the [100 prisoners problem](https://en.wikipedia.org/wiki/100_prisoners_problem).
+    On the other hand, the interrelated ideas of cryptoacoustics and self-documenting cryptography feels rather novel to me. I still find parts of the idea surprising. To me, the trick feels vaguely reminiscent of the [100 prisoners problem](https://en.wikipedia.org/wiki/100_prisoners_problem).
 
 [^group_operation]: This also works when any kind of easily invertible group operation is used to perturb the state machine.
 
 [^cryptoacoustic_efficiency]:
-    Cryptoacoustic advantage, which suggests vocabulary commonly used cryptography, would seem to be synonymous with _cryptoacoutic efficiency_ in an analogy to the efficiency of a loudspeaker. For example, the sound pressure level produced by a pair of bookshelf speakers at 1 watt is typically around 85 dB or so.
+    Cryptoacoustic advantage, which suggests vocabulary commonly used cryptography, would seem to be synonymous with _cryptoacoustic efficiency_ in an analogy to the efficiency of a loudspeaker. For example, the sound pressure level produced by a pair of bookshelf speakers at 1 watt is typically around 85 dB or so.
+
+
+[^inductive_attitude]:
+    In our personal life we often cling to illusions. That is, we do not dare to examine certain beliefs which could be easily contradicted by experience, because we are afraid of upsetting our emotional balance. There may be circumstances in which it is not unwise to cling to illusions, but in science we need a very different attitude, the _inductive attitude_. This attitude aims at adapting our beliefs to our experience as efficiently as possible. It requires a certain preference for what is matter of fact. It requires a ready ascent from observations to generalizations, and a ready descent from the highest generalizations to the most concrete observations. It requires saying "maybe" and "perhaps" in thousand different shades. It requires many other things, especially the following three.
+
+    First, we should be ready to revise any one of our beliefs.
+
+    Second, we should change a belief when there is a compelling reason to change it.
+
+    Third, we should not change a belief wantonly, without some good reason.
+
+    These points sound pretty trivial. Yet one needs rather unusual qualities to live up to them.
+
+    The first point needs "intellectual courage." You need courage to revise your beliefs. Galileo, challenging the prejudice of his contemporaries and the authority of Aristotle, is a great example of intellectual courage.
+
+    The second point needs "intellectual honesty." To stick to my conjecture that has been clearly contradicted by experience just because it is _my_ conjecture would be dishonest.
+
+    The third point needs "wise restraint." To change a belief without serious examination, just for the sake of fashion, for example, would be foolish. Yet we have neither the time nor the strength to examine seriously all of our beliefs. Therefore it is wise to reserve the day's work, our questions, and our active doubts for such beliefs we can reasonably expect to amend. "Do not believe anything, but question only what is worth questioning."
+
+    Intellectual courage, intellectual honesty, and wise restraint are the moral qualities of the scientist.
+
+    - G. Pólya, "Mathematics and Plausible Reasoning, Vol I: Induction and Analogy in Mathematics", Chapter 1, Section 4. See also the [Tools of Math Construction](https://github.com/constructive-symmetry/constructive-symmetry), a study guide regarding math, logic, and reason.
