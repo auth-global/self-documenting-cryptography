@@ -2,36 +2,77 @@
 
 {- |
 
-The Global Password Prehash Protocol (G3P) is a slow, self-documenting
-cryptographic hash function.  It is self-documenting in the sense that its
-password hashes are supposed to be /traceable/ or /useless/ after they have
-been /stolen/. This secondary security goal seeks to use /cryptoacoustics/,
-the art of encoding messages in cryptographic state transitions, in such a way
-to make it impractically expensive to hide the target of a password cracking
-attack from those providing the resources to carry it out. In doing so, offline
-attacks on password hashes cannot be outsourced without also knowing exactly
-where to report those password hashes as stolen.
+The [Global Password Prehash Protocol (G3P)](https://github.com/auth-global/selfd-ocumenting-cryptography/blob/prerelease/design-documents/g3p.md)
+is a slow, attribution-armored password hash function and cryptographic key
+derivation function. It supports [self-documenting deployments](https://www.cut-the-knot.org/Curriculum/Algebra/SelfDescriptive.shtml)
+whose password hashes are /traceable/ or /useless/ after they have been /stolen/.
+This secondary security goal seeks to use [/cryptoacoustics/](https://github.com/auth-global/self-documenting-cryptography/)
+to provide [/embedded attributions/](https://joeyh.name/blog/entry/attribution_armored_code/)
+that are as difficult as possible for an adversarial implementation to remove.
 
-The G3P revisits the role of cryptographic salt, in order to be both
-self-documenting and particularly well-suited to deployment as a client-side
-prehash function. In a traditional password hash function, the salt is a random
-bytestring typically between 8 and 32 bytes long. One of its primary purposes
-is to identifiy a unique hash function so that one cannot attempt to crack
-multiple password hashes with a single key-stretching computation. Oftentimes
-this is implemented by storing a salt per user.
+The G3P revisits the role of cryptographic salt, splitting the salt into the
+cartesian product of the /seguid/, /username/, and /tag/ parameters. Any
+parameter with "tag" as part of the name is an embedded attribution to anybody
+who is providing the inputs to the /username/ or /password/ parameters. Tags are
+themselves directly self-documenting embedded attributions, in the sense that
+one cannot easily or efficiently replace the tag with anything else without
+losing the ability to compute the correct hash function.
+
+The /seguid/ corresponds to the key used for every call to HMAC-SHA256, right up
+until final output expansion. In this way the G3P mimicks the construction of
+HKDF, with the seguid corresponding to HKDF's /salt/ parameter. The G3P also
+mimicks PBKDF2 used in an alternate mode of operation.
+
+The seguid can be trivially replaced with a /precomputed HMAC key/, thus the
+seguid is not a tag. However this key is a cryptographic hash of the seguid,
+and for this reason the seguid is capable of serving as an /indirect/ embedded
+attribution, which the Seguid Protocol is designed to utilize via
+Self-Documenting Globally Unique Identifiers (seguids).
+
+It is strongly recommend a deployment identify itself with a single 64-byte
+(512-bit) seguid, and the deployment's choice of plaintext messages to be
+delivered via tags. These salts can be constants across the entire deployment,
+as the username is intended to be used as the final bit of salt within a
+deployment.
+
+In a traditional password hash function, the salt is a random bytestring
+typically between 8 and 32 bytes long. One of its primary purposes is to
+identifiy a unique hash function so that one cannot attempt to crack multiple
+password hashes with a single key-stretching computation. Oftentimes this
+is implemented by storing a salt per user.
 
 However, in the context of a client-side prehash, storing a salt per user has
 the potential to leak whether or not an account exists, or if a password has
-changed. The G3P eliminates these complications, because these random per-user
-salts have been replaced with @username@, the @seguid@, and the @domainTag@
-and other plaintext tags. We strongly recommend a deployment identify itself
-with a single 64-byte (512-bit) seguid, and the deployment's choice of
-plaintext messages to be delivered via cryptoacoustic tags.
+changed. The G3P has the option of eliminating these complications, because
+it is perfectly safe to use a plain username as the salt, in addition to the
+deployment-identifying seguid and tags.
 
-These salts can be constants across the entire deployment, as the username is
-intended to be used as the final bit of salt within a deployment. If a
-deployment wants to add their own random per-user salt, the G3P has room to do
-so. Theoretically, one could specify a G3P-based hash function that requires
+On the other hand, if one is aware of the potential issues surrounding the
+implementation of a random per-user salt in a client-side hashing context, and
+is willing to mitigate or live with them, then there are potential advantages
+to using a random salt as the input to the G3P's @username@ parameter instead.
+
+In this way, all parameter names are suggestive, not prescriptive. Usage is
+ultimately defined by the deployment.
+
+When somebody is guessing a username, they must also know (or guess) the
+password. However, the username need not be revealed to somebody who is guessing
+the password, as the raw username can always be replaced by a hash. If this
+intentional feature is not desired, a deployment might choose to swap the
+username and password, as these inputs are otherwise functionally identical.
+
+In this way, The usage and interpretation(s) of any given parameter is always
+defined by the deployment, and is never defined by offical G3P documentation
+or specifications.
+
+The G3P always has room for more salt. It doesn't really make sense to inject
+more than 256 bits of entropy into the username parameter, because when the G3P
+is partially applied to a constant username, the raw input can be replaced with
+a SHA256 state. This is not true of any of the tags: it doesn't matter how long
+it is, the whole tag must be present for the hash computation to be correct.
+
+Every parameter with the word _tag_ in its name exhibits this property.
+Theoretically, one could specify a G3P-based hash function that requires
 terabytes of salt to be hashed billions of times over. However it is unclear
 what purpose such an impractical specification might serve.
 
@@ -42,10 +83,10 @@ alternate role as well, with the PHKDF adding a tiny bit of key stretching and
 bcrypt providing significant additional cryptoacoustic plaintext repetitions.
 
 1.  Every bit of every parameter matters. Every boundary between parameters
-    matters. The presence and position of every empty string matters. There
-    aren't supposed to be any trivial collisions, the only exception being
-    null-byte extension collisions on the seguid, which serves as an
-    HMAC-SHA256 key.
+    matters. The presence and position of every null byte and every empty
+    string matters. There aren't supposed to be any trivial collisions, the
+    only exception being null-byte extension collisions on the seguid, which
+    serves as an HMAC-SHA256 key.
 
 2.  Except for the tweaks, any change to any parameter requires restarting the
     PHKDF key-stretching computation from somewhere in the very first call to
@@ -133,27 +174,22 @@ import           Crypto.G3P.BCrypt
 --   constant seguid.  It is highly recommended that the seguid input be a
 --   genuine Self-Documenting Globally Unique Identifier attesting to the
 --   parameters, purposes, and public playbook of the protocol for y'all
---   to follow.
+--   to follow to use the deployment to spec.
 --
---   In more concrete cryptographic terms, the seguid parameter is the constant
---   HMAC key used by the protocol right up until the final output expansion.
---   This design is closely modeled on the HKDF construction. As such, adding
---   null bytes onto the ends of seguids that are less than 64 bytes long
---   should be the only source of trivial collisions in the entire protocol.
---
---   The remaining string parameters are all directly-documenting,
---   cryptoacoustic plaintext tags. A deployment can use these tags to encode
---   a message into the password hash function so that it must be known to
---   whomever can compute it.  There are a variety of different parameters
---   because there are different lengths of messages that can be expressed
---   for free, and there are different incremental costs for exceeding that
---   limit.
+--   The remaining string parameters are all directly-documenting, embedded
+--   attributions. A deployment can use these tags to encode a message into the
+--   password hash function so that it must be known to whomever can compute it.
+--   There are a variety of different parameters because there are different
+--   lengths of messages that can be expressed for free, and there are different
+--   incremental costs for exceeding that limit.
 --
 --   It is particularly important to include some kind of actionable message
 --   in the @domainTag@, @longTag@, @bcryptTag@, and @bcryptSaltTag@
 --   parameters. Specifying an empty string in any of these parameters
 --   means that a significant quantity of cryptoacoustic messaging space will
 --   be filled with silence.
+--
+--   Useful messages include URIs, legal names, and domain names.
 
 data G3PInputBlock = G3PInputBlock
   { g3pInputBlock_seguid :: !ByteString
@@ -167,6 +203,11 @@ data G3PInputBlock = G3PInputBlock
     --   Tags up to 83 or maybe even 147 bytes long might be reasonable.
     --   In the case of longer domain tags, it is strategically advantageous
     --   to ensure that the first 32 bytes are highly actionable.
+    --
+    --   This parameter provides [domain separation](https://csrc.nist.gov/glossary/term/domain_separation).
+    --   A suggested value is a ICANN domain name controlled by the deployment.
+    --   The name is also a bit of an homage to the "realm" parameter of HTTP
+    --   basic authentication, which in part inspired it.
   , g3pInputBlock_longTag :: !ByteString
     -- ^ plaintext tag with 1x repetition, then cycled for roughly
     --   8 kilobytes.  Constant time on inputs up to nearly 5 kilobytes.
@@ -280,11 +321,11 @@ data G3PInputTweak = G3PInputTweak
 --
 --   If you ever need to serialize or persist a seed, you probably want this.
 --
---   Intended to be generated by 'g3pHash_seedInit' and then consumed
---   without modification by 'g3pHash_seedFinalize'.
+--   Intended to be generated by 'g3pHash_seedInit' and consumed
+--   by 'g3pHash_seedFinalize'.
 
 data G3PSeed = G3PSeed
-  { g3pSeed_seguid :: !ByteString
+  { g3pSeed_seguid :: !ByteString  -- ^ filled in for convenience by 'g3pHash_seedInit', but ignored by 'g3p_seedFinalize'
   , g3pSeed_seguidKey :: !HmacKey
   , g3pSeed_domainTag :: !ByteString
   , g3pSeed_secret :: !ByteString
@@ -300,9 +341,9 @@ data G3PSeed = G3PSeed
 -- @
 --
 --   However in the case that you want or need to persist or serialize the
---   intermediate seed, then the plain-old-datatype 'G3PSeed' and its
---   companion functions 'g3pHash_seedInit' and 'g3pHash_seedFinalize'
---   are likely to be more appropriate.
+--   intermediate seed, or change the seguid or domain tag before final output
+--   expansion, then the plain-old-datatype 'G3PSeed' and its companion
+--   functions 'g3pHash_seedInit' and 'g3pHash_seedFinalize' are needed.
 
 g3pHash :: G3PInputBlock -> G3PInputArgs -> G3PInputTweak -> Stream ByteString
 g3pHash block args = g3pHash_seedInit block args & g3pHash_seedFinalize
@@ -413,9 +454,10 @@ g3pHash_seedInit block args =
         phkdfCtx_finalize (word32 "SEED") phkdfTag
 
 -- | This consumes a seed and tweaks to produce the final output stream.
--- This function is the output expansion phase of 'g3pHash'.  This function
--- is way faster than it's companion 'g3pHash_seedInit'.  Broadly comparable to
--- HKDF-Expand.
+-- This function is the output expansion phase of 'g3pHash'. This function
+-- is way faster than it's companion 'g3pHash_seedInit'. Broadly comparable to
+-- HKDF. Note that this function ignores 'g3pSeed_seguid' in favor of
+-- 'g3pSeed_seguidKey'.
 
 g3pHash_seedFinalize :: G3PSeed ->  G3PInputTweak -> Stream ByteString
 g3pHash_seedFinalize seed tweak = echo

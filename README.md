@@ -2,7 +2,7 @@
 
 ![Property of YOUR COMPANY INC.](design-documents/media/property-tag.png)
 
-The [Global Password Prehash Protocol (G3P)](g3p-hash/lib/Crypto/G3P.hs) is [designed](design-documents/g3p.md) to be a password hash function and key derivation function, based on PHKDF and bcrypt. The algorithm behind the G3P is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape deck](https://en.wikipedia.org/wiki/Digital_Audio_Tape) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker) which provides a form of _digital watermarking_.[^steampunk]
+The [Global Password Prehash Protocol (G3P)](g3p-hash/lib/Crypto/G3P.hs) is [designed](design-documents/g3p.md) to be a password hash and key derivation function, based on PHKDF and bcrypt. The algorithm behind the G3P is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape deck](https://en.wikipedia.org/wiki/Digital_Audio_Tape) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker) which provides a form of _digital watermarking_.[^steampunk]
 
 The position of the G3P's rotors are initialized by a _seguid_. Then the user types their username and password on the keyboard, which causes the position of the rotors to change.
 
@@ -10,23 +10,27 @@ The G3P has no internal state beyond the position of the rotors. After the data 
 
 Finally, the user plays a prerecorded message on the tape deck. This message is typically provided by the deployment to the user, and is typically not a secret. A reasonable choice of message might be something like "this password hash function is for employees of Your Company, Inc, to log into the website https://employees.your-company.example. If you run across any stolen password hashes, please call 555-YOUR-SPY and report them."[^tipline]
 
-This message should narrate the precise purpose of this particular password, thus serving as a digital variant of a physical _property tag_ that you can affix to tangible property. As the message is played back on the loudspeaker, the watermarking process causes the position of the rotors to change accordingly. After this song-and-dance routine is complete, the final position of the rotors provides the derived key, which is also suitable as a traditional password hash.
+This message should narrate the precise purpose of this particular password, thus serving as a digital variant of a physical _property tag_ that you can affix to tangible property.
+
+As this message is played back on the loudspeaker, the watermarking process causes the position of the rotors to change accordingly. After the song-and-dance routine is complete, the final position of the rotors provides the derived key, which is also suitable as a traditional password hash.
+
+In one sense, this message becomes part of the password itself, providing an [embedded attribution](https://joeyh.name/blog/entry/attribution_armored_code/) that hopefully cannot be removed without losing the ability to compute the correct password hash function. In the terminology of Joey Hess's blog post, the G3P is an attempt at an attribution-armored password hash function. The G3P sets up a series of chokepoints in the password hashing algorithm so that each chokepoint itself signals a specific embedded attribution.
 
 The G3P's primary security goal is traditional: it must be impossible to directly decrypt a password hash, the algorithm must provide key stretching, and it should also be perfectly suitable for use as a key derivation function. Any failure of the sound system integrated into the G3P must not impact this primary mission.
 
 Thus G3P's secondary security goal is that password hashes should be _traceable_ or _useless_ after they have been _stolen_. If you know how to crack a password hash, you should know where to report it as stolen. If you don't know where to report a password hash as stolen, you shouldn't be able to crack it.[^replaying_hashes]
 
-The mechanisms behind this overall process is what I call _cryptoacoustics_. The use cases I suggest adopting result in an example of what I call _[self-documenting](https://www.cut-the-knot.org/Curriculum/Algebra/SelfDescriptive.shtml) cryptography_.
+The mechanisms behind this embedded attribution process is what I call _cryptoacoustics_. The use cases I suggest adopting result in an example of what I call _[self-documenting](https://www.cut-the-knot.org/Curriculum/Algebra/SelfDescriptive.shtml) cryptography_.
 
-Self-documenting cryptography is the use of self-narration and self-reference in cryptographic constructions in order to communicate certain indelible facts to legitimate users and other observers.  It depends upon cryptoacoustics to deliver those messages.
+Self-documenting cryptography is the use of self-narration and self-reference in cryptographic constructions in order to communicate certain indelible facts to legitimate users and other observers. It depends upon cryptoacoustics to deliver those messages.
 
-It's important to play the tape _after_ the user inputs the username and password. If one were to initialize the rotors and then play the tape, then the overall construction wouldn't be cryptoacoustically secure. Somebody could simply initialize the machine, play the tape, and then use the resulting rotor position to initialize multiple other machines to compute the correct hash function without listening to the tape at all.
+It's important to play the tape _after_ the user inputs the username and password. If one were to initialize the rotors and then play the tape, then the overall construction wouldn't be a secure embedded attribution. Somebody could simply initialize the machine, play the tape, and then use the resulting rotor position to initialize multiple other machines to compute the correct hash function without listening to the tape at all.
 
-This is my intuition behind the design patterns that the G3P employs. Our `seguid` corresponds to HMAC's `key` parameter, and any `tag` is part of the pre-recorded message and appended _after_ a user-supplied message. These parameters are what G3P uses as salt, in addition to the username.
+This is my intuition behind the design patterns that the G3P employs. Our `seguid` corresponds to HMAC's `key` parameter, and any `tag` is part of the embedded attribution and appended _after_ a user-supplied message. These parameters are what G3P uses as salt, in addition to the username.
 
 Indeed, HMAC-SHA256 is already it's own Cryptoacoustic Enigma Machine, one that the G3P builds up into a larger machine. In fact, it would seem that most or all existing cryptographic hash functions already are their own Cryptoacoustic Enigma Machine in some form or another. For example, affixing a tag after user-supplied input is plausibly a cryptoacoustically-secure construction for most any common hash function other than Blake3, which still has it's own cryptoacoustic possibilities.[^blake3]
 
-From a point of view that is particularly cautious, this tagging process is nothing more than a novel justification for the `FixedInfo` parameters mentioned in [NIST SP 800-56C](https://csrc.nist.gov/pubs/sp/800/56/c/r2/final), or alternatively the `Label` and `Context` parameters mentioned in [NIST SP 800-108](https://csrc.nist.gov/pubs/sp/800/108/r1/final), which this document refers to as _contextual parameters_, or synonymously, _tags_, which in our metaphor correspond to the prerecorded message on the tape.
+From a point of view that is particularly cautious, this tagging process is nothing more than a novel justification for the `FixedInfo` parameters mentioned in [NIST SP 800-56C](https://csrc.nist.gov/pubs/sp/800/56/c/r2/final), or alternatively the `Label` and `Context` parameters mentioned in [NIST SP 800-108](https://csrc.nist.gov/pubs/sp/800/108/r1/final), which this document refers to as _contextual parameters_, or synonymously, _tags_, which serve as an embedded attribution.
 
 From the point of view of the G3P's primary security model, this tagging process results in domain-specific hash functions that are particularly low-risk substitutes for the underlying, untagged hash function.  The secondary security model is the topic of the next section.
 
@@ -74,7 +78,7 @@ In the metaphor of the Cryptoacoustic Enigma Machine, I assume that an attacker'
 
 The G3P's rotors correspond to the internal state of SHA256, and blowfish's expensive key setup function. The need to hide this internal state suggests that any truly secure tag obscuration attack must incorporate encryption that is homomorphic on these state machines.
 
-Surprisingly, Fully Homomorphic Encryption (FHE) exists. Thus it would seem that the necessary components can be built, at least in principle. Fortunately, the run-time overhead of even state-of-the-art FHE is much too high to be deployed in a practical tag obscuration attack, at least for the time being. Although a truly secure tag obscuration attack need not depend on any particular FHE implementation, it seems plausible that such attack would still impose significant run-time overhead.
+Surprisingly, Fully Homomorphic Encryption (FHE) exists. Thus it would seem that the necessary components can be built, at least in principle. Fortunately, the run-time overhead of even state-of-the-art FHE is much too high to be deployed in a practical tag obscuration attack, at least for the time being. Although a truly secure tag obscuration attack need not depend on any particular FHE implementation, it still seems plausible that such an attack would still impose significant run-time overhead.
 
 The G3P tries to maximize this presumed run-time overhead. In doing so, it is trying to deter attackers from deploying secure tag obfuscation attacks, or at least offering the defenders a meaningful consolation prize if this does happen.
 
@@ -104,9 +108,9 @@ The purpose of _cryptoacoustic repetition_ as employed by PHKDF and the G3P is t
 
 Cryptoacoustics is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes so that our tags are easily decoded and understood by observers, and that maximize the advantage to run-time efficiency of being either forthright or insecurely obfuscated.  This medium hopefully serves as a bulwark against obfuscation because it is _intolerant to noise_.
 
-Conveying a message requires the use of a transmission medium. In our scenario, cryptographic state changes serve as a virtual transmission medium. This medium is purely mathematical and has no physical basis. It arises in the context of past communications that occurred via physical transmission media. In the case of the G3P, this context is that somebody hashed a password, and then somebody else stole that hash.
+Conveying a message requires the use of a transmission medium. In our scenario, cryptographic state changes serve as a virtual transmission medium. This medium is purely mathematical and has no physical basis. Rather, algorithmic chokepoints ride upon the context of past communications that occurred via physical transmission media. In the case of the G3P, this context is that somebody hashed a password, and then somebody else stole that hash.
 
-This tagging process is not unlike a digital watermark, however, the G3P provides no means of authenticating whether or not any purported password hash is genuine or not, so there's plausible deniability baked into this process.
+This tagging process is not unlike a digital watermark, however, the G3P provides no means of authenticating whether or not any purported password hash is genuine or not, so there's _plausible deniability_ baked into this process.
 
 Rather, the tag is only readable during the password hashing process. Thus, this kind of watermark represents a belief about where a password hash came from, a belief that must be correct before offline attacks on truly genuine hashes can be achieved.
 
@@ -124,7 +128,7 @@ The above picture is of a German officer and soldier from 1917 wearing a combine
 
 Some might take umbrage at the fanciful name I've chosen for this technique, but I'm pretty sure it's an important enough technique to deserve a memorable name, and I suspect that reactive resistance to the name tends to be more a symptom of the relatively small intersection between people with a less-than-naive background in cryptography and people with a similar background in signals and systems.
 
-The analogy between cryptography and signals is not completely clarified in my mind. However, I am confident that this analogy is reasonably deep and fertile, at least if you assume that some cryptographic construction exhibits high enough advantage for the topic of cryptoacoustics to be viable in the long term. On that count, I am cautiously optimistic, but we need a theory of cryptoacoustics before answering that question is really possible.
+The analogy between cryptography and signals is not completely clarified in my mind. However, I am confident that this analogy is reasonably deep and fertile, at least if you assume that some cryptographic construction exhibits high enough cryptoacoustic advantage for the topic to be viable in the long term. On that count, I am cautiously optimistic, but we need theory before answering that question is really possible.
 
 [![Aircraft engines produced unprecedented sound, so in order to hear them at a distance, the war efforts developed listening devices. A two-horn system at Bolling Field, USA, 1921.](design-documents/media/acoustic_locator_11.jpg)](https://rarehistoricalphotos.com/aircraft-detection-radar-1917-1940/)
 
@@ -168,7 +172,7 @@ The major design goals for the G3P are that:
 
 ## PHKDF
 
-PHKDF is a unification and synthesis of PBKDF2, HKDF, and TupleHash.  The name was chosen because the construction it suggests is quite literally a portmanteau of the PBKDF2 algorithm and the HKDF algorithm.
+The Password Hash and Key Derivation Function (PHKDF) is a unification and synthesis of PBKDF2, HKDF, and TupleHash.  The name was chosen because the construction it suggests is quite literally a portmanteau of the PBKDF2 algorithm and the HKDF algorithm.
 
 For example, it's not a great idea to use literal PBKDF2 to generate more than one output block worth of data. It would make much more sense to take HKDF apart into it's constituent `HKDF-Extract` and `HKDF-Expand`, and then replace the extraction function with a call to PBKDF2, and feed exactly one output block from PBKDF2 as the pseudorandom key to `HKDF-Expand`.
 

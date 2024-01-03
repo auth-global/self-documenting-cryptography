@@ -1,7 +1,9 @@
 name:                g3p-hash
-version:             0.0.0.0
+version:             0.1.0.0
 synopsis:            Global Password Prehash Protocol
-description:         A Self-Documenting Password Hash Function
+description:         A password hash and key derivation function that provides
+                     embedded attributions in order to support self-documenting
+                     deployments.
 license:             Apache-2.0
 license-file:        LICENSE
 author:              Leon P Smith
