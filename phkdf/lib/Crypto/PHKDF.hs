@@ -195,7 +195,7 @@ data PhkdfInputArgs = PhkdfInputArgs
 
 data PhkdfInputTweak = PhkdfInputTweak
   { phkdfInputTweak_role :: !(Vector ByteString)
-  , phkdfInputTweak_tags :: !(Vector ByteString)
+  , phkdfInputTweak_echoTag  :: !ByteString
   } deriving (Eq, Ord, Show)
 
 -- | A plain-old-data explicit representation of the intermediate 'phkdfPass'
@@ -266,7 +266,7 @@ phkdfSimple block args = echo
         phkdfCtx_addArg (bareEncode (V.length tags)) &
         phkdfSlowCtx_extract
             (word32 "go\x00\x00" + 2023) phkdfTag
-            ("phkdf-simple0 compact\x00" <> domainTag) rounds &
+            "phkdf-simple0 compact" rounds &
         phkdfSlowCtx_assertBufferPosition 32 &
         phkdfSlowCtx_addArgs tags &
         phkdfSlowCtx_finalize
@@ -353,7 +353,7 @@ phkdfPass_seedInit block args =
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
         phkdfSlowCtx_extract
             (word32 "go\x00\x00" + 2023) phkdfTag
-            ("phkdf-pass-v0 compact\x00" <> domainTag) rounds &
+            "phkdf-pass-v0 compact" rounds &
         phkdfSlowCtx_assertBufferPosition 32 &
         phkdfSlowCtx_addArgs seedTags &
         phkdfSlowCtx_finalize
@@ -371,18 +371,28 @@ phkdfPass_seedFinalize seed tweak = echo
     secret = phkdfSeed_secret seed
 
     role = phkdfInputTweak_role tweak
-    echoTags = phkdfInputTweak_tags tweak
+    echoTag = phkdfInputTweak_echoTag tweak
 
     phkdfTag = expandDomainTag domainTag
 
-    headerCombine = "phkdf-pass-v0 combine" <> secret
+    headerCombine = B.concat ["phkdf-pass-v0 combine", leftEncodeFromBytes (B.length domainTag), secret]
     secretKey =
         phkdfCtx_initFromHmacKey seguidKey &
         phkdfCtx_addArg  headerCombine &
         phkdfCtx_addArgs role &
-        phkdfCtx_addArgs echoTags &
         phkdfCtx_finalize (word32 "KEY\x00") phkdfTag
 
+    echoTagLen = leftEncodeFromBytes (B.length echoTag)
+
+    phkdfEchoTag = expandDomainTag echoTag
+
+    headerEcho = B.concat [
+      echoTagLen,
+      cycleByteStringWithNull
+         (29 - B.length echoTagLen)
+         (domainTag <> "\x00phkdf-pass-v0 echo")
+      ]
+
     echo = phkdfCtx_init secretKey &
-           phkdfCtx_addArgs echoTags &
-           phkdfCtx_finalizeStream (word32 "OUT\x00") phkdfTag
+           phkdfCtx_addArg headerEcho &
+           phkdfCtx_finalizeStream (word32 "OUT\x00") phkdfEchoTag

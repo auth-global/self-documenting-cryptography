@@ -121,6 +121,7 @@ genResultEnv tvs =
       | alg == "phkdf-simple" =
           case getPhkdfSimpleInputs resultEnv args of
             Just inputs -> Right (uncurry phkdfSimple inputs)
+
             Nothing -> Left "arguments not parsed"
       | otherwise = Left "algorithm name not recognized"
       where
@@ -336,7 +337,7 @@ getMaybeByteString = \case
 
 getPhkdfPassBlock :: ResultEnv -> KeyMap Val -> Maybe (PhkdfInputBlock, KeyMap Val)
 getPhkdfPassBlock env = \case
-  (matchKey env "domain-tag" -> (Just (Str phkdfInputBlock_domainTag),
+  (matchKey' env "domain-tag" -> (Just (Str phkdfInputBlock_domainTag),
    matchKey env "seguid" -> (getByteString_defaultEmpty -> Just phkdfInputBlock_seguid,
    matchKey env "long-tag" -> (getMaybeByteString -> Just mLongTag,
    -- use matchKey' to leave the "tags" argument behind for getPhkdfPassTweak
@@ -352,22 +353,31 @@ getPhkdfPassBlock env = \case
 getPhkdfSimpleBlock :: ResultEnv -> KeyMap Val -> Maybe (PhkdfInputBlock, KeyMap Val)
 getPhkdfSimpleBlock env = \case
   (getPhkdfPassBlock env -> Just (block,
-   matchKey env "echo-tags" -> (getByteStringVector_defaultEmpty -> Just echoTags,
+   matchKey env "echo-tag" -> (getMaybeByteString -> Just echoTag,
     args')))
-    -> let block' = block {
-               phkdfInputBlock_tags = phkdfInputBlock_tags block <> echoTags
-             }
-        in Just (block', KM.delete "tags" args')
+    -> let args'' = KM.delete "tags" (KM.delete "domain-tag" args')
+        in case echoTag of
+             Nothing -> Just (block, args'')
+             Just echoTag ->
+                let block' = block {
+                      phkdfInputBlock_tags = V.snoc (phkdfInputBlock_tags block) echoTag
+                      }
+                 in Just (block',args'')
   _ -> Nothing
 
 getPhkdfPassTweak :: ResultEnv -> KeyMap Val -> Maybe (PhkdfInputTweak, KeyMap Val)
 getPhkdfPassTweak env = \case
   (matchKey env "role" -> (getByteStringVector_defaultEmpty -> Just phkdfInputTweak_role,
    matchKey env "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
-   matchKey env "echo-tags" -> (getByteStringVector_defaultEmpty -> Just echoTags,
-   args'))))
-    -> let phkdfInputTweak_tags = tags <> echoTags
-        in Just (PhkdfInputTweak{..}, args')
+   matchKey env "echo-tag" -> (getMaybeByteString -> Just mEchoTag,
+   matchKey env "domain-tag" -> (getByteString -> Just domainTag,
+   args')))))
+    -> case mEchoTag of
+        Nothing ->
+          let phkdfInputTweak_echoTag = domainTag
+           in Just (PhkdfInputTweak{..}, args')
+        Just phkdfInputTweak_echoTag ->
+          Just (PhkdfInputTweak{..}, args')
   _ -> Nothing
 
 matchKey, matchKey' :: ResultEnv -> Key -> KeyMap Val -> (Maybe Val, KeyMap Val)

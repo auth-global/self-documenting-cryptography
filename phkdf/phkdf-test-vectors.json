@@ -8,8 +8,8 @@
         "rounds":1998
     },
     "results":{
-        "phkdf-pass":"2c7a9f6b8f12c07f7d6c49c1a373ae58a12d7a053b452136c84fa41d56e4d71f984141739f3a688ce64fbbaaee7ea867dba1374d1f62c80f7588dc3e4fd2a54a",
-        "phkdf-simple":"ae6d9c6b4896953dfaabfbca49f6a7ab93fb97b4e82c72f6652c54ba5503776192d7cc039caf5d8ebfb8870a89d87b9205625038f0c170232746a8b27b288ef4"
+        "phkdf-pass":"a61194feea4a94f71efdd9cd5b666c8fabee370ba28959331c8ae14f16bd51b0c2d557b57e609831e79c47f511ef67c1df0dd82b512a15095d4c5b237cf6c425",
+        "phkdf-simple":"e5058cb698eb50addb02cf89ac504ff61df60be2f8f12bc384a39711d9770ce20a372e1ebea3ba98c311baab8b77186bee18126f6b3035a6379760b63726ce5e"
     }
 },{
     "name":"phkdf first light, elaborated",
@@ -21,12 +21,12 @@
         "domain-tag":"1-800-CALL-SPY",
         "seed-tags":["United States Army Counterintelligence Tip Line"],
         "role":["prankster"],
-        "echo-tags":["Star Trek IV: The Voyage Home","https://www.youtube.com/watch?v=MdSJFrhb-HM"],
+        "echo-tag":"Star Trek IV: The Voyage Home https://www.youtube.com/watch?v=MdSJFrhb-HM",
         "rounds":1998
     },
     "results":{
-        "phkdf-pass":"cce50c5fc018f5a8b5c161fe8bd97fb7f0e0036fde49b3076ca1ce18fed80d34e69bdca1483ec946aded7476a16f1fefc2542c7d41ca82d47cf5ede64b664a37",
-        "phkdf-simple":"d0e14669c8a12aa4a3385990cbf3864cbb7339b82b30f6eaec64e5f075cb87c268de93d974593ee3d9a92d13252dcb8d379795d1977554a2ede54c9b498ff6b8"
+        "phkdf-pass":"520c9ebe5822bbee155eb3b0d6f715c5ea7129010643851923fb32f2d11ab4d8fc9637bc3521e36bd14f6a48e9bbc7c18aedd35e9170ccaa52aacc748afb147c",
+        "phkdf-simple":"ebd3132de6d8581394a51a33f7310b0c52c2450b5735718bc4192ff639f088c58b0b475608fb9f8face7bb20537becbd1ead09438354f293e21cb3579673c85c"
     }
 },{
     "name":"phkdf unicode test, inset naval story with a reference",
@@ -34,19 +34,19 @@
         "username":"Р-360 «Нептун»",
         "password":"Русский военный корабль, иди нахуй",
         "seed-tags":["Державне Київське конструкторське бюро «Луч»"],
-        "echo-tags":["Збройні Cили України «ЗСУ»"],
+        "echo-tag":"Збройні Cили України «ЗСУ»",
         "domain-tag":"Україна",
         "rounds":2022
     },
     "results":[
-        {"phkdf-pass":"cd41fc9eaea2638c2ffd39fdb5061fd675348ca07124cfb95d173c0a701edf8f493f25116b60e48831458e2b5fef9c853808edbaa78bfebca34db8f2ca3190fe",
-         "phkdf-simple":"b5b9403d66c8dd963761c2b7a32bdc27ec5a3aa7438e0127765daa0cc8ae524b1bf4c4085eba7d13d7a2a06b3aecd108a595da366cfb4dbb9ace74588b6d329f"},
+        {"phkdf-pass":"e5c82a319b5b8795345f8c8896cca0874f7cba47da23b3264a42ce4cc2c5b29864790cbf5d6fa49c05a7c9c10a8c4d440a1eb284efc781be9e643c6d18f7cbf3",
+         "phkdf-simple":"c393a48cf6a4977b76586b426dde202f4b69309ea9d66d012fe60ae926bafb6b1c7bd67051d3c540cd5537b12e23672398ba0124bb44ab62854cc2f1d65fa158"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40"}},
-         "phkdf-pass":"78a0822707767d22b5d3e7efa2b112017b4ad53dd33a23623b3771caf58f2c2dee8d29a670bb3ceda0476f685c8036c53cde775d7cd18140fc14889ffd9262a4",
-         "phkdf-simple":"31ad71c79bdaedab54022748f31b7962b9008f74d3321db9a2547f4f5d1f6a341c457bdb21d7fa1e3746d2c8e217b7e69c60c8d1828652cbc32a095d176aba36"},
+         "phkdf-pass":"41a6f7d19fe713b8f925d27abefd08c9446215ee939cbb41fece37ef49329233af685750f4c8fd61ce84577ab20ace10abb6b6508cfda0bb8053e2f44f4e55ed",
+         "phkdf-simple":"7f527cd249cdbc02f2ab775d77027a9ba7c6389cd264a7abdcfe104e1fe8f9c8039daf29d81711a61314988eca16d30c0dfee70132ec098b35937b43169062a3"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f4041"}},
-         "phkdf-pass":"d8c28b3597c130e474eab9148a2e999a8724bc80ebe346bdf7936d2f95f042194438260c492fc72d7c67c638f292216d9f002b1d8a0d05cd1c9dbdf681e1f1aa",
-         "phkdf-simple":"b9c6b4b1887e79f636d81c087f27607ac75065411798338703047b3dce5fae2a14d81cf841a1c213858aff41e6449d16d4cea165ee65351691d9f73476db7b5e"}
+         "phkdf-pass":"28d718b85a748aef5f6c344f18d8f2ad30610da5f54e301618d347573dad42db157421ec1c21435c516926e2ed584c48c09ddf4bb1924f05e21380291a16685c",
+         "phkdf-simple":"a56923b419dcb4ef8c74294305b58d8e6deef3c780091d4bb306d3f9ea80179f6dd813f81a646a1749ab7eade53caefe1f75f0e04a283dd88666c830579f1bf9"}
     ]
 },{
     "name":"phkdf unicode test, lightly extended on top",
@@ -55,12 +55,12 @@
         "password":"Книга моя, как я и ожидал, была задержана русской цензурой, но отчасти вследствие моей репутации как писателя, отчасти потому, что она заинтересовала людей, книга эта распространилась в рукописях и литографиях в России и в переводах за границей и вызвала, с одной стороны, от людей, разделяющих мои мысли, ряд сведений о сочинениях, писанных об этом же предмете, с другой стороны, ряд критик на мысли, высказанные в самой книге.",
         "domain-tag":"Царство Божие внутри вас",
         "long-tag":"В другой брошюре, под заглавием: «Сколько нужно людей, чтобы преобразить злодейство в праведность», Адина Баллу говорит: «Один человек не должен убивать. Если он убил, он преступник, он убийца. Два, десять, сто человек, если они делают это, — они убийцы. Но государство или народ может убивать, сколько он хочет, и это не будет убийство, а хорошее, доброе дело. Только собрать побольше народа, и бойня десятков тысяч людей становится невинным делом. Но сколько именно нужно людей для этого? Вот в чем вопрос. Один не может красть, грабить, но целый народ может. Но сколько именно нужно для этого? Почему 1, 10, 100 человек не должны нарушать закона бога, а очень много могут?»",
-        "tags":["Мы будем стараться распространять свои взгляды среди всех людей, к каким бы народам, исповеданиям и слоям общества они ни принадлежали. Для этой цели мы будем устраивать публичные чтения, распространять печатные объявления и брошюры, составлять общества и подавать прошения во всякие правительственные учреждения. Вообще будем стремиться всеми доступными для нас средствами к достижению коренного переворота во взглядах, чувствах и действиях нашего общества относительно греховности насилия по отношению к внешним и внутренним врагам. Принимаясь за это великое дело, мы вполне сознаем, что наша искренность может быть подвергнута жестоким испытаниям. Наша задача может навлечь на нас оскорбления, обиды, страдания и даже смерть. Нас ожидает непонимание, ложное толкование и клевета. Против нас должна подняться буря. Гордость и фарисейство, честолюбие и жестокость, правители и власти, — всё это может соединиться, чтоб уничтожить нас. Таким образом поступали с мессией, которому мы стремимся подражать по мере сил своих. Но нас не пугают эти ужасы. Мы надеемся не на людей, а на всемогущего господа. Если мы отказались от человеческого заступничества, что же может поддержать нас, как не одна вера, побеждающая мир? Мы не будем удивляться тем испытаниям, которым мы подвергнемся, а будем радоваться тому, что удостоимся разделить страдания Христа.","Вильям Ллойд Гаррисон"],
+        "seed-tags":["Мы будем стараться распространять свои взгляды среди всех людей, к каким бы народам, исповеданиям и слоям общества они ни принадлежали. Для этой цели мы будем устраивать публичные чтения, распространять печатные объявления и брошюры, составлять общества и подавать прошения во всякие правительственные учреждения. Вообще будем стремиться всеми доступными для нас средствами к достижению коренного переворота во взглядах, чувствах и действиях нашего общества относительно греховности насилия по отношению к внешним и внутренним врагам. Принимаясь за это великое дело, мы вполне сознаем, что наша искренность может быть подвергнута жестоким испытаниям. Наша задача может навлечь на нас оскорбления, обиды, страдания и даже смерть. Нас ожидает непонимание, ложное толкование и клевета. Против нас должна подняться буря. Гордость и фарисейство, честолюбие и жестокость, правители и власти, — всё это может соединиться, чтоб уничтожить нас. Таким образом поступали с мессией, которому мы стремимся подражать по мере сил своих. Но нас не пугают эти ужасы. Мы надеемся не на людей, а на всемогущего господа. Если мы отказались от человеческого заступничества, что же может поддержать нас, как не одна вера, побеждающая мир? Мы не будем удивляться тем испытаниям, которым мы подвергнемся, а будем радоваться тому, что удостоимся разделить страдания Христа.","Вильям Ллойд Гаррисон"],
         "rounds":1894
     },
     "results":{
-        "phkdf-pass":"ce098c05468855ba887c3aaf5d835a5c47ed561dd2f11f0b24ba42e07760725fbb9aa97cd01e9642b5f5952731511b152b056aaace4d138b8e51a51680d9dfa8",
-        "phkdf-simple":"721761282880140d995acaa34bce7a1a3758fc081222094ec83da2e4ee245b4d4e15f4e8cf61986c93bf2131be3f8af716c62b375a6a87aa48b8692473fdc373"
+        "phkdf-pass":"717963af333b1ed8dddd4dc0febe82d33acfbbb567b65a2a6de87c8f5277b61795bd022e13798a989dc63ab30fd71408109154e8dff92df5418331ebec070100",
+        "phkdf-simple":"b67e68dfd3b23d6ce052d829fd45a40d5e8a0b7612a02c73b2527dad9b2f5923a23e11a158bd081b87428df474614a979418c514e10ce01dd3077b2986cbe855"
     }
 },{
     "name":"xkcd account problems",
@@ -72,8 +72,8 @@
         "rounds":2022
     },
     "results":{
-        "phkdf-pass":"b4bf06ac08152e5cd00f9edd7e1cd9dd667e609f35df206056e4eec836bff5e59f73132247d8385d2951a9763e3043f388d76e80e95a04bace06b305f80e0a51",
-        "phkdf-simple":"1b0fbfb312125aa0fb2e8a4291a636e309cd5b949dedda3c1d3ea2b117661f5b0c131fffefd030a84795679f90b4340cd31a2af19ffaa41ebd4c7380e4b6cfb6"
+        "phkdf-pass":"47eef8f1287cae0dcb2a246f90030a23d34a02ceba24933f88e2b726a5d7ac429a438eba23ee911ee14740b112ee16d22b832ed48e87382f867afb5f3fd8f7b8",
+        "phkdf-simple":"db7facc2f05b782f610e7e2e15f0cdce5eb952c0033dab44afe89b721d36532fac53d1b9d49c6d2f60a066f05ccb10cf4bd45866ec9cfbf6491aaa963477eb33"
     }
 },{
     "name":"xkcd password strength #1",
@@ -84,8 +84,8 @@
         "rounds":2011
     },
     "results":{
-        "phkdf-pass":"86a88c2d5faa92cce62a1b3b3a80da3dd655d2abc2b65de79c7aa38c3ac7943231a0278448bab8f4ad09e0ca80d0e27ce8cbce59ffde8fdf84e9c9dd28955efa",
-        "phkdf-simple":"e899e6fb91f42bb883ba12cd68fecdd687b7a7446d7900410f4cb3d6f481925c0f3fb8678798d4b0548634c0f2580a179cef999d26f9994c9e57896484f691b0"
+        "phkdf-pass":"27910710fcb65e80aac2bc311dacd40106cd5fe72ab86289d0450e8ce15db7d4ce3e30d0bdc085cae4c3f06bfbe5c5eaeac962d7809e5009228f288f5fedb89d",
+        "phkdf-simple":"655ad7985adae91e5c36790a1db1e4e20e1550b334cc4808d499c09d6b7ef3bf0e9e30e9e2fe57bfcfb5fb5220abb4dbb5d618ed5d16405d46854db207bb533d"
     }
 },{
     "name":"xkcd password strength #2",
@@ -100,23 +100,23 @@
         "rounds":2011
     },
     "results":[
-        {"phkdf-pass":"ccc3e5dc2bfd5c05415681c2acf696d9fd940419f2d6233f5f9c3067c91f3130e6181a2464d8ced3e1df76baa632ece6ea6ac16806bd3d682e58f9ae34e992cb",
-         "phkdf-simple":"bf6b2dfd23166b161952dc312805e0dc2a1d17903a335a8ed7d07772118374623f15631529ab19355e8f622b0e2bffa85d39dc7c363a3f5e63524482da04fadc"},
+        {"phkdf-pass":"b52256cc5eca47ba9c80d40b1951bda70b54322c412e7664cae15dd9ff416f480c633dde9a955bba0e4dcc95072e413fb8e3e057ac052c6d53058435a00adb08",
+         "phkdf-simple":"f48ae94b6c6b6823d963e733597a7094b74ae05ee79d4d73e90c09f2b36f0e6fc4d63dc1ac38351542729118edd0376bb568ffcbe48e9b9ec4315c7412f3053d"},
         {"args":{"rounds":255},
-         "phkdf-pass":"3832fa0dfa9b2780357d2c8d6a6fbb456e948bd046c743bb48bb3153ca68230275f41764ffa532b3feac282fa42fbe9b45f0aac8fdb9f192101d13033486238a",
-         "phkdf-simple":"5be9131435945abc922758f0a4234dc0e3d30cd75f2d132d03dabb3e6b40931e319e2038e45b81405268c73d0d40fd4b7f8efed451f96699f1d9dc8ff7e95c1a"},
+         "phkdf-pass":"682bab8be42921ab26056b8f96a382d1934690c996fb78eafa340356bf99fe96067ab36639f45f9788564f86f41b2117eb2a540d54ad5e87a3956b435f25d28a",
+         "phkdf-simple":"b05a2bbae80e75b771938176b50d7e7d9c5250ae00b4fd43cd8ca04059c46d8e7ecfbdf0c3e0ea155469efdabae066018ef02356ec661ca54a5b7def03d4b446"},
         {"args":{"rounds":256},
-         "phkdf-pass":"a39805ba76c367964f8c9218c55f637675a0361aafd2b5fd66127551642b5a4b37977d17234eedbe58b1cdb0ffda512426bc8e4a77c2c9d699732010ec38631d",
-         "phkdf-simple":"844c9c612e5baafd8b404352bc83e7eea9e292af58196b1d8bfb5b9969363f16c10325c1a974cf37910ce510dd3395591bf260fc88b0c6d1f90ffd7db1262297"},
+         "phkdf-pass":"0b65d949ccff3e31f2aa5779e29b962e58b37fec6032ab9ce3929266e8f57c52a6e7eb71dcdf5056a04bea973a8e3943ffa532f5c466e244bcbea2ba03c0c34f",
+         "phkdf-simple":"85339d04a323edd4715a687830f69d840505c234e29eed386676450e963acb10b5ba47bef8bac59a756c70c2bc4e048e19d91c5be79a99696337ca57d1ffc433"},
         {"args":{"rounds":65535},
-         "phkdf-pass":"53637d4bc4589c9f15c0fa4cb0db406e5f2ce4998fba3852b7d250e22a33fd106da00509e686f1dfc9dc2b3c661cfdd34fef68f4e425c63e7b033e3d8cc85a81",
-         "phkdf-simple":"07305ac2ebdb72235664f0595c374c626e5fabda7d9c335260b0e0743d1a95c5620b8df467c113258eb9241d6f30cd65e2273a64958ca17bed9cabdd5d095308"},
+         "phkdf-pass":"77acd604de6d91195178d4b66b30b9ecada8e617e45572c48ba7bf1abb49fc52b8d35659827450f8576538e7a4043be8ab23a103e631e3ef0340293928ae8394",
+         "phkdf-simple":"5b97403855faf1037ca02387bd3216633ed44c4fff4530b677683964b0a5d66970e1315550613deb01bece5d15af78f8fa55f8313fd6823e1eb7b38f690e8738"},
         {"args":{"rounds":65536},
-         "phkdf-pass":"7d0e34dff508ff26791d05bcd15d34ae42f59a5acd21207abb5423bbdd1cc593d5673ea1a086a480f2c27789a2a54d13260bd4dfa1750a1351f156dce152ea03",
-         "phkdf-simple":"783c0b15327676b7a795fcc02efe3203b7bf44ee06db7b2b403cee77d47f08b718766d22f3b617678f06c74e2a7b26a568a09d5a9a6be9cac2bc20a522495da5"},
+         "phkdf-pass":"484e91195cc91e70e0deb7124618e1f40d5154af792c5c6e31bde48abd39ab53162de8cdc02581bf0bb96cd93f6105d67e4b2d7605ca4baa4fd00240f8b2ce9d",
+         "phkdf-simple":"9e16d6b3fe74990cc685ae38a0849654d42061144a59e97cd82e594b0bd9740a043f2669297d4f93aca5804a34422c28346d94c2ee8fc52615a4a240cb60bbaa"},
         {"args":{"rounds":250000},
-         "phkdf-pass":"d0758ce4a146471dfd3b4a0970920650c484e7d01df34e3f4fe8264d53e7dbb919c930913c1ac1c2970ad83ea9d836f35a1315657219792b73b641109ecf7104",
-         "phkdf-simple":"35790c2ca525fab8d7820ab84791d4fe5f010cc5be926261ed0b662100278c64627aff73d931093654eb863502913aa56fbd7ff9385fa8fb4cb019011387084b"}
+         "phkdf-pass":"38f37b046a75671ff8f723f184a871a5de018c5bcf1675d5964b265478f0f948bc081a0f6f4285f4a7c70c9702d23709bd15422085cb17e9ab1bc5d30e3a9cee",
+         "phkdf-simple":"55905ad486e918a7be1993e90272bd5c27736657cf7ac42d5edf9578638a17c44f659b2015c28600d103d726f353ff129a1859b09387151dcb1a381b8889687e"}
     ]
 },{
     "name":"xkcd password reuse #1",
@@ -127,8 +127,8 @@
         "rounds":2010
     },
     "results":{
-        "phkdf-pass":"01f239346d1d641dcb8900dbfa2bb707bef2697ddbfa42d7855038e16a2e1486e4c3e69a4dc20115f8efb3681798442490f90fb98b542673020b24c040adbd8a",
-        "phkdf-simple":"7422dcbc5aacc48bdce96369fc2e4f63937f5a9e758abde565d57140cb1573e2bac7d56d2729f5d528c8f379dcf2ac27bed0f91fdb961509e92bc6c7d32b7bd3"
+        "phkdf-pass":"5c03990932c8981c9bfde36556196f6c2eb1e6c4379e62d1b36e985deea4a5f3a6d31a6c5d59dc69be173cb3250c852060763f185a0f093e70bb0b957c28538f",
+        "phkdf-simple":"88b3c1ea9bcccdb37e4da03b6d4c606c29369fee97290bab9e719902bcaf57ffae632558fea138708ddfa67d3375437088b2b731007799d6ba094b417a070436"
     }
 },{
     "name":"xkcd password reuse #2",
@@ -139,8 +139,8 @@
         "rounds":2010
     },
     "results":{
-        "phkdf-pass":"6e5fb7729febc3abcd29c8d53e9eafe5eb5116f63105e6e52120dc36df35d84513430d48137a36517232fac09ef968a0d32f5741e7a21407af118b26f1cb344c",
-        "phkdf-simple":"6a2b6d6d827839eb1fd6186068147349537b9da1134ba022a78b08dbae4b6cc16e3e4b5d38f45fd5bc82334db253eae1ffdb4f2839d147d13f63781acf91278e"
+        "phkdf-pass":"69158f1009c444166d7a963f2980552a2345ec978b6fda5317c82e87927747438ee3d169a4b850a6a731fbfa0137fd51b22cf8237b18cd3b5ab66f107cc2d793",
+        "phkdf-simple":"30414b71a1d83cb35a08368743cf93545024b72fc6a03d15fed2f360a452f1be899ec5b6f4c0e6be00298e7265152813ceabf04884c8cf27a69c0fc9b76817a4"
     }
 },{
     "name":"trivial inputs",
@@ -151,14 +151,14 @@
         "seguid":"",
         "domain-tag":"",
         "long-tag":"",
-        "echo-tags":[],
+        "echo-tag":"",
         "rounds":0,
         "role":[],
         "seed-tags":[]
     },
     "results":{
-        "phkdf-pass":"e9858b5f2dc13ca2d2f06c00f68de623a9a7a80cbdcee0e1f7fd541ed58ac6b59a4c9a3a1f074b93921df83dcd9af84dc30ef073298e9c6090309cab2ac4b740",
-        "phkdf-simple":"a8e37851b0dda24717b555af6e7364dfd0442fcd6bccd4e3829a4a334f7a3590026b89b70f1168c9f74a215c88a79f9af576aca9ef1d6f1ba014568bff0bb875"
+        "phkdf-pass":"fb45124bf2ddd02c65e4c86af9629b3e6adc282fecd18b9c052ae4d6bcb853e04afb3e7f91f75269914fcb7aaa78e34017a2451c2a2714288b7410d11943393d",
+        "phkdf-simple":"1e01bf44833773c22a2483e28aca9614b99fbec5843166ead64997e1b8b6fd0adea9a4c0a9bbac6be3977b98954fc88db1243670767f9441e3b06b7acbdd89e9"
     }
 },{
     "name":"password padding",
@@ -170,19 +170,19 @@
         "rounds":255
     },
     "results":[
-        {"phkdf-pass":"2930dd23e0bcf062b18d286e9a15a966b5e069a3d29db766320e84c10f33754c",
-         "phkdf-simple":"a0896b86b68b3c380a9a90f50a606146de0b08e97c911c81b25632d2b31cdb07"},
+        {"phkdf-pass":"fe11a2574bbec986800aecf9a041ae7033e9a8583005eff1c73cdc05d0954acf",
+         "phkdf-simple":"f6ab41b6149e84d8b02b039b54d7a108d752b86c9b2a5637e1e982df09114972"},
         {"args":{"long-tag":{"ref":"phkdf first light, elaborated","len":5113}},
-         "phkdf-pass":"f9298244aab2ba083a1a3fe636b2dee2a84d85431ae689b43391d1f4aeab1d5e",
-         "phkdf-simple":"1c83f03baa76230c073271bb59ec7178bf0bc8695e2316cf3a609c1d766114e6"},
+         "phkdf-pass":"a5c56c279e982995a4a4975171600609bc18bfd47a231c1a9e56d710f355333d",
+         "phkdf-simple":"d03ada956be1e7febcf8f220301c5d0a5dc9079fb29c0fd3d4a963a0fccd22b9"},
         {"args":{
             "username":{
                 "ref":"phkdf unicode test, lightly extended on top",
                 "len":3042,
                 "algorithm":"phkdf-simple"
             }},
-         "phkdf-pass":"12b69f25da2360fcc586b2f9c7e0d103d7921b3e4b2df181b11cedb6a802b053",
-         "phkdf-simple":"33eecf8c29fad1d1473e61211d5561c79aaab9835ec43deeb1339221499716a3"
+         "phkdf-pass":"59642f22127b489a70b6615d5a33a5539970d09a5834416366990b61004e0124",
+         "phkdf-simple":"06af53a44c48ff07afac4a582e3736a807df0ce7118e66510aedbaa7efcf5067"
         },
         {"args":{
             "username":{
@@ -190,8 +190,8 @@
                 "len":3043,
                 "algorithm":"phkdf-simple"
             }},
-         "phkdf-pass":"e52abc8bfb506b997b75908d99071468f1c8ccde126a5dc2e21d5449ace1e178",
-         "phkdf-simple":"f3efa15abae9744b9599b24ccca7c49f05210c63bdca6feac92366cc9cc6d606"
+         "phkdf-pass":"010f86f248c86bff2edc744d078efe52eeabd7f425c944b8ef594bc770063c89",
+         "phkdf-simple":"87bef2b6172c01300d6cb4e04a0772b2f311ab08aba13d60394794ecf6ef825b"
         },
         {"args":{
             "username":{
@@ -204,8 +204,8 @@
                 "len":101,
                 "index":1
             }},
-         "phkdf-pass":"287395a4d33949054d8bc3bc281a08fe11027e54a8ea34284160ab46fc410bb4",
-         "phkdf-simple":"2be39ddb80bb0092789ba9ee174f3defe15ad80e40535ca781f5788d1d44a961"
+         "phkdf-pass":"7f80695128459b5ce779e730343f6a7724def076ea3d6c4c76af170ac69826a1",
+         "phkdf-simple":"ce9436c0ad1b0b581e81c498b75f228e61e6aa0b093fee2600cd044196baaaef"
         },
         {"args":{
             "username":{
@@ -218,8 +218,8 @@
                 "len":102,
                 "index":1
             }},
-         "phkdf-pass":"070465ecf539e44f1a722df5e9ccdcb9976df0393a76bcc7102e4dbac5c71444",
-         "phkdf-simple":"0a16092a84fa6bc7b2f119973a2cff379fbcc208d6d4ba25da01979039e2db17"
+         "phkdf-pass":"30ffed81e220eb50280e81df7d556eec39b5155dfdf8fe47094a7eb8803ec97d",
+         "phkdf-simple":"2c6ce78f645567ddebf1da39633ff9ca8be588926cfa6af78ecfc25099d05884"
         },
         {"args":{
             "long-tag":{
@@ -232,8 +232,8 @@
                 "len":3106
             }
            },
-         "phkdf-pass":"b649967eaf215b45a747090c9bb4a5edb73fb5268ca001c030ec243f6f3bfec4",
-         "phkdf-simple":"d6fe2bd9f22765e811921092e85dfa0c4a9ca20e9ff0b875e992def1c26856bb"
+         "phkdf-pass":"4a3715b3ee228b29faa808bc3aef4dca532bcdeca958fc3ad063afb9be05fcfe",
+         "phkdf-simple":"16949de8490715403eeec6ca00a4df397cce6d5ebc83406d1b0814c0a5f8a8fd"
         },
         {"args":{
             "long-tag":{
@@ -250,8 +250,8 @@
                 "len":164,
                 "index":2
             }},
-         "phkdf-pass":"909aba280fcc984a60b2135713fba472af3c5ff0296d4b0c6fe2bd79380eff5d",
-         "phkdf-simple":"8621567abcfc9d0233655a4d33a3426d215ed903dc21eb21c34b93eb17bcde14"
+         "phkdf-pass":"12cc55c793aa6c8f38666acefd9eeb5030d6327e4a63fc12c2431988981b2de7",
+         "phkdf-simple":"be8885010b1ac2630a66cc2258334b346428e9879de87a7314b491f848d60d44"
         },
         {"args":{
             "long-tag":{"ref":"phkdf first light, elaborated","len":5049},
@@ -264,8 +264,8 @@
                 "len":165,
                 "index":2
             }},
-         "phkdf-pass":"cc955a2323cd958e5e17d8e2cfed0ff52cc5af6bbfadc1cfb0d32cb5f0a03249",
-         "phkdf-simple":"7ee1d8fcac43621733256e64437b2a02bde5db1cee69dd113bc32b07e7fda3f5"
+         "phkdf-pass":"9616969cc1b5f4d6e489fa9a39c945233ee26c755a001e47f876c43e1d2ee097",
+         "phkdf-simple":"3550211a691304a6c630a1d916d25c65c0324b2d3127014a1bab5c18dac04c7d"
         }
     ]
 }]

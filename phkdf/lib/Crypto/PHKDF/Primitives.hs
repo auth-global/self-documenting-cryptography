@@ -215,12 +215,16 @@ module Crypto.PHKDF.Primitives
   , phkdfCtx_finalizeHmac
   , phkdfCtx_finalizeHmacCtx
   , phkdfCtx_finalizeStream
+  , phkdfCtx_finalizeGen
   , PhkdfSlowCtx()
   , phkdfSlowCtx_extract
   , phkdfSlowCtx_addArg
   , phkdfSlowCtx_addArgs
   , phkdfSlowCtx_finalize
   , phkdfSlowCtx_finalizeStream
+  , PhkdfGen()
+  , phkdfGen_read
+  , phkdfGen_finalizeStream
   ) where
 
 import           Data.Bits((.&.))
@@ -234,6 +238,7 @@ import           Data.Stream (Stream(..))
 import qualified Data.Stream as Stream
 import           Network.ByteOrder (bytestring32)
 
+import qualified Crypto.Hash.SHA256 as SHA256
 import           Crypto.PHKDF.HMAC
 import           Crypto.PHKDF.HMAC.Subtle
 import           Crypto.PHKDF.Primitives.Subtle
@@ -338,9 +343,65 @@ phkdfCtx_finalizeStream counter0 tag ctx = go counter0 hmacState0
             resetCtx &
             hmacCtx_update nextBlock
 
+{--
+phkdfCtx_finalizeStream :: Word32 -> ByteString -> PhkdfCtx -> Stream ByteString
+phkdfCtx_finalizeStream counter0 tag ctx =
+  phkdfCtx_finalizeGen counter0 tag ctx &
+  phkdfGen_finalizeStream
+--}
+
+phkdfCtx_finalizeGen :: Word32 -> ByteString -> PhkdfCtx -> PhkdfGen
+phkdfCtx_finalizeGen counter0 tag ctx = PhkdfGen
+    { phkdfGen_hmacKey = phkdfCtx_hmacKey ctx
+    , phkdfGen_initCtx = context0
+    , phkdfGen_state = state0
+    , phkdfGen_counter = counter0
+    , phkdfGen_tag = tag
+    }
+  where
+    n = phkdfCtx_byteLen ctx
+    endPadLen = fromIntegral (64 - ((n - 32) .&. 63))
+
+    endPadding = cycleByteStringToList endPadLen ("\x00" <> tag)
+
+    context0 = SHA256.updates (phkdfCtx_state ctx) endPadding
+
+    state0 = ""
+
+phkdfGen_finalizeHmacCtx :: PhkdfGen -> HmacCtx
+phkdfGen_finalizeHmacCtx gen =
+  (hmacKey_run (phkdfGen_hmacKey gen)) {
+      hmacCtx_ipad = (phkdfGen_initCtx gen)
+    }
+
+phkdfGen_read :: PhkdfGen -> (ByteString, PhkdfGen)
+phkdfGen_read gen = (state', gen')
+  where
+    state' =
+      phkdfGen_finalizeHmacCtx gen &
+      hmacCtx_updates [ phkdfGen_state gen
+                      , bytestring32 (phkdfGen_counter gen)
+                      , phkdfGen_tag gen
+                      ] &
+      hmacCtx_finalize
+
+    hmacKey = phkdfGen_hmacKey gen
+
+    gen' = PhkdfGen
+      { phkdfGen_hmacKey = hmacKey
+      , phkdfGen_initCtx = hmacKey_ipad hmacKey
+      , phkdfGen_state = state'
+      , phkdfGen_counter = phkdfGen_counter gen + 1
+      , phkdfGen_tag = phkdfGen_tag gen
+      }
+
+phkdfGen_finalizeStream :: PhkdfGen -> Stream ByteString
+phkdfGen_finalizeStream = Stream.unfold phkdfGen_read
+
+
 -- | close out a @phkdfStream@ context with a call to @phkdfSlowExtract@,
 --   providing the counter, tag, @fnName@, and number of rounds to compute.
---   Note that @fnName@ is truncated to a length of 23-27 bytes long,
+--   Note that @fnName@ is truncated to a length of 25-29 bytes long,
 --   depending upon the number of rounds specified. Thus the @fnName@ is
 --   primarily intended to be a protocol constant.
 
@@ -349,17 +410,34 @@ phkdfSlowCtx_extract counter tag fnName rounds ctx0 = out
   where
     (Cons block0 innerStream) = phkdfCtx_finalizeStream counter tag ctx0
 
-    phkdfLen = ((fromIntegral rounds :: Int64) + 1) * 512
-    phkdfLenTag = leftEncode phkdfLen
+    approxByteLen = ((fromIntegral rounds :: Int64) + 1) * 64 + 32
+    encodedLengthByteLen = lengthOfLeftEncodeFromBytes approxByteLen
+    exactByteLen = approxByteLen - fromIntegral encodedLengthByteLen
+    encodedLength = leftEncodeFromBytes exactByteLen
+    -- Encoding the length won't ever cause the length of encodedLength
+    -- to change, which would cause the loss of buffer alignment.
+    -- Fact:
+    --      lengthOfLeftEncodeBytes exactByteLen
+    --   == lengthOfLeftEncodeBytes approxByteLen
+    -- Because:
+    --      approxByteLen >= 96
+    --   && approxByteLen <= 2^32 * 64 + 32
+    --   && approxByteLen `mod` 64 == 32
 
-    extFnNameLen = 30 - B.length phkdfLenTag
+    extFnNameByteLen = 32 - encodedLengthByteLen
 
-    extFnName = cycleByteStringWithNull extFnNameLen fnName
+    fnNameByteLen = B.length fnName
+
+    extFnName =
+      if fnNameByteLen >= extFnNameByteLen
+      then encodedLength <> B.take extFnNameByteLen fnName
+      else let padLen = 31 - encodedLengthByteLen - fnNameByteLen
+               pad = cycleByteStringWithNull padLen tag
+            in B.concat [encodedLength, fnName, "\x00", pad]
 
     outerCtx =
         phkdfCtx_reset ctx0 &
-        phkdfCtx_addArg extFnName &
-        phkdfCtx_unsafeFeed [phkdfLenTag, block0]
+        phkdfCtx_unsafeFeed [extFnName, block0]
 
     fillerTag = cycleByteStringWithNull 32 tag
 

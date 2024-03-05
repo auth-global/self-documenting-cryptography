@@ -189,7 +189,7 @@ import           Crypto.G3P.BCrypt
 --   means that a significant quantity of cryptoacoustic messaging space will
 --   be filled with silence.
 --
---   Useful messages include URIs, legal names, and domain names.
+--   Especially useful messages include URIs, legal names, and domain names.
 
 data G3PInputBlock = G3PInputBlock
   { g3pInputBlock_seguid :: !ByteString
@@ -214,7 +214,7 @@ data G3PInputBlock = G3PInputBlock
     --
     --   Overages incur one sha256 block per 64 bytes.
   , g3pInputBlock_tags :: !(Vector ByteString)
-    -- ^ plaintext tag with 3x repetition. Constant-time on 0-63 encoded bytes,
+    -- ^ plaintext tags with 3x repetition. Constant-time on 0-63 encoded bytes,
     --   which includes the length encoding of each string. Thus 60 of those
     --   free bytes are usable if the tags vector is a single string, or less if
     --   it contains two or more strings.
@@ -309,9 +309,20 @@ data G3PInputArgs = G3PInputArgs
 --   could specify an additional variable-length string in the role vector,
 --   used to control the ending position relative to the SHA256 buffer.
 
-data G3PInputTweak = G3PInputTweak
-  { g3pInputTweak_role :: !(Vector ByteString)
-  , g3pInputTweak_tags :: !(Vector ByteString)
+newtype G3PInputRole = G3PInputRole
+  { g3pInputRole_roleTags :: Vector ByteString
+  -- ^ This is the least expensive parameter that will vary the secret HMAC
+  --   key used to generate the final output. Very much analogous to HKDF's
+  --   initial keying material (ikm) parameter. This is the recommended last
+  --   call for mixing additional secrets into the output.
+  } deriving (Eq, Ord, Show)
+
+newtype G3PInputEcho = G3PInputEcho
+  { g3pInputEcho_echoTag :: ByteString
+  -- ^ the absolute least expensive parameter to vary, if your implementation
+  --   supports it. Very much analogous to HKDF's info parameter. 0-19 bytes
+  --   are free.  This incurs a cost of one SHA-256 block per output block at
+  --   20 bytes and every 64 bytes thereafter.
   } deriving (Eq, Ord, Show)
 
 -- | A plain-old-data explicit representation of the intermediate 'g3pHash'
@@ -331,6 +342,17 @@ data G3PSeed = G3PSeed
   , g3pSeed_secret :: !ByteString
   } deriving (Eq)
 
+data G3PKey = G3PKey
+  { g3pKey_secret :: !ByteString
+  , g3pKey_secretKey :: !HmacKey
+  , g3pKey_domainTag :: !ByteString
+  } deriving (Eq)
+
+data G3PGen = G3PGen
+  { g3pGen_secret :: !ByteString
+  , g3pGen_phkdfGen :: !PhkdfGen
+  }
+
 -- | The Global Password Prehash Protocol (G3P). Note that this function is very
 --   intentionally implemented in such a way that the following idiom is
 --   efficient, and only performs the expensive key stretching phase once:
@@ -345,8 +367,12 @@ data G3PSeed = G3PSeed
 --   expansion, then the plain-old-datatype 'G3PSeed' and its companion
 --   functions 'g3pHash_seedInit' and 'g3pHash_seedFinalize' are needed.
 
-g3pHash :: G3PInputBlock -> G3PInputArgs -> G3PInputTweak -> Stream ByteString
-g3pHash block args = g3pHash_seedInit block args & g3pHash_seedFinalize
+g3pHash :: G3PInputBlock -> G3PInputArgs -> G3PInputRole -> G3PInputEcho -> Stream ByteString
+g3pHash block args role echoTag =
+    g3pHash_seedInit block args &
+    g3pHash_keyInit role &
+    g3pHash_finalizeGen echoTag &
+    g3pGen_finalizeStream
 
 -- | This generates a seed, which encapsulates the expensive key-stretching
 --   component of 'g3pHash' into a reusable, tweakable cryptographic value.
@@ -362,6 +388,7 @@ g3pHash_seedInit block args =
       g3pSeed_secret = secret
     }
   where
+
     -- Explicitly unpack everything for the unused variable warnings.
     -- i.e. It's relatively easy to check that we've unpacked every
     -- field, then we can rely on unused variable warnings to ensure
@@ -403,9 +430,7 @@ g3pHash_seedInit block args =
         bytes headerUsername headerLongTag longTag domainTag password
       where
         bl = encodedVectorByteLength bcryptHeader
-        bytes  = add64WhileLt (8413 - bl) 8295
-
-    headerBravo = "G3Pb1 bravo\x00" <> domainTag
+        bytes = add64WhileLt (8413 - bl) 8295
 
     seguidKey = hmacKey_init seguid
 
@@ -426,7 +451,7 @@ g3pHash_seedInit block args =
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
         phkdfSlowCtx_extract
             (word32 "go\x00\x00" + 2023) phkdfTag
-            headerBravo phkdfRounds &
+            "G3Pb1 bravo" phkdfRounds &
         phkdfSlowCtx_assertBufferPosition' 32 &
         phkdfSlowCtx_addArgs seedTags &
         phkdfSlowCtx_finalizeStream
@@ -459,28 +484,62 @@ g3pHash_seedInit block args =
 -- HKDF. Note that this function ignores 'g3pSeed_seguid' in favor of
 -- 'g3pSeed_seguidKey'.
 
-g3pHash_seedFinalize :: G3PSeed ->  G3PInputTweak -> Stream ByteString
-g3pHash_seedFinalize seed tweak = echo
+g3pHash_keyInit :: G3PInputRole -> G3PSeed -> G3PKey
+g3pHash_keyInit roleInput seed = G3PKey
+    { g3pKey_secret = secretKey
+    , g3pKey_secretKey = hmacKey_init secretKey
+    , g3pKey_domainTag = g3pSeed_domainTag seed
+    }
   where
     -- seguid = g3pSeed_seguid seed
     seguidKey = g3pSeed_seguidKey seed
     domainTag = g3pSeed_domainTag seed
     secret = g3pSeed_secret seed
 
-    role = g3pInputTweak_role tweak
-    echoTags = g3pInputTweak_tags tweak
+    role = g3pInputRole_roleTags roleInput
 
-    phkdfTag = expandDomainTag domainTag
+    phkdfDomainTag = expandDomainTag domainTag
 
-    headerDelta = "G3Pb1 delta" <> secret
+    headerDelta = B.concat [
+      "G3Pb1 delta",
+      leftEncodeFromBytes (B.length domainTag),
+      secret
+      ]
 
     secretKey =
         phkdfCtx_initFromHmacKey seguidKey &
         phkdfCtx_addArg  headerDelta &
         phkdfCtx_addArgs role &
-        phkdfCtx_addArgs echoTags &
-        phkdfCtx_finalize (word32 "KEY\x00") phkdfTag
+        phkdfCtx_finalize (word32 "KEY\x00") phkdfDomainTag
 
-    echo = phkdfCtx_init secretKey &
-           phkdfCtx_addArgs echoTags &
-           phkdfCtx_finalizeStream (word32 "OUT\x00") phkdfTag
+g3pHash_finalizeGen :: G3PInputEcho -> G3PKey -> G3PGen
+g3pHash_finalizeGen inputEcho gKey = G3PGen
+    { g3pGen_secret = g3pKey_secret gKey
+    , g3pGen_phkdfGen = echo
+    }
+  where
+    secretKey = g3pKey_secretKey gKey
+    domainTag = g3pKey_domainTag gKey
+    echoTag = g3pInputEcho_echoTag inputEcho
+    echoTagLen = leftEncodeFromBytes (B.length echoTag)
+    prefixTagLen = 29 - B.length echoTagLen
+
+    headerEcho = B.concat [
+      echoTagLen,
+      cycleByteStringWithNull prefixTagLen (domainTag <> "\x00G3Pb1 echo")
+      ]
+
+    phkdfEchoTag = expandDomainTag echoTag
+
+    echo = phkdfCtx_initFromHmacKey secretKey &
+           phkdfCtx_addArg headerEcho &
+           phkdfCtx_assertBufferPosition' 31 &
+           phkdfCtx_finalizeGen (word32 "OUT\x00") phkdfEchoTag
+
+
+g3pGen_read :: G3PGen -> (ByteString, G3PGen)
+g3pGen_read gen = let (out, next) = phkdfGen_read (g3pGen_phkdfGen gen)
+                   in (out, gen { g3pGen_phkdfGen = next })
+
+g3pGen_finalizeStream :: G3PGen -> Stream ByteString
+g3pGen_finalizeStream = phkdfGen_finalizeStream . g3pGen_phkdfGen

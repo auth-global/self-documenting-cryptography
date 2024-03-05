@@ -9,9 +9,9 @@
         "bcrypt-rounds":7
     },
     "results":[
-        {"G3Pb1":"c71a893dcf9c5f4923129ce835e1d0ad6516f4effa8f644e3e60c3df7bd8ebc72b3633df4e4020790ce2166ad3825897f036ddd6f027fce6c09278b318d341c8"},
+        {"G3Pb1":"093290a70f395f059beaa27353efdac4593eaf8304ed584e00f9a77aa05606369c717b245c9c580e81bfda42c17bc0f58d25715cd3961c2b51daa683e995ba11"},
         {"args":{"seguid":{"hex":"9dd4fbd52f9284d0c654bf391b45b6b7f258fabc0302fe36740515226ec80dad6b315903182d630350bb95f029930eed605b01d7304080ceeed31a359560943f"}},
-         "G3Pb1":"694d576583bc064ec368f76f098344499d01fcd20d76ab51c39905b71a0a4b4d4b20fe4321ca9635966f3a91a47fa93b0f5928d0db1342ed8f1abfc3cda7fc61"}
+         "G3Pb1":"2c7fd30d84d3e2c2d4fc5094b9173767b42628af263c2c7492eed24169b7f62974fe4eaf5f1cc7a8ed911b1d0c1ae98159bb6823c1eab0090498145f69474d01"}
     ]
 },{
     "name":"prehash first light, elaborated",
@@ -23,12 +23,12 @@
         "domain-tag":"1-800-CALL-SPY",
         "seed-tags":["United States Army Counterintelligence Tip Line"],
         "role":["prankster"],
-        "echo-tags":["Star Trek IV: The Voyage Home","https://www.youtube.com/watch?v=MdSJFrhb-HM"],
+        "echo-tag":"Star Trek IV: The Voyage Home https://www.youtube.com/watch?v=MdSJFrhb-HM",
         "phkdf-rounds":1998,
         "bcrypt-rounds":7
     },
     "results":[
-        {"G3Pb1":"9dd4fbd52f9284d0c654bf391b45b6b7f258fabc0302fe36740515226ec80dad6b315903182d630350bb95f029930eed605b01d7304080ceeed31a359560943f"}
+        {"G3Pb1":"8c246a371fd10a325626016c080819c9e9079b37d6a56d8d45984e3dce3795d6bf14ee3121634a291df934026b2e6217668ce217a9d6f24b1318ecbde58469b7"}
     ]
 },{
     "name":"prehash unicode test, inset naval story with a reference",
@@ -36,16 +36,16 @@
         "username":"Р-360 «Нептун»",
         "password":"Русский военный корабль, иди нахуй",
         "seed-tags":["Державне Київське конструкторське бюро «Луч»"],
-        "echo-tags":["Збройні Cили України «ЗСУ»"],
+        "echo-tag":"Збройні Cили України «ЗСУ»",
         "domain-tag":"Україна",
         "phkdf-rounds":2022,
         "bcrypt-rounds":8
     },
     "results":[
-        {"G3Pb1":"5fd4e68cd46d8ac5598a32cd6a529c8766131eaaeb0a2cfbd01067693ba406bdae005c5c436157405ee6a5c095beea79a59614a9f406cb1688cbd71ff5e5692b"},
+        {"G3Pb1":"6529498af17a75892b38734e4518ca030dc807bfad638431836122de22eea949c4a63cc02aaeff4170dbc6ff333321d58425b1a2f72185a0441b2c8cd401adfb"},
         {"args":{"bcrypt-tag":"Державне Київське конструкторське бюро «Луч»",
                  "bcrypt-salt-tag":"Збройні Cили України «ЗСУ»"},
-         "G3Pb1":"a8fef779c942f34cafe41804753589cd03725deb24e40c75b4e9dbf0fafc24598e3fdc519643f94c983b279f611d7eae81febc58b543c454de076ebcb932702b"}
+         "G3Pb1":"1f757af0527c48533ba76a91db5a9a6575eea2b0c9f3be95a74118ffdd75df53d04718e5dfabdd42f576682f3c360f546ca55316ec87a367cc2f5b59c067d0e3"}
     ]
 },{
     "name":"prehash unicode test, lightly extended on top",
@@ -59,11 +59,11 @@
         "bcrypt-rounds":66
     },
     "results":[
-        {"G3Pb1":"a509031ab4b411a83b3aaa9533731a3fed0a2746cabe6f452795ba682f352202826a542cbcf22bf0b4aba7b57d19fb66db7d703c886436fd7fd047fccf7df420"},
+        {"G3Pb1":"8520cb7f2db278f1eef02c9965e9375e7436e059447f54b69098bbf0f426ea2721b1020a6061386c7240d24117d08e6942e33a940637207b9d974cc4284611be"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40"}},
-         "G3Pb1":"1713a2ddf8b9fb357ae89716487514caa59fb5a82cc6d90e52d7c414e9c987d01cca204aca27cf2ca9bda26570e6a63b6efa8b1f789b26f5d796bd426d1321ff"},
+         "G3Pb1":"6930056d196637dceed3bd6c6abe5d4d04b7a0cb8aaa87eaa7c8c6265c8adc6f76801e679494915b60c3d57cfefb79abc9ffc1194da038e0901a576d00a3c740"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f4041"}},
-         "G3Pb1":"95f8cb14e2f590cbe0f2adee9d35d97d4c78d1700598e1edec6d150f113dec9c84295ec9469568ae797d5131e46c62a8313349cb7d874c68f67ad9a214069bbb"}
+         "G3Pb1":"6a2c74f6d5cd3a49ab62bdc8ec1cc1338bf157150e592def3e85a1e273f25a7fab194bf3214513edef6016c313234ef644ccfe72c71d983bfc56ea811cd381e2"}
     ]
 },{
     "name":"xkcd account problems",
@@ -76,7 +76,7 @@
         "bcrypt-rounds":16
     },
     "results":{
-        "G3Pb1":"ec7f8744953e6502b09c040ca813926a20e70259256cac14304332c3959db7dc2e9c55e25bfe30a8c438b2af89f09372761d5bcdd43a9c539136808d96057f8e"
+        "G3Pb1":"ba449ddf02aa1d89140b640567c4122bec385df7d8221ca8dfe10185bdad131ddf6c4a541cd16d0804cd57effc3c62c97f81f66e9fb72e4f532b49ecbbcb7811"
     }
 },{
     "name":"xkcd password strength #1",
@@ -88,7 +88,7 @@
         "bcrypt-rounds":5
     },
     "results":{
-        "G3Pb1":"95a9bc090f7b2aca0ad9ae520461830632748a85d80f691e207a0208d0dda8c60db0f64ff00a0ae1f53f2e8f0db6add37d1f6bf59987c0d53903326746cf4280"
+        "G3Pb1":"55b562957a6d75164f3b595210ef9563210b24f0d8dad178341204274b405145b0e0e8cbdfb60013d215a7407f16e079493fd5d0c133b37c9212e97a89b88cd1"
     }
 },{
     "name":"xkcd password strength #2",
@@ -104,16 +104,25 @@
         "bcrypt-rounds":5
     },
     "results":[
-        {"G3Pb1":"a2a462edd1c0ffbee2fe5878fe2b10fa89b11ff8186c1eecfa740dd7e64171acd995e00ccb4a86cc3c4ecdebef32865074826535d0c0114d1092f571c99c3747"},
+        {"G3Pb1":"2ceb3e845c47f3adb78f1edab1b8956c989905b593c710c265078adb37a63c7f420dfc20895fa403464d59dfbfd91780a82a620b79c1001c12a5ccc9e89b501e"},
         {"args":{"phkdf-rounds":65536,
                  "bcrypt-rounds":256},
-         "G3Pb1":"ab161bf547e2826eba27b961a9a237539d45870e7da18777978641739b70b886ece635462c059798b84c04ebdf9514cd3f2e697d5dbd8f17616e542b44bbf7a3"},
+         "G3Pb1":"ba97695698a40830e2f4a696f2e7aae6395cb710dec57f65f5b09caf66599386a8dd72c9b191119ee67067efffa4c9e24f2c516e40a357d5592037178184afb1"},
         {"args":{"phkdf-rounds":65535,
                  "bcrypt-rounds":255},
-         "G3Pb1":"5bfd7fa43286fc89a5c8f95974cd20da9b17bc4e53ddf97727bc6ddbef404d8a2ea9a06eda8d1d8200b576c2a6b7ab8335fc664edaff9c4605738489da406081"},
+         "G3Pb1":"36d34a2fc52cf076d65fbc743ebf5b463edc7c56377e05e78483d642fd02e5a4773b0b841489609640e7893500dc40502a9676c3d55ddda4be1b36a3cb290b60"},
         {"args":{"phkdf-rounds":20240,
                  "bcrypt-rounds":4095},
-         "G3Pb1":"002b49dcea31724db39d634481254aee0fef95dc1d5807bcf055ca00e07644553455426c96e7c6683c200ac7fbf8ef061bcbc40b51dae7b95480c807d8bb78a0"}
+         "G3Pb1":"abd174c251cbac8615345af2eeabc6c11fd45b79f666ac39e579762a607e7fcee86693a31bfa688d1f129e7710ce99688b419f036cf49ab9c29b16faeca4f5ae"},
+        {"args":{"phkdf-rounds":42024,
+                 "bcrypt-rounds":4202},
+         "G3Pb1":"00eae144f4687d98b8c13ad64e48f1d609e86ed6304af0393b60faa0d1683371f04c9a5b1d4d90befd8edaecf2901ae23749dedaf68181a60fc60cbb5cac128a"},
+        {"args":{"phkdf-rounds":0,
+                 "bcrypt-rounds":4202},
+         "G3Pb1":"1fb5786ba2a5174d3351bb12a1570d3edcc3723995e5698f547001aef6c6b4bd259e126e01f0ca56144c41b0fe740c8c9c72e799988ab218b88c3267f7d58d1c"},
+        {"args":{"phkdf-rounds":42024,
+                 "bcrypt-rounds":0},
+         "G3Pb1":"67ee102e48fb5b2e7bf00286a3c45a87d5205b55427cade07e7e6db9b181dd831f49c7d30f41600c57b3f838a79f699eb6274c18425ed02ffa67cb2762757d55"}
     ]
 },{
     "name":"xkcd password reuse #1",
@@ -125,7 +134,7 @@
         "bcrypt-rounds":4
     },
     "results":{
-        "G3Pb1":"45c758673eb737c9d235d7c2e0fca94e62c433c70b2df0bf9379ea1e486e6ea6d1de8244fb04685d115091e805db511973899628abb89b0b6969b2d5686579d5"
+        "G3Pb1":"819de3e15f247363c2eabe8f7a55191fd26f8c3459611d32a58093d283eb14f2c3b97c3cc753e6f46a190b7b6fd1549d4a6ab72b6c3a9caa637033b9afa9d966"
     }
 },{
     "name":"xkcd password reuse #2",
@@ -137,7 +146,7 @@
         "bcrypt-rounds":4
     },
     "results":{
-        "G3Pb1":"c785372e37e9b5275d2717039983b3b02ebf2a0b8edf811ac6ba72f53f067873b70b27abdf8b6df85d12ebdb34701e47a8ed60cd77ba2ecf3bf21692d1d2b622"
+        "G3Pb1":"5a2c4558052af07928fda9aa479cf61d337236a6b1e50dd09e674ba1e17c4902bfd4262a6230733c80517e8669f342cbc9e0a520b6fbde6f6ec86217e43e7040"
     }
 },{
     "name":"trivial inputs",
@@ -148,7 +157,7 @@
         "seguid":"",
         "domain-tag":"",
         "long-tag":"",
-        "echo-tags":[],
+        "echo-tag":"",
         "phkdf-rounds":0,
         "bcrypt-rounds":0,
         "bcrypt-tag":"",
@@ -157,7 +166,7 @@
         "seed-tags":[]
     },
     "results":{
-        "G3Pb1":"aaabfad50566fe36fcedaad4b9646ae205a8d374cb69209a031eafa1c2d047e4"
+        "G3Pb1":"8248adb85b092dde58c15382516fd6e7121a1906b0b7bd13fabfb1f74e5af138"
     }
 },{
     "name":"password padding",
@@ -172,24 +181,24 @@
         "bcrypt-salt-tag":""
     },
     "results":[
-        {"G3Pb1":"4b7cc07300cbc72c73661d6f41b3c9b5be2e7f37e74890ade9997855d54e6ac8"
+        {"G3Pb1":"21b23c35d23046494d223bf475658bce0f747e28f8259928537fd9c7920b0e0f"
         },
         {"args":{"long-tag":{"ref":"prehash first light, elaborated","len":5113}},
-         "G3Pb1":"bd69b429bfbed48540a6e8dc6b35a89e0ae910ff4962ed009f959489b44e29ee"
+         "G3Pb1":"cae8684ce95f04eb698fdc6d82257bd663aeb32c5bc37ab9a3bfdf34ba6b4617"
         },
         {"args":{
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
                 "len":3045
             }},
-         "G3Pb1":"dc5b1e21d5545c604230ce4cca0940d96fd9961508d3895620a9e48614df2d19"
+         "G3Pb1":"3f99f7c0ed411e9b7e10059510f413a993f9b07209c8acf19d9514761d7ce192"
         },
         {"args":{
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
                 "len":3046
             }},
-         "G3Pb1":"1087b8f2d75fc017a0a57d1671117a16aa29756910e43f5dad0b6f45caf53f41"
+         "G3Pb1":"e112989d8c27614126fdf496aa8eb021130d699154ab001411bb1ab4d762a922"
         },
         {"args":{
             "username":{
@@ -202,7 +211,7 @@
                 "len":101,
                 "index":1
             }},
-         "G3Pb1":"b1fc571feef365f04f94ffa3865990ad7577350960b7be1a01bea48c98d1421b"
+         "G3Pb1":"1e3607fe758ef19dc798865026475b77a7436547d5e094f322f3dac489cdd8fa"
         },
         {"args":{
             "username":{
@@ -215,7 +224,7 @@
                 "len":102,
                 "index":1
             }},
-         "G3Pb1":"7462e6b117508d0b5cc4fdcb5786fb576d92d98ce4a384a88fc8e72717586c63"
+         "G3Pb1":"326e4ae3e3daa6b9acd5192a1f115537962fb3a5be050175e0437e06a8a37cd5"
         },
         {"args":{
             "long-tag":{"ref":"prehash first light","len":5049,"index":1},
@@ -228,7 +237,7 @@
                 "ref":"prehash unicode test, inset naval story with a reference",
                 "len":164
             }},
-         "G3Pb1":"423f42cc987155201353c3a2755cf75024be29a25a83c3cde6be4076d51ccd8f"
+         "G3Pb1":"835b3987768cac8f772236ab9a12c513aee0219ff13a6d82ab281a8685554cc4"
         },
         {"args":{
             "long-tag":{"ref":"prehash first light","len":5049,"index":1},
@@ -241,7 +250,7 @@
                 "ref":"prehash unicode test, inset naval story with a reference",
                 "len":165
             }},
-         "G3Pb1":"13905d358013706e23b38fd24c962b2cf189830e16b70154dc7c852ad9cd5bdb"
+         "G3Pb1":"03952d37b93994c695c938e40dd84b41d4fc797401a7e17e19555a76b25e70c6"
         }
 
     ]

@@ -114,7 +114,7 @@ genResultEnv tvs =
     interpret tv resultEnv
       | alg == "G3Pb1" =
           case getG3PInputs resultEnv args of
-            Just inputs -> Right (uncurry3 g3pHash inputs)
+            Just inputs -> Right (uncurry4 g3pHash inputs)
             Nothing -> Left "arguments not parsed"
       | otherwise = Left "algorithm name not recognized"
       where
@@ -137,8 +137,8 @@ genTestCases tvs = genSimpleTestCases stvs (genResultEnv stvs)
   where
     stvs = flattenTestVectors tvs
 
-uncurry3 :: (a -> b -> c -> d) -> (a,b,c) -> d
-uncurry3 f (a,b,c) = f a b c
+uncurry4 :: (a -> b -> c -> d -> e) -> (a,b,c,d) -> e
+uncurry4 f (a,b,c,d) = f a b c d
 
 instance Aeson.FromJSON Val where
     parseJSON val =
@@ -260,13 +260,14 @@ compareAu name bs outStream
 
 -- FIXME? Allow computation of tweaks without recomputing seed
 
-getG3PInputs :: ResultEnv -> KeyMap Val -> Maybe (G3PInputBlock, G3PInputArgs, G3PInputTweak)
+getG3PInputs :: ResultEnv -> KeyMap Val -> Maybe (G3PInputBlock, G3PInputArgs, G3PInputRole, G3PInputEcho)
 getG3PInputs env = \case
   (getG3PBlock env -> Just (block,
    getG3PArgs env -> Just (args,
-   getG3PTweak env -> Just (tweak,
-   args')))) | KM.null args'
-    -> Just (block, args, tweak)
+   getG3PRole env -> Just (role,
+   getG3PEcho env -> Just (echo,
+   args'))))) | KM.null args'
+    -> Just (block, args, role, echo)
   _ -> Nothing
 
 getG3PArgs :: ResultEnv -> KeyMap Val -> Maybe (G3PInputArgs, KeyMap Val)
@@ -305,11 +306,10 @@ getMaybeByteString = \case
 
 getG3PBlock :: ResultEnv -> KeyMap Val -> Maybe (G3PInputBlock, KeyMap Val)
 getG3PBlock env = \case
-  (matchKey env "domain-tag" -> (Just (Str g3pInputBlock_domainTag),
+  (matchKey' env "domain-tag" -> (Just (Str g3pInputBlock_domainTag),
    matchKey env "seguid" -> (getByteString_defaultEmpty -> Just g3pInputBlock_seguid,
    matchKey env "long-tag" -> (getMaybeByteString -> Just mLongTag,
-   -- use matchKey' to leave the "tags" argument behind for getG3PTweak
-   matchKey' env "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
+   matchKey env "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
    matchKey env "seed-tags" -> (getByteStringVector_defaultEmpty -> Just seedTags,
    matchKey env "phkdf-rounds" -> (Just (Int (fromIntegral -> g3pInputBlock_phkdfRounds)),
    matchKey env "bcrypt-rounds" -> (Just (Int (fromIntegral -> g3pInputBlock_bcryptRounds)),
@@ -323,14 +323,20 @@ getG3PBlock env = \case
        in Just (G3PInputBlock {..}, args')
   _ -> Nothing
 
-getG3PTweak :: ResultEnv -> KeyMap Val -> Maybe (G3PInputTweak, KeyMap Val)
-getG3PTweak env = \case
-  (matchKey env "role" -> (getByteStringVector_defaultEmpty -> Just g3pInputTweak_role,
-   matchKey env "tags" -> (getByteStringVector_defaultEmpty -> Just tags,
-   matchKey env "echo-tags" -> (getByteStringVector_defaultEmpty -> Just echoTags,
-   args'))))
-   -> let g3pInputTweak_tags = tags <> echoTags
-       in Just (G3PInputTweak{..}, args')
+getG3PRole :: ResultEnv -> KeyMap Val -> Maybe (G3PInputRole, KeyMap Val)
+getG3PRole env = \case
+  (matchKey env "role" -> (getByteStringVector_defaultEmpty -> Just roleTags,
+   args'))
+   -> Just (G3PInputRole roleTags, args')
+  _ -> Nothing
+
+getG3PEcho :: ResultEnv -> KeyMap Val -> Maybe (G3PInputEcho, KeyMap Val)
+getG3PEcho env = \case
+  (matchKey env "echo-tag" -> (getMaybeByteString -> Just mEchoTag,
+   matchKey env "domain-tag" -> (getByteString -> Just domainTag,
+   args')))
+   -> let echoTag = fromMaybe domainTag mEchoTag
+       in Just (G3PInputEcho echoTag, args')
   _ -> Nothing
 
 matchKey, matchKey' :: ResultEnv -> Key -> KeyMap Val -> (Maybe Val, KeyMap Val)

@@ -3,6 +3,7 @@ module Crypto.PHKDF.Primitives.Subtle
   , phkdfCtx_unsafeFeed
   , PhkdfSlowCtx(..)
   , phkdfSlowCtx_lift
+  , PhkdfGen(..)
   ) where
 
 import           Prelude hiding (null)
@@ -57,4 +58,12 @@ data PhkdfSlowCtx = PhkdfSlowCtx
 phkdfSlowCtx_lift :: (PhkdfCtx -> PhkdfCtx) -> PhkdfSlowCtx -> PhkdfSlowCtx
 phkdfSlowCtx_lift f ctx = ctx {
     phkdfSlowCtx_phkdfCtx = f (phkdfSlowCtx_phkdfCtx ctx)
+  }
+
+data PhkdfGen = PhkdfGen
+  { phkdfGen_hmacKey :: !HmacKey
+  , phkdfGen_initCtx :: !SHA256.Ctx
+  , phkdfGen_state :: !ByteString
+  , phkdfGen_counter :: !Word32
+  , phkdfGen_tag :: !ByteString
   }
