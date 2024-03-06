@@ -319,36 +319,9 @@ phkdfCtx_finalizeHmac = hmacCtx_finalize . phkdfCtx_finalizeHmacCtx
 -- | close out a @phkdfStream@ context with a given counter and tag
 
 phkdfCtx_finalizeStream :: Word32 -> ByteString -> PhkdfCtx -> Stream ByteString
-phkdfCtx_finalizeStream counter0 tag ctx = go counter0 hmacState0
-  where
-    -- we want to add 1-64 padding bytes to land on a half-block boundary
-    n = phkdfCtx_byteLen ctx
-    endPadLen = fromIntegral (64 - ((n - 32) .&. 63))
-
-    endPadding = cycleByteStringToList endPadLen ("\x00" <> tag)
-
-    resetCtx = phkdfCtx_resetCtx ctx
-
-    hmacState0 =
-        phkdfCtx_finalizeHmacCtx ctx &
-        hmacCtx_updates endPadding
-
-    go !counter hmacState = Cons nextBlock (go (counter + 1) hmacState')
-      where
-        !nextBlock =
-            hmacState &
-            hmacCtx_updates [bytestring32 counter, tag] &
-            hmacCtx_finalize
-        hmacState' =
-            resetCtx &
-            hmacCtx_update nextBlock
-
-{--
-phkdfCtx_finalizeStream :: Word32 -> ByteString -> PhkdfCtx -> Stream ByteString
 phkdfCtx_finalizeStream counter0 tag ctx =
   phkdfCtx_finalizeGen counter0 tag ctx &
   phkdfGen_finalizeStream
---}
 
 phkdfCtx_finalizeGen :: Word32 -> ByteString -> PhkdfCtx -> PhkdfGen
 phkdfCtx_finalizeGen counter0 tag ctx = PhkdfGen
