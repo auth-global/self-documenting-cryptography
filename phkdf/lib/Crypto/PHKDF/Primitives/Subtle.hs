@@ -62,8 +62,8 @@ phkdfSlowCtx_lift f ctx = ctx {
 
 data PhkdfGen = PhkdfGen
   { phkdfGen_hmacKey :: !HmacKey
-  , phkdfGen_initCtx :: !SHA256.Ctx
-  , phkdfGen_state :: !ByteString
+  , phkdfGen_extTag :: !ByteString
   , phkdfGen_counter :: !Word32
-  , phkdfGen_tag :: !ByteString
+  , phkdfGen_state :: !ByteString
+  , phkdfGen_initCtx :: !SHA256.Ctx
   }

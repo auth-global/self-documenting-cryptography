@@ -234,8 +234,6 @@ phkdfSimple block args = echo
     password = phkdfInputArgs_password args
     credentials = phkdfInputArgs_credentials args
 
-    phkdfTag = expandDomainTag domainTag
-
     headerExtract = [ "phkdf-simple0 username", username ]
 
     headerUsername = headerExtract ++ [ usernamePadding headerExtract domainTag ]
@@ -265,7 +263,7 @@ phkdfSimple block args = echo
         phkdfCtx_addArgs tags &
         phkdfCtx_addArg (bareEncode (V.length tags)) &
         phkdfSlowCtx_extract
-            (word32 "go\x00\x00" + 2023) phkdfTag
+            (word32 "go\x00\x00" + 2023) domainTag
             "phkdf-simple0 compact" rounds &
         phkdfSlowCtx_assertBufferPosition 32 &
         phkdfSlowCtx_addArgs tags &
@@ -278,7 +276,7 @@ phkdfSimple block args = echo
            phkdfCtx_addArg echoHeader &
            phkdfCtx_assertBufferPosition 32 &
            phkdfCtx_addArgs tags &
-           phkdfCtx_finalizeStream (word32 "OUT\x00") phkdfTag
+           phkdfCtx_finalizeStream (word32 "OUT\x00") domainTag
 
 -- | A tweakable, complete prehash protocol.   Note that this function is very
 --   intentionally implemented in such a way that the following idiom is
@@ -318,8 +316,6 @@ phkdfPass_seedInit block args =
     password = phkdfInputArgs_password args
     credentials = phkdfInputArgs_credentials args
 
-    phkdfTag = expandDomainTag domainTag
-
     headerExtract = [ "phkdf-pass-v0 username", username ]
 
     headerUsername = headerExtract ++ [ usernamePadding headerExtract domainTag ]
@@ -352,7 +348,7 @@ phkdfPass_seedInit block args =
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
         phkdfSlowCtx_extract
-            (word32 "go\x00\x00" + 2023) phkdfTag
+            (word32 "go\x00\x00" + 2023) domainTag
             "phkdf-pass-v0 compact" rounds &
         phkdfSlowCtx_assertBufferPosition 32 &
         phkdfSlowCtx_addArgs seedTags &
@@ -373,18 +369,14 @@ phkdfPass_seedFinalize seed tweak = echo
     role = phkdfInputTweak_role tweak
     echoTag = phkdfInputTweak_echoTag tweak
 
-    phkdfTag = expandDomainTag domainTag
-
     headerCombine = B.concat ["phkdf-pass-v0 combine", leftEncodeFromBytes (B.length domainTag), secret]
     secretKey =
         phkdfCtx_initFromHmacKey seguidKey &
         phkdfCtx_addArg  headerCombine &
         phkdfCtx_addArgs role &
-        phkdfCtx_finalize (word32 "KEY\x00") phkdfTag
+        phkdfCtx_finalize (word32 "KEY\x00") domainTag
 
     echoTagLen = leftEncodeFromBytes (B.length echoTag)
-
-    phkdfEchoTag = expandDomainTag echoTag
 
     headerEcho = B.concat [
       echoTagLen,
@@ -395,4 +387,4 @@ phkdfPass_seedFinalize seed tweak = echo
 
     echo = phkdfCtx_init secretKey &
            phkdfCtx_addArg headerEcho &
-           phkdfCtx_finalizeStream (word32 "OUT\x00") phkdfEchoTag
+           phkdfCtx_finalizeStream (word32 "OUT\x00") echoTag

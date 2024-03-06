@@ -223,6 +223,7 @@ module Crypto.PHKDF.Primitives
   , phkdfSlowCtx_finalize
   , phkdfSlowCtx_finalizeStream
   , PhkdfGen()
+  , phkdfGen_initFromHmacKey
   , phkdfGen_read
   , phkdfGen_finalizeStream
   ) where
@@ -326,10 +327,10 @@ phkdfCtx_finalizeStream counter0 tag ctx =
 phkdfCtx_finalizeGen :: Word32 -> ByteString -> PhkdfCtx -> PhkdfGen
 phkdfCtx_finalizeGen counter0 tag ctx = PhkdfGen
     { phkdfGen_hmacKey = phkdfCtx_hmacKey ctx
-    , phkdfGen_initCtx = context0
-    , phkdfGen_state = state0
+    , phkdfGen_extTag = extendTag tag
     , phkdfGen_counter = counter0
-    , phkdfGen_tag = tag
+    , phkdfGen_state = state0
+    , phkdfGen_initCtx = context0
     }
   where
     n = phkdfCtx_byteLen ctx
@@ -340,6 +341,15 @@ phkdfCtx_finalizeGen counter0 tag ctx = PhkdfGen
     context0 = SHA256.updates (phkdfCtx_state ctx) endPadding
 
     state0 = ""
+
+phkdfGen_initFromHmacKey :: ByteString -> Word32 -> ByteString -> HmacKey -> PhkdfGen
+phkdfGen_initFromHmacKey state0 counter0 tag hmacKey = PhkdfGen
+    { phkdfGen_hmacKey = hmacKey
+    , phkdfGen_extTag = extendTag tag
+    , phkdfGen_counter = counter0
+    , phkdfGen_state = state0
+    , phkdfGen_initCtx = hmacKey_ipad hmacKey
+    }
 
 phkdfGen_finalizeHmacCtx :: PhkdfGen -> HmacCtx
 phkdfGen_finalizeHmacCtx gen =
@@ -354,7 +364,7 @@ phkdfGen_read gen = (state', gen')
       phkdfGen_finalizeHmacCtx gen &
       hmacCtx_updates [ phkdfGen_state gen
                       , bytestring32 (phkdfGen_counter gen)
-                      , phkdfGen_tag gen
+                      , phkdfGen_extTag gen
                       ] &
       hmacCtx_finalize
 
@@ -365,12 +375,11 @@ phkdfGen_read gen = (state', gen')
       , phkdfGen_initCtx = hmacKey_ipad hmacKey
       , phkdfGen_state = state'
       , phkdfGen_counter = phkdfGen_counter gen + 1
-      , phkdfGen_tag = phkdfGen_tag gen
+      , phkdfGen_extTag = phkdfGen_extTag gen
       }
 
 phkdfGen_finalizeStream :: PhkdfGen -> Stream ByteString
 phkdfGen_finalizeStream = Stream.unfold phkdfGen_read
-
 
 -- | close out a @phkdfStream@ context with a call to @phkdfSlowExtract@,
 --   providing the counter, tag, @fnName@, and number of rounds to compute.

@@ -36,12 +36,27 @@ cycleByteStringWithNull :: Int -> ByteString -> ByteString
 cycleByteStringWithNull outBytes str =
     B.concat (cycleByteStringWithNullToList outBytes str)
 
-expandDomainTag :: ByteString -> ByteString
-expandDomainTag tag = if n <= 19 then tag else tag'
+extendTagToList :: ByteString -> [ByteString]
+extendTagToList tag = if n <= 19 then [tag] else tag'
   where
     n = B.length tag
-    x = (19 - n) `mod` 64
-    tag' = cycleByteStringWithNull (n+x) tag
+    x = (18 - n) `mod` 64
+    tag' = cycleByteStringWithNullToList (n+x) tag
+         ++ [B.singleton (fromIntegral x)]
+
+extendTag :: ByteString -> ByteString
+extendTag = B.concat <$> extendTagToList
+
+trimExtTag :: ByteString -> Maybe ByteString
+trimExtTag extTag
+  | n <= 0 = Nothing
+  | n <= 19 = Just extTag
+  | extTag /= extendTag tag = Nothing
+  | otherwise = Just tag
+  where
+    n = B.length extTag
+    x = B.last extTag
+    tag = B.take (n - fromIntegral x - 1) extTag
 
 {--
 

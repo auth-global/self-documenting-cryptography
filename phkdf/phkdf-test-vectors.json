@@ -25,7 +25,7 @@
         "rounds":1998
     },
     "results":{
-        "phkdf-pass":"520c9ebe5822bbee155eb3b0d6f715c5ea7129010643851923fb32f2d11ab4d8fc9637bc3521e36bd14f6a48e9bbc7c18aedd35e9170ccaa52aacc748afb147c",
+        "phkdf-pass":"2763a7c515990c25e6ccaee225774dbb3e2af52c1d315cb3eed572dea542b04e4b4f58ea6a5afa45fdff4c773a27d37c9fdd1158ef1612aab93e589e5bcbd9a0",
         "phkdf-simple":"ebd3132de6d8581394a51a33f7310b0c52c2450b5735718bc4192ff639f088c58b0b475608fb9f8face7bb20537becbd1ead09438354f293e21cb3579673c85c"
     }
 },{
@@ -39,13 +39,13 @@
         "rounds":2022
     },
     "results":[
-        {"phkdf-pass":"e5c82a319b5b8795345f8c8896cca0874f7cba47da23b3264a42ce4cc2c5b29864790cbf5d6fa49c05a7c9c10a8c4d440a1eb284efc781be9e643c6d18f7cbf3",
+        {"phkdf-pass":"061d5ae349721e0c9cc606939f3dcafa9f40730d28f549b950a4d0d726a2ac9febf98a023a403504df33eff687ab136fb38f80f07f5bb3c3adfe407ddc90d7aa",
          "phkdf-simple":"c393a48cf6a4977b76586b426dde202f4b69309ea9d66d012fe60ae926bafb6b1c7bd67051d3c540cd5537b12e23672398ba0124bb44ab62854cc2f1d65fa158"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40"}},
-         "phkdf-pass":"41a6f7d19fe713b8f925d27abefd08c9446215ee939cbb41fece37ef49329233af685750f4c8fd61ce84577ab20ace10abb6b6508cfda0bb8053e2f44f4e55ed",
+         "phkdf-pass":"d2545bd63300122c3f276f3346101485ae9da6dd0f5f23196a5a44aa70e8821ea15247b5c13948c332b8e3342aad21c37796173e5ced3874c2d6b4c58516e274",
          "phkdf-simple":"7f527cd249cdbc02f2ab775d77027a9ba7c6389cd264a7abdcfe104e1fe8f9c8039daf29d81711a61314988eca16d30c0dfee70132ec098b35937b43169062a3"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f4041"}},
-         "phkdf-pass":"28d718b85a748aef5f6c344f18d8f2ad30610da5f54e301618d347573dad42db157421ec1c21435c516926e2ed584c48c09ddf4bb1924f05e21380291a16685c",
+         "phkdf-pass":"398d4944d83c9b28544d0fa63230805adc3cfc9a0ab5ccf1f7618a8178948bb17dca029b687d1cfeba69b6d19fb0efe7529fb8b076084673274288c37aa8f4e1",
          "phkdf-simple":"a56923b419dcb4ef8c74294305b58d8e6deef3c780091d4bb306d3f9ea80179f6dd813f81a646a1749ab7eade53caefe1f75f0e04a283dd88666c830579f1bf9"}
     ]
 },{
@@ -59,8 +59,8 @@
         "rounds":1894
     },
     "results":{
-        "phkdf-pass":"717963af333b1ed8dddd4dc0febe82d33acfbbb567b65a2a6de87c8f5277b61795bd022e13798a989dc63ab30fd71408109154e8dff92df5418331ebec070100",
-        "phkdf-simple":"b67e68dfd3b23d6ce052d829fd45a40d5e8a0b7612a02c73b2527dad9b2f5923a23e11a158bd081b87428df474614a979418c514e10ce01dd3077b2986cbe855"
+        "phkdf-pass":"9f761cfb7be46002017a5e3dbd0327a56293796d79d2d03df2ff8263d24815472d9de709a034dd298c6a55f60c9562bbe3208d875041128c3fe4cfe43de0fd10",
+        "phkdf-simple":"182d3cfa57c4c0f5a672b082f8a1bbd18d25c65c4ef2d701b849f0bd0cf7632a0897dbb5eaf2b0bb1369f36fa6f5748007db1c92c1302f5fbd47bd6394f0840d"
     }
 },{
     "name":"xkcd account problems",
@@ -72,8 +72,8 @@
         "rounds":2022
     },
     "results":{
-        "phkdf-pass":"47eef8f1287cae0dcb2a246f90030a23d34a02ceba24933f88e2b726a5d7ac429a438eba23ee911ee14740b112ee16d22b832ed48e87382f867afb5f3fd8f7b8",
-        "phkdf-simple":"db7facc2f05b782f610e7e2e15f0cdce5eb952c0033dab44afe89b721d36532fac53d1b9d49c6d2f60a066f05ccb10cf4bd45866ec9cfbf6491aaa963477eb33"
+        "phkdf-pass":"10da498762fa8b63bd165d6ea75f19c744ba52588ae97bb62c1671013bb1a687a8897a6bc86272ac85cedc617c3d3ad1d7e56f139e7bd0abad61be7d984c5fc2",
+        "phkdf-simple":"60c54ff1d092126f85c1ebcd5080f0f5cc78ff938077ec6c07354cdce512dc362a97dd02aa63162d4cef87b2666d85248c507f37783e0f8e680e0c3fe890c21b"
     }
 },{
     "name":"xkcd password strength #1",
@@ -84,8 +84,8 @@
         "rounds":2011
     },
     "results":{
-        "phkdf-pass":"27910710fcb65e80aac2bc311dacd40106cd5fe72ab86289d0450e8ce15db7d4ce3e30d0bdc085cae4c3f06bfbe5c5eaeac962d7809e5009228f288f5fedb89d",
-        "phkdf-simple":"655ad7985adae91e5c36790a1db1e4e20e1550b334cc4808d499c09d6b7ef3bf0e9e30e9e2fe57bfcfb5fb5220abb4dbb5d618ed5d16405d46854db207bb533d"
+        "phkdf-pass":"784a095b48fe3cc1e500e279d1eec841b26a6bbecc1d86e9c55fc45c84df33f37f2283ca131eede1dd47fe3ed4af0cb0955ee7f8606aba7c8fa0dc75ba9f5d50",
+        "phkdf-simple":"00efb2f159e16426a5f4bd41e5c5b417d65d18e01ef37ce94bc01d1b15bb57ed9d6a712ba2d24b8e01235ace4dcf1a9eb7b9ff5a9ea64501ec823bbbad805667"
     }
 },{
     "name":"xkcd password strength #2",
@@ -96,27 +96,27 @@
             "Diceware","https://theworld.com/~reinhold/diceware.html","Arnold Reinhold",
             "https://www.eff.org/dice","Electronic Frontier Foundation"
         ],
-        "domain-tag":"https://xkcd.com/936/",
+        "domain-tag":"xkcd.com/936/",
         "rounds":2011
     },
     "results":[
-        {"phkdf-pass":"b52256cc5eca47ba9c80d40b1951bda70b54322c412e7664cae15dd9ff416f480c633dde9a955bba0e4dcc95072e413fb8e3e057ac052c6d53058435a00adb08",
-         "phkdf-simple":"f48ae94b6c6b6823d963e733597a7094b74ae05ee79d4d73e90c09f2b36f0e6fc4d63dc1ac38351542729118edd0376bb568ffcbe48e9b9ec4315c7412f3053d"},
+        {"phkdf-pass":"e807fa001e087ebbd0ae5843335296984c5f262f625a4a485fa0cc17180362b9238e589af64a4e060a69ce4bb333244c5cedf440f4ff4cc6e0604fec8727536c",
+         "phkdf-simple":"ab3085a606ff0bd0c3b9760416abe76f9053908ef3eeff7210ee70b9283586c32f97dc93b8dd8c4805afe165cfe95db2b95d3078ffd0c460d711a062169593d6"},
         {"args":{"rounds":255},
-         "phkdf-pass":"682bab8be42921ab26056b8f96a382d1934690c996fb78eafa340356bf99fe96067ab36639f45f9788564f86f41b2117eb2a540d54ad5e87a3956b435f25d28a",
-         "phkdf-simple":"b05a2bbae80e75b771938176b50d7e7d9c5250ae00b4fd43cd8ca04059c46d8e7ecfbdf0c3e0ea155469efdabae066018ef02356ec661ca54a5b7def03d4b446"},
+         "phkdf-pass":"664364f5ab627e5c58f6ded96c49769be28ff0fa1b6bd44ef07c5746898429f2912a61b7ef7abd8b87c9e532c271d984213b2569b11cf240c1b877eb5460a12d",
+         "phkdf-simple":"1dd1961d8d20c6b1d10ab992b7d1d0999fe9ec53938709cd617ed582c4a2ac2a12d274946f4b89bfe59b594c05f60152f1e17b29b8b111da4fe4ab358c79dfe7"},
         {"args":{"rounds":256},
-         "phkdf-pass":"0b65d949ccff3e31f2aa5779e29b962e58b37fec6032ab9ce3929266e8f57c52a6e7eb71dcdf5056a04bea973a8e3943ffa532f5c466e244bcbea2ba03c0c34f",
-         "phkdf-simple":"85339d04a323edd4715a687830f69d840505c234e29eed386676450e963acb10b5ba47bef8bac59a756c70c2bc4e048e19d91c5be79a99696337ca57d1ffc433"},
+         "phkdf-pass":"87c836f7f2cb86831eefed04c41d9f99d99417f7e23b0d7b15b95fb146868ce69938b70ca9d18f29ccdb09472dd1f558ba98377eee94efd32d54441428864a32",
+         "phkdf-simple":"3a7805b315c2396d77c85b2efe533c060d133b3e57a097a6830d544825f5ac658d7c1f2201f8eb577599b352e68812f5c2a26f82ab11b4d496e0595714aa2192"},
         {"args":{"rounds":65535},
-         "phkdf-pass":"77acd604de6d91195178d4b66b30b9ecada8e617e45572c48ba7bf1abb49fc52b8d35659827450f8576538e7a4043be8ab23a103e631e3ef0340293928ae8394",
-         "phkdf-simple":"5b97403855faf1037ca02387bd3216633ed44c4fff4530b677683964b0a5d66970e1315550613deb01bece5d15af78f8fa55f8313fd6823e1eb7b38f690e8738"},
+         "phkdf-pass":"b1bb452535d87ac0847dba473eace95ea0fb12101aca9274c885c988b01c41bc781bd52ba5bfe3b466f3292bafeb2c10500aeaa9d4a2f94387e6fda60840de0b",
+         "phkdf-simple":"75bcf3253ec4f3cb1f33b06273e1f3063b37ec9a82accbf12a87d8a821156d3cdf0ccf8ca2c23343195859c18c48fe5da094a99c6caa472afd37eeada58e9073"},
         {"args":{"rounds":65536},
-         "phkdf-pass":"484e91195cc91e70e0deb7124618e1f40d5154af792c5c6e31bde48abd39ab53162de8cdc02581bf0bb96cd93f6105d67e4b2d7605ca4baa4fd00240f8b2ce9d",
-         "phkdf-simple":"9e16d6b3fe74990cc685ae38a0849654d42061144a59e97cd82e594b0bd9740a043f2669297d4f93aca5804a34422c28346d94c2ee8fc52615a4a240cb60bbaa"},
+         "phkdf-pass":"7fea509f685d742750ec7cf4d14a1c918452eacdf48c99a06a89889859c6d81f46ffddb983374d10cfcd5ae7d23433df993a887a3389a5cc31442353adf56467",
+         "phkdf-simple":"483f1f9b1d67b5d7bf6132f9e3c225cc6dd1604b2fe2c3903ee1c56ed5b5d756a9d1a89d7fad63b85836fb7bb4541d76486560bad510540e41fa8c6105bf1bad"},
         {"args":{"rounds":250000},
-         "phkdf-pass":"38f37b046a75671ff8f723f184a871a5de018c5bcf1675d5964b265478f0f948bc081a0f6f4285f4a7c70c9702d23709bd15422085cb17e9ab1bc5d30e3a9cee",
-         "phkdf-simple":"55905ad486e918a7be1993e90272bd5c27736657cf7ac42d5edf9578638a17c44f659b2015c28600d103d726f353ff129a1859b09387151dcb1a381b8889687e"}
+         "phkdf-pass":"5bc89518f9221b6a76e77225f92a6f562dff97b4582f7da2cc98f51ea405a0bfd9bee653a94662a8e82cd1219b79f0acd4438c71e03422a3316e1e11ad8795d7",
+         "phkdf-simple":"4cc9643a62f7e30f87d9fd75f2acec4b83fd87f6f18d14fecb2f2b22755f839a3d1f02f2d43ad59b25655e0b35c074080ed75db5da4ab1f4af63bca922ecb23b"}
     ]
 },{
     "name":"xkcd password reuse #1",
@@ -127,8 +127,8 @@
         "rounds":2010
     },
     "results":{
-        "phkdf-pass":"5c03990932c8981c9bfde36556196f6c2eb1e6c4379e62d1b36e985deea4a5f3a6d31a6c5d59dc69be173cb3250c852060763f185a0f093e70bb0b957c28538f",
-        "phkdf-simple":"88b3c1ea9bcccdb37e4da03b6d4c606c29369fee97290bab9e719902bcaf57ffae632558fea138708ddfa67d3375437088b2b731007799d6ba094b417a070436"
+        "phkdf-pass":"896149beb76a626e326dddad88e3b17ac85d361446afe5223692b7913083b304a623b2aac091c8b3d8ac49ce9c078a6454087fc9328bc8b18feeb52b18256ff1",
+        "phkdf-simple":"8f0d5efddc97d3243b45641646ea259a4f7d5a2b30e6712f003120c59cf1ea89a2441ed8d851978180cdd3a1bfb6716879b3cbfa0449762fd76304adc42924f8"
     }
 },{
     "name":"xkcd password reuse #2",
@@ -139,8 +139,8 @@
         "rounds":2010
     },
     "results":{
-        "phkdf-pass":"69158f1009c444166d7a963f2980552a2345ec978b6fda5317c82e87927747438ee3d169a4b850a6a731fbfa0137fd51b22cf8237b18cd3b5ab66f107cc2d793",
-        "phkdf-simple":"30414b71a1d83cb35a08368743cf93545024b72fc6a03d15fed2f360a452f1be899ec5b6f4c0e6be00298e7265152813ceabf04884c8cf27a69c0fc9b76817a4"
+        "phkdf-pass":"004913bb2d07de0007e117be9009c78a7502b02e0181c2a6b8aaa2be8c50d1bd647d9e337a35b0cc80d60c9cc1e74d3e17881dda5578b1de9b942ef7009b7f4d",
+        "phkdf-simple":"2557aa139b168ff55c0ef4fc7f461d196b71d65285dc170bb12400be213f45b784bd867bf05043321259a22e2db1dd7ce1437b2ad1e2666538c88ed7761a1925"
     }
 },{
     "name":"trivial inputs",
@@ -170,19 +170,19 @@
         "rounds":255
     },
     "results":[
-        {"phkdf-pass":"fe11a2574bbec986800aecf9a041ae7033e9a8583005eff1c73cdc05d0954acf",
-         "phkdf-simple":"f6ab41b6149e84d8b02b039b54d7a108d752b86c9b2a5637e1e982df09114972"},
+        {"phkdf-pass":"194522c8531893540e7113581a6e4ce6d5a1a0215ba2da379473f45e8df75d5c",
+         "phkdf-simple":"04bcc4fdcc6c1fa1a4b5eb423085f086eaedc79e539d9a6fe2470ef28f9f27bb"},
         {"args":{"long-tag":{"ref":"phkdf first light, elaborated","len":5113}},
-         "phkdf-pass":"a5c56c279e982995a4a4975171600609bc18bfd47a231c1a9e56d710f355333d",
-         "phkdf-simple":"d03ada956be1e7febcf8f220301c5d0a5dc9079fb29c0fd3d4a963a0fccd22b9"},
+         "phkdf-pass":"1db2e2c3994090d66381f73dca19e49c3b57e32b657eb1e1cea2c6e835aaccc4",
+         "phkdf-simple":"40aa140388163a14a41c74a56f8025fad2087a821ec87e4776303abbc3d2ad7b"},
         {"args":{
             "username":{
                 "ref":"phkdf unicode test, lightly extended on top",
                 "len":3042,
                 "algorithm":"phkdf-simple"
             }},
-         "phkdf-pass":"59642f22127b489a70b6615d5a33a5539970d09a5834416366990b61004e0124",
-         "phkdf-simple":"06af53a44c48ff07afac4a582e3736a807df0ce7118e66510aedbaa7efcf5067"
+         "phkdf-pass":"68f9f870df0fe68d51ab2b6ed1ba986936a53f5ff33375efa3e90fc5fb6a885f",
+         "phkdf-simple":"409aa0faec943d9019b05f01887c505a6cbbee2bb4bc7b13026fdaa5442527c0"
         },
         {"args":{
             "username":{
@@ -190,8 +190,8 @@
                 "len":3043,
                 "algorithm":"phkdf-simple"
             }},
-         "phkdf-pass":"010f86f248c86bff2edc744d078efe52eeabd7f425c944b8ef594bc770063c89",
-         "phkdf-simple":"87bef2b6172c01300d6cb4e04a0772b2f311ab08aba13d60394794ecf6ef825b"
+         "phkdf-pass":"8a1c2ad29d5b7d6d11ef54ccb85e51044c4f83e06b9eff54965c02ea4708a88e",
+         "phkdf-simple":"0a8c6a3fcfc6788927bbb12c2026ccbf97dba0c65be432ac20dd447634da8b3c"
         },
         {"args":{
             "username":{
@@ -204,8 +204,8 @@
                 "len":101,
                 "index":1
             }},
-         "phkdf-pass":"7f80695128459b5ce779e730343f6a7724def076ea3d6c4c76af170ac69826a1",
-         "phkdf-simple":"ce9436c0ad1b0b581e81c498b75f228e61e6aa0b093fee2600cd044196baaaef"
+         "phkdf-pass":"d87848a81d02411e2af2785b908387d9df2d05b3393661c98c33766567d7f69e",
+         "phkdf-simple":"ba737b538bdc86290e6fb5a949310aa7937a27f1124d8bd1a731422f11b94c3c"
         },
         {"args":{
             "username":{
@@ -218,8 +218,8 @@
                 "len":102,
                 "index":1
             }},
-         "phkdf-pass":"30ffed81e220eb50280e81df7d556eec39b5155dfdf8fe47094a7eb8803ec97d",
-         "phkdf-simple":"2c6ce78f645567ddebf1da39633ff9ca8be588926cfa6af78ecfc25099d05884"
+         "phkdf-pass":"17e74b3ea9bf0b42ccf3911090358f61d914d186fa2aaf90b8978aacf79ed453",
+         "phkdf-simple":"a4666cda70f4038c3abbe3ccb010a535b185233852eaeb1cf0b5dbcf6463e6a7"
         },
         {"args":{
             "long-tag":{
@@ -232,8 +232,8 @@
                 "len":3106
             }
            },
-         "phkdf-pass":"4a3715b3ee228b29faa808bc3aef4dca532bcdeca958fc3ad063afb9be05fcfe",
-         "phkdf-simple":"16949de8490715403eeec6ca00a4df397cce6d5ebc83406d1b0814c0a5f8a8fd"
+         "phkdf-pass":"e3bf6ab4e33238f2798da15b8f4ef85e55ff72a7ee708b2619dbf8d0dfaf26eb",
+         "phkdf-simple":"cad62483630fb1fcc3a3692faae5f085661d404f604754f3ea335b5a0509f845"
         },
         {"args":{
             "long-tag":{
@@ -250,8 +250,8 @@
                 "len":164,
                 "index":2
             }},
-         "phkdf-pass":"12cc55c793aa6c8f38666acefd9eeb5030d6327e4a63fc12c2431988981b2de7",
-         "phkdf-simple":"be8885010b1ac2630a66cc2258334b346428e9879de87a7314b491f848d60d44"
+         "phkdf-pass":"580a5b911b2bca478c51e00a9bbfb71c986c54a2bf1120f44ee38c78fd6a50f5",
+         "phkdf-simple":"e49a7c6c65c06c648a998ab7fab81aabd7d7e1a2e9817f2c201922916637785d"
         },
         {"args":{
             "long-tag":{"ref":"phkdf first light, elaborated","len":5049},
@@ -264,8 +264,8 @@
                 "len":165,
                 "index":2
             }},
-         "phkdf-pass":"9616969cc1b5f4d6e489fa9a39c945233ee26c755a001e47f876c43e1d2ee097",
-         "phkdf-simple":"3550211a691304a6c630a1d916d25c65c0324b2d3127014a1bab5c18dac04c7d"
+         "phkdf-pass":"bf7560bfcecbc421092900e16ff171f9904f6455ee81ebf31aa8227915f423b1",
+         "phkdf-simple":"ce29184753909d4a35468a1c50a6b0b581474e6fed7720de99c92637a2f1fe41"
         }
     ]
 }]
