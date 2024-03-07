@@ -153,8 +153,8 @@ import           Network.ByteOrder (word32)
 
 import           Crypto.Encoding.PHKDF
                     ( add64WhileLt
+                    , cycleByteString
                     , cycleByteStringWithNull
-                    , expandDomainTag
                     , usernamePadding
                     , passwordPaddingBytes
                     , credentialsPadding
@@ -406,8 +406,6 @@ g3pHash_seedInit block args =
     password = g3pInputArgs_password args
     credentials = g3pInputArgs_credentials args
 
-    phkdfTag = expandDomainTag domainTag
-
     headerAlfa = [ "G3Pb1 alfa username", username ]
 
     headerUsername = headerAlfa ++ [ usernamePadding headerAlfa domainTag ]
@@ -419,8 +417,7 @@ g3pHash_seedInit block args =
     headerLongTag =
       [ longTag
       , B.concat
-        [ "global-password-prehash-protocol version G3Pb1"
-        , leftEncodeFromBytes (B.length domainTag)
+        [ "Global Password Prehash Protocol bcrypt v1 G3Pb1"
         , leftEncode phkdfRounds
         , bareEncode bcryptRounds
         ]
@@ -450,7 +447,7 @@ g3pHash_seedInit block args =
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
         phkdfSlowCtx_extract
-            (word32 "go\x00\x00" + 2023) phkdfTag
+            (word32 "go\x00\x00" + 2023) domainTag
             "G3Pb1 bravo" phkdfRounds &
         phkdfSlowCtx_assertBufferPosition' 32 &
         phkdfSlowCtx_addArgs seedTags &
@@ -467,16 +464,19 @@ g3pHash_seedInit block args =
                  bcryptRaw bKey bSalt bcryptRounds
 
     headerCharlie = B.concat [
-        "G3Pb1 charlie", phkdfHash,
-        cycleByteStringWithNull 56 bcryptSaltTag, bcryptHash,
+        "G3Pb1 charlie",
+        phkdfHash,
+        cycleByteStringWithNull 56 bcryptSaltTag,
+        bcryptHash,
         cycleByteStringWithNull 32 bcryptTag
       ]
+
     secret =
         phkdfCtx_initFromHmacKey seguidKey &
         phkdfCtx_addArg headerCharlie &
         phkdfCtx_assertBufferPosition'  32 &
         phkdfCtx_addArgs seedTags &
-        phkdfCtx_finalize (word32 "SEED") phkdfTag
+        phkdfCtx_finalize (word32 "SEED") domainTag
 
 -- | This consumes a seed and tweaks to produce the final output stream.
 -- This function is the output expansion phase of 'g3pHash'. This function
@@ -498,11 +498,8 @@ g3pHash_keyInit roleInput seed = G3PKey
 
     role = g3pInputRole_roleTags roleInput
 
-    phkdfDomainTag = expandDomainTag domainTag
-
     headerDelta = B.concat [
       "G3Pb1 delta",
-      leftEncodeFromBytes (B.length domainTag),
       secret
       ]
 
@@ -510,7 +507,7 @@ g3pHash_keyInit roleInput seed = G3PKey
         phkdfCtx_initFromHmacKey seguidKey &
         phkdfCtx_addArg  headerDelta &
         phkdfCtx_addArgs role &
-        phkdfCtx_finalize (word32 "KEY\x00") phkdfDomainTag
+        phkdfCtx_finalize (word32 "KEY\x00") domainTag
 
 g3pHash_finalizeGen :: G3PInputEcho -> G3PKey -> G3PGen
 g3pHash_finalizeGen inputEcho gKey = G3PGen
@@ -521,21 +518,12 @@ g3pHash_finalizeGen inputEcho gKey = G3PGen
     secretKey = g3pKey_secretKey gKey
     domainTag = g3pKey_domainTag gKey
     echoTag = g3pInputEcho_echoTag inputEcho
-    echoTagLen = leftEncodeFromBytes (B.length echoTag)
-    prefixTagLen = 29 - B.length echoTagLen
 
-    headerEcho = B.concat [
-      echoTagLen,
-      cycleByteStringWithNull prefixTagLen (domainTag <> "\x00G3Pb1 echo")
-      ]
+    echoHeader = cycleByteString 32 (domainTag <> "\x00G3Pb1 echo\x00")
 
-    phkdfEchoTag = expandDomainTag echoTag
+    echoCtr = word32 "OUT\x00"
 
-    echo = phkdfCtx_initFromHmacKey secretKey &
-           phkdfCtx_addArg headerEcho &
-           phkdfCtx_assertBufferPosition' 31 &
-           phkdfCtx_finalizeGen (word32 "OUT\x00") phkdfEchoTag
-
+    echo = phkdfGen_initFromHmacKey echoHeader echoCtr echoTag secretKey
 
 g3pGen_read :: G3PGen -> (ByteString, G3PGen)
 g3pGen_read gen = let (out, next) = phkdfGen_read (g3pGen_phkdfGen gen)

@@ -325,8 +325,7 @@ phkdfPass_seedInit block args =
     headerLongTag =
       [ longTag
       , B.concat
-        [ "password-hash-key-derivation-function phkdf-pass-v0\x00"
-        , leftEncodeFromBytes (B.length domainTag)
+        [ "password hash & key derivation function: phkdf-pass-v0"
         , bareEncode rounds
         ]
       ]
@@ -369,22 +368,15 @@ phkdfPass_seedFinalize seed tweak = echo
     role = phkdfInputTweak_role tweak
     echoTag = phkdfInputTweak_echoTag tweak
 
-    headerCombine = B.concat ["phkdf-pass-v0 combine", leftEncodeFromBytes (B.length domainTag), secret]
+    headerCombine = B.concat ["phkdf-pass-v0 combine", secret]
     secretKey =
         phkdfCtx_initFromHmacKey seguidKey &
         phkdfCtx_addArg  headerCombine &
         phkdfCtx_addArgs role &
         phkdfCtx_finalize (word32 "KEY\x00") domainTag
 
-    echoTagLen = leftEncodeFromBytes (B.length echoTag)
+    headerEcho = cycleByteString 32 (domainTag <> "\x00phkdf-pass-v0 echo\x00")
 
-    headerEcho = B.concat [
-      echoTagLen,
-      cycleByteStringWithNull
-         (29 - B.length echoTagLen)
-         (domainTag <> "\x00phkdf-pass-v0 echo")
-      ]
-
-    echo = phkdfCtx_init secretKey &
-           phkdfCtx_addArg headerEcho &
-           phkdfCtx_finalizeStream (word32 "OUT\x00") echoTag
+    echo = hmacKey_init secretKey &
+           phkdfGen_initFromHmacKey headerEcho (word32 "OUT\x00") echoTag &
+           phkdfGen_finalizeStream
