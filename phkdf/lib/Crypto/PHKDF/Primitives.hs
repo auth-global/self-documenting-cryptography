@@ -423,7 +423,8 @@ phkdfSlowCtx_extract counter tag fnName rounds ctx0 = out
         phkdfCtx_reset ctx0 &
         phkdfCtx_unsafeFeed [extFnName, block0]
 
-    fillerTag = cycleByteStringWithNull 32 tag
+    fillerTag = cycleByteString 32 $ B.concat
+        [ tag, "\x00", fnName, "\x00"]
 
     go n !ctx ~(Cons block stream)
       | n <= 0 = PhkdfSlowCtx {

@@ -8,8 +8,8 @@
         "rounds":1998
     },
     "results":{
-        "phkdf-pass":"4be046dd5d3cc8810732201f392a95775373b3d760c967baac60eac40814a4fa50b0b981af8e9d46b0754f059939fc2c3e4b67749448fb59b17bb7905f31688c",
-        "phkdf-simple":"e5058cb698eb50addb02cf89ac504ff61df60be2f8f12bc384a39711d9770ce20a372e1ebea3ba98c311baab8b77186bee18126f6b3035a6379760b63726ce5e"
+        "phkdf-pass":"85c2cce906bbce9b507de1ddb415c9703d635d4f14f3e81c1299ceaa00d86541129d9020319d3fb0053c69ce6f0d279f6c4dd28bda70d3c1c0f91e259a8a15e0",
+        "phkdf-simple":"3d5628f4834c15a114f0055d2da659ea6564c7fc574bf63c7f413810fda442712631cabfd1a1b8d0a21b70b471d070549ea040d16a00b6112e9c59ca78e27d95"
     }
 },{
     "name":"phkdf first light, elaborated",
@@ -25,8 +25,8 @@
         "rounds":1998
     },
     "results":{
-        "phkdf-pass":"431cee721a684c106f730fcdc892367b3ee9e344e7fb85951485750e2e5bd5fbe462742d280ea2f22e56c4735432e0f0e11f88d2896434028083a1e596c27049",
-        "phkdf-simple":"ebd3132de6d8581394a51a33f7310b0c52c2450b5735718bc4192ff639f088c58b0b475608fb9f8face7bb20537becbd1ead09438354f293e21cb3579673c85c"
+        "phkdf-pass":"61f3c4a90166fc2251b80af8bad4810c0b9dce56c7ddfbac45c3f7b96c12ca67d2d2d4ee9f92483b045b67dba3de5b1c51abaf0be8580f4ed9c061c255912256",
+        "phkdf-simple":"a2150b311d2727b8592265150935d910e9717fdab169a03149ff07c49bee8fb2aa4f74513251a4546cd8a35b347a08771b5305105cc6fb393e779669b632b7f5"
     }
 },{
     "name":"phkdf unicode test, inset naval story with a reference",
@@ -39,14 +39,14 @@
         "rounds":2022
     },
     "results":[
-        {"phkdf-pass":"8d6d332745b389c86f7e12243e889f78a87f511228377f9dcb93eb4fef13e4583a54b2dc415a236b56bff6ccf9c3d08968c2a674a9737915f4573fba6dd2d7e4",
-         "phkdf-simple":"c393a48cf6a4977b76586b426dde202f4b69309ea9d66d012fe60ae926bafb6b1c7bd67051d3c540cd5537b12e23672398ba0124bb44ab62854cc2f1d65fa158"},
+        {"phkdf-pass":"18d55590dd5f6665aa4bdeaab904f4c1b3a7090a7e1d597d3a8a707b0bf4aacc60c16809b066faa2e9aa08c5757f0a92bbe536249dc3cce50e16f83e9f9b066c",
+         "phkdf-simple":"e1b2b5b36693e30451c15699e8ac87d5642ac0f6a648e45f3073860fad014243d095798308c76e0a5a860e1695208869cbc0c2e52eb9590d257fa202f8610361"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40"}},
-         "phkdf-pass":"55b16c50dabc0de691c38152f5c9e045c7947a689f511693ca3781d5ee5457a056614c2bffa4c2960d44481486c1add0aaaba22e1339e2cafddf985e39ba4e9b",
-         "phkdf-simple":"7f527cd249cdbc02f2ab775d77027a9ba7c6389cd264a7abdcfe104e1fe8f9c8039daf29d81711a61314988eca16d30c0dfee70132ec098b35937b43169062a3"},
+         "phkdf-pass":"898e874852c46aa168465813e68982d82bdb0fae4ff65ab846a7784c6cf591b97ef79eb647b07896cc099c5c5a3d29acadcf8f62fc0244eb33326c6669816a5d",
+         "phkdf-simple":"2b04923bde6d77364c3141603c6f3c87e9e99724d7de408244db3814e3ac22624b89e17454b23921f08dc75b50f81a35ef61ebaf7bf16d8efdb38a949535aa7a"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f4041"}},
-         "phkdf-pass":"12bd7d696554745ec48683459c8a21445fc091666fa1265d34e54b8aae3b882e53501853c502074a24783277de1cce00b9cb30ef90fb4c4238747a3738d8def2",
-         "phkdf-simple":"a56923b419dcb4ef8c74294305b58d8e6deef3c780091d4bb306d3f9ea80179f6dd813f81a646a1749ab7eade53caefe1f75f0e04a283dd88666c830579f1bf9"}
+         "phkdf-pass":"6e21277c164beb8f7d51c3d0766239e668ea4516040a0eb9d526f179c73cee9bbd7a53fabf50166ad01b33111ad20d96dd8736c113fad1f74b18220ab34358ac",
+         "phkdf-simple":"f9979f9f5572a0b2906dbd1d09894d40ff916829c4560caaaf57754d1d62ca418f077021c478d92160fef64728bfc86c97548d366e07bd38da256b4b09d8426c"}
     ]
 },{
     "name":"phkdf unicode test, lightly extended on top",
@@ -72,8 +72,8 @@
         "rounds":2022
     },
     "results":{
-        "phkdf-pass":"72a17a1553fd5790a8ed64e9656b41d2830c147dba729ff29524cc61d5aec7ad6eba0e3abf6346050af7fe2d9c874e560cf7ead3621154b20f57099a87000f8e",
-        "phkdf-simple":"60c54ff1d092126f85c1ebcd5080f0f5cc78ff938077ec6c07354cdce512dc362a97dd02aa63162d4cef87b2666d85248c507f37783e0f8e680e0c3fe890c21b"
+        "phkdf-pass":"120721ef9341e37d582ea8616405e28cd944c672cfbc611aa64296c0cd711967c9b48f3333674eb9af9ed705164cb05f9b1dae5e3a3118ca39f71940476bdf7e",
+        "phkdf-simple":"09d0c23f626afddaf7c80afaab025487663eb1e0de54a8e96c7e3ba27c1a15f38f23706f46e7a98b9b7f1c4a7d179327c38fc71939da707b5a8bff4a96b732d5"
     }
 },{
     "name":"xkcd password strength #1",
@@ -84,8 +84,8 @@
         "rounds":2011
     },
     "results":{
-        "phkdf-pass":"7c76aa9066356a136400e344cc99d3a383f8d2f0cc922a6eee8ac0f7f8807d2f836e2d6aa36f22ca51e2d01679e2d751307201f77c46de090ebcc94483913a2d",
-        "phkdf-simple":"00efb2f159e16426a5f4bd41e5c5b417d65d18e01ef37ce94bc01d1b15bb57ed9d6a712ba2d24b8e01235ace4dcf1a9eb7b9ff5a9ea64501ec823bbbad805667"
+        "phkdf-pass":"07e0ab490c6afbdf5dc7e0c8adbe4c41c9bf612182cb8760cbe182466ca4d869b93e12148fd07845298e2bba69793016c0b19bb64495fbc8ebf6a647aa436680",
+        "phkdf-simple":"702fe250b3ce99795fa2c7f0589e49ddaa2d415b79946665d3110c7c093be15db9b097adc2e27968c3a5e431ed22d613fac919640e2e31ed50ed104341f79ac3"
     }
 },{
     "name":"xkcd password strength #2",
@@ -100,23 +100,23 @@
         "rounds":2011
     },
     "results":[
-        {"phkdf-pass":"0e43b709309273cc1c750b53d349b13d7c1d3358eaf4010d78f5c8d4cab9345f0a484bd20ac89f8932822c3a1980fbcfd3318078b2f6a97cb7dabe11ef60af01",
-         "phkdf-simple":"ab3085a606ff0bd0c3b9760416abe76f9053908ef3eeff7210ee70b9283586c32f97dc93b8dd8c4805afe165cfe95db2b95d3078ffd0c460d711a062169593d6"},
+        {"phkdf-pass":"9e7c2a86e38e68d82f29eb6c5f5e347962ed247373e029edf5c6c4ca1cc3102eb04fcdff1f8ee4f002845b2e0f82bfab0a0a8499a9d7b984094057be9df70396",
+         "phkdf-simple":"94dc6265c671726b20377acc5e3745df3678d61d9cbe16ae9a648b64d86cc0f2addc06f3575f4e9f964ac698a24227bd066f5ca5a23cd2205aab9deec0979776"},
         {"args":{"rounds":255},
-         "phkdf-pass":"5d9f1094879273421f8f66415969cfe483eba6a8197702d54ff801e93a31c507761686289b2e2f2bebcc3a70e562fa4fbd4c3138d1d316b8406c0244218c2b49",
-         "phkdf-simple":"1dd1961d8d20c6b1d10ab992b7d1d0999fe9ec53938709cd617ed582c4a2ac2a12d274946f4b89bfe59b594c05f60152f1e17b29b8b111da4fe4ab358c79dfe7"},
+         "phkdf-pass":"549d63a1236da84b2c1ba408ebb5b5151ea77e3be23b8430c0f97c7ba21c659648c2314c005d677025e57126bb97ff1c4d2a643fed3f2f5df55b0f0a769f453f",
+         "phkdf-simple":"3c3c9b609dd876c57ab442b12327921aea05a0fc0d15cd7506444e5d5138c3d6be563fcc5266dd9b1b1c4498d7e7686b931ac565d0aefbc15988c0c5dd794f62"},
         {"args":{"rounds":256},
-         "phkdf-pass":"d63f8443584261e00f16ae0def69541850552388c9b0f5b9e236cc7f20e46f4e6e97fe19fe77bb2cb75b67312f9140ba8df4fc08ccabe0d39e64a5a60fb0984b",
-         "phkdf-simple":"3a7805b315c2396d77c85b2efe533c060d133b3e57a097a6830d544825f5ac658d7c1f2201f8eb577599b352e68812f5c2a26f82ab11b4d496e0595714aa2192"},
+         "phkdf-pass":"dc0b80f7b8a2e1d968c7e3dc5a1bc8df42c9a215194bf2d311559be5071449690c0ecd3fce96d462f05036e732631e7420194d0177f17d01df58844daa135d5f",
+         "phkdf-simple":"e3a57824759647037e9ffd41897d35cf407e27018aed9059b5087b99d9029f48df8cd41069ae6b540fb6c7454678ca89d7600c30c8cc352f31f196ec609fd680"},
         {"args":{"rounds":65535},
-         "phkdf-pass":"e55da7644afd4c1a710add16f9fce8378eb94e0ac559737cbf8a5344e3ebf06423e6e438fe4760dfc88db4bbae0cd2478ff57cde86f37688108fbec3a7766d52",
-         "phkdf-simple":"75bcf3253ec4f3cb1f33b06273e1f3063b37ec9a82accbf12a87d8a821156d3cdf0ccf8ca2c23343195859c18c48fe5da094a99c6caa472afd37eeada58e9073"},
+         "phkdf-pass":"9c855afd60a462983efa18eb154aa17dcb49a6cb971624c105d9d0a3a9c50ff870267d1893f694128d665103aa4dd0ccb38471bc149987489f90c129dcbd4226",
+         "phkdf-simple":"df7e0b5a9446d7cf591c6000700acfd0bb77bd79eb7eb5716028dc4aa0f059260b8500ac34ab7827a515359ed6c08ed492e57a65204322adfdf85a8a4a0cd362"},
         {"args":{"rounds":65536},
-         "phkdf-pass":"800f31df16be7ed994200ed35b0c0c3ef8823a3992fb9899d3d72f94261b9242fea1bc976dc3c5e39a006d8018f5329765f2d9179b2af38850f4b6c25b5a630a",
-         "phkdf-simple":"483f1f9b1d67b5d7bf6132f9e3c225cc6dd1604b2fe2c3903ee1c56ed5b5d756a9d1a89d7fad63b85836fb7bb4541d76486560bad510540e41fa8c6105bf1bad"},
+         "phkdf-pass":"a358062764aebe3cbb48975087c4f4c8e8566ae4374e9c11ea6174e78276d8479ffb24f4243028e9e6578a93472f5a9074a58820b7d25c3d588f3be344681db7",
+         "phkdf-simple":"4296add104a87cf36097b419b7d746ff4ee7dd2b74ae86f108a01e2d3d90442abf0ae28bb20d0b5df93ee9052ce7f1684c506a77ca9479448cf72aac01031b34"},
         {"args":{"rounds":250000},
-         "phkdf-pass":"af9973dfcd4d326463fc5f8a7d235dbe3cd114f520488fe8b97bf4991580ecfccc61eb2cb06614faca40e33cc0daa7d20bba153d45891d4dbf5f2d055105e38d",
-         "phkdf-simple":"4cc9643a62f7e30f87d9fd75f2acec4b83fd87f6f18d14fecb2f2b22755f839a3d1f02f2d43ad59b25655e0b35c074080ed75db5da4ab1f4af63bca922ecb23b"}
+         "phkdf-pass":"c103e328eb7cc399cd6a3428b1fca25492916afe4e9a58b127b45f88831fd4b75fb9a2305fa7e1053445df26fcdaa38cd4a1923374a496a692e63b12541228dd",
+         "phkdf-simple":"5d45e6a76ead2e32f87af30717fc740cd885460cd6e9bb3992d3b45f4b1fee2011e93aaf41c5adee97956aeee59c911130da5c2217bb0b5f9aa589cb5ccefac5"}
     ]
 },{
     "name":"xkcd password reuse #1",
@@ -157,8 +157,8 @@
         "seed-tags":[]
     },
     "results":{
-        "phkdf-pass":"d8b0ffa28a82984fc86afe1a1630adfae43ed00d7bb1c989537cc46e352afb5c90bd836ebe6511e2534869573a51b4cc8d7aa8bf22a4e66aae3b1197278c81e5",
-        "phkdf-simple":"1e01bf44833773c22a2483e28aca9614b99fbec5843166ead64997e1b8b6fd0adea9a4c0a9bbac6be3977b98954fc88db1243670767f9441e3b06b7acbdd89e9"
+        "phkdf-pass":"c9ff8125f0f0b41ff5cfc8898dd8c6b845cfc2087d061d79909180c2ec7655d122bf83e7530f71b14188d05c601789451d49a499ef13a818e29f878bc6d0886d",
+        "phkdf-simple":"f6a475fb6b69e1f430be7ce0f2239734cd47ad74befcd9138ac540fabb2db9a9743ced90de72317dd92f12aefc4532beb33919a41a550f5db3aa9c8f755c889b"
     }
 },{
     "name":"password padding",
@@ -170,19 +170,19 @@
         "rounds":255
     },
     "results":[
-        {"phkdf-pass":"c7c74656174f0edbb76d68c8dc9429ecce640f47dfc7832d33fbe3a6dde37a62",
-         "phkdf-simple":"d1df9efc55133e71fbcbbdd09a5a42f27d91eb3d85c03cd7a81203c731632ee9"},
+        {"phkdf-pass":"8ac05ffc273d77cf3e9f6b8774846d468a7e3161eafd121eae55b64faf87b846",
+         "phkdf-simple":"cc69d0eef4cd4ae9dc8f48e40cf0b66559ab658c15ca14113e93f200035df26f"},
         {"args":{"long-tag":{"ref":"phkdf first light, elaborated","len":5113}},
-         "phkdf-pass":"6292c05d3e35e7f02885f6f109d98210bc81ee457e5c42a364ae3147832e3a82",
-         "phkdf-simple":"1ca6a89e8ef86267b4f450b270b37a3877e176a37996ea660bc65c1dfadfc875"},
+         "phkdf-pass":"012ed22757a0ef88a5f70f413670b9cd4fdebddcd1ea8cb20255af136d9e0ae8",
+         "phkdf-simple":"dc0e25c54ccfb6219ceb0432216594310a72662f26fb09f806a4fee7f46f44c5"},
         {"args":{
             "username":{
                 "ref":"phkdf unicode test, lightly extended on top",
                 "len":3042,
                 "algorithm":"phkdf-simple"
             }},
-         "phkdf-pass":"305137dfee4c536a4f3366985d0f7aabb285073e15ebcaf6bb113bfadf0d8ab4",
-         "phkdf-simple":"afaa97fc9314d9de1c39f52a76ebb5c1332f7e358ec79f44fd3997353df437b0"
+         "phkdf-pass":"c3d2f4a40940a2594f6bb14fc61875b90c5a2bdceb987cedfd1ae0ba7180f099",
+         "phkdf-simple":"df7cfabc0d5b3c917351e5b5ea080ce75a9207656ee2d1c2a24020776f9abb93"
         },
         {"args":{
             "username":{
@@ -190,8 +190,8 @@
                 "len":3043,
                 "algorithm":"phkdf-simple"
             }},
-         "phkdf-pass":"caf7023890666977afa9478a3c26a22e8ec07d9d13422c1bae22ea2c8f2bce11",
-         "phkdf-simple":"3acf9a96c40a355b7bac7aafe45accc3c58dc698b0311a1cce88adcacb5874d3"
+         "phkdf-pass":"e6fa06a3c290fa89717704357033fd2a22616612d486c5d5659a1af71017f5bd",
+         "phkdf-simple":"0db07b29582746244cf97cd2e9c33c4ade4f962f9b10dc068e0e241befc371c3"
         },
         {"args":{
             "username":{
@@ -204,8 +204,8 @@
                 "len":101,
                 "index":1
             }},
-         "phkdf-pass":"a18189d23773009000a894d8edb7f2fd1d63d1d114ce0447ea4e875f133ccda5",
-         "phkdf-simple":"d1841ca0feabdcd410f695c074db3d6dcf7218008e2957a6b19e25efb1e056c1"
+         "phkdf-pass":"19e939911583b77ca7135c5ef6b2aecf113c5083e9aa4a52479a5a8cc543caa3",
+         "phkdf-simple":"00bfac3be31d3bd2ca166529ea314490d2df56f833a7c1f5a14716f55ce4a993"
         },
         {"args":{
             "username":{
@@ -218,8 +218,8 @@
                 "len":102,
                 "index":1
             }},
-         "phkdf-pass":"269831babecf15fdc0a4bd94d3b17ee36fcac6016c77113f81954caca1bf62fd",
-         "phkdf-simple":"d859517a09d217d57246b0db084649fd150939c21468d5b724284317e9c8b7b4"
+         "phkdf-pass":"892bdd032e9a71ef92d6fcbfea5c753058dc1c13c4ceeac00fa8eb75bb2a897c",
+         "phkdf-simple":"0984cf6357aaee83b273081cac1791d61aee1839217472c13477834293d04229"
         },
         {"args":{
             "long-tag":{
@@ -232,8 +232,8 @@
                 "len":3106
             }
            },
-         "phkdf-pass":"307155d6ddecd6724c20cb563825d827ca888190a09bf82de33908552d2f7565",
-         "phkdf-simple":"fa90f953ba5b5c93abf53ddc0da17124347c65774335d7412b6273aaf96f44f5"
+         "phkdf-pass":"fa8d31b1bef03ddc5732df60f514df0d91ed4cb08664a932821a80c331607b60",
+         "phkdf-simple":"0d58861c36abeb344feed044ce34b19ef68abdbf96e2dbe9afcc6768d17f0dc3"
         },
         {"args":{
             "long-tag":{
@@ -250,8 +250,8 @@
                 "len":164,
                 "index":2
             }},
-         "phkdf-pass":"e93317ff71061c49e431306fed31a647d5abbaa680d9ca56ab5706e50bb6ae92",
-         "phkdf-simple":"b53a2f8797c177710daa0c40fbee3e95dc538472d550a83e383c5d469a45b591"
+         "phkdf-pass":"fe8dd527cfec4dbea25f3d09e75aa68e529d92b4c5e1c4520b074823977b1cce",
+         "phkdf-simple":"b6b06d79e41921a7dabcc196e567325ee5322cf051816e86e5c0b5b19ebc62e9"
         },
         {"args":{
             "long-tag":{"ref":"phkdf first light, elaborated","len":5049},
@@ -264,8 +264,8 @@
                 "len":165,
                 "index":2
             }},
-         "phkdf-pass":"d3db2a75f04ec9111e1c96fcbe68490aa9f4d3db0c1228dbe88a677637dbdb80",
-         "phkdf-simple":"2e2aaff3c98800238e1273c4d21d9a645482135bc6e7629cb47a46364e0d6f05"
+         "phkdf-pass":"35940281d66bf0b53dde2b5627c7eab749931511bd0883e8cb888ce72b08d288",
+         "phkdf-simple":"d936b839c5ff1a8bfef208b9f8c2918bbc9c41ba7db9d75b9e17df94f2221fc7"
         }
     ]
 }]

@@ -164,8 +164,6 @@ import           Crypto.PHKDF.Primitives
 import           Crypto.PHKDF.Primitives.Assert
 import           Crypto.G3P.BCrypt
 
-import Debug.Trace
-
 
 -- | These input parameters are grouped together because the envisioned use
 --   for them is that they are constants (or near-constants) specified by
@@ -430,7 +428,7 @@ g3pHash_seedInit block args =
         ]
       ]
 
-    longPadding = trace (show (bl, bytes)) $ passwordPaddingBytes
+    longPadding = passwordPaddingBytes
         bytes headerUsername headerLongTag longTag domainTag password
       where
         bl = encodedByteLength bcryptTag
@@ -446,7 +444,7 @@ g3pHash_seedInit block args =
         phkdfCtx_addArg  bcryptTag &
         phkdfCtx_addArgs headerLongTag &
         -- FIXME: fusing addArg and longPadding can save ~ 8 KiB RAM
-        phkdfCtx_addArg  (trace (show (encodedByteLength bcryptTag, B.length longPadding)) longPadding) &
+        phkdfCtx_addArg  longPadding &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArgs credentials &
         phkdfCtx_addArg (credentialsPadding credentials bcryptTag bcryptTag) &
