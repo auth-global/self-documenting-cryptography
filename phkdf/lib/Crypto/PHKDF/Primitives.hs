@@ -329,8 +329,8 @@ phkdfCtx_finalizeGen counter0 tag ctx = PhkdfGen
     { phkdfGen_hmacKey = phkdfCtx_hmacKey ctx
     , phkdfGen_extTag = extendTag tag
     , phkdfGen_counter = counter0
-    , phkdfGen_state = state0
-    , phkdfGen_initCtx = context0
+    , phkdfGen_state = ""
+    , phkdfGen_initCtx = Just context0
     }
   where
     n = phkdfCtx_byteLen ctx
@@ -340,30 +340,32 @@ phkdfCtx_finalizeGen counter0 tag ctx = PhkdfGen
 
     context0 = SHA256.updates (phkdfCtx_state ctx) endPadding
 
-    state0 = ""
-
 phkdfGen_initFromHmacKey :: ByteString -> Word32 -> ByteString -> HmacKey -> PhkdfGen
 phkdfGen_initFromHmacKey state0 counter0 tag hmacKey = PhkdfGen
     { phkdfGen_hmacKey = hmacKey
     , phkdfGen_extTag = extendTag tag
     , phkdfGen_counter = counter0
     , phkdfGen_state = state0
-    , phkdfGen_initCtx = hmacKey_ipad hmacKey
+    , phkdfGen_initCtx = Nothing
     }
 
 phkdfGen_finalizeHmacCtx :: PhkdfGen -> HmacCtx
 phkdfGen_finalizeHmacCtx gen =
   (hmacKey_run (phkdfGen_hmacKey gen)) {
-      hmacCtx_ipad = (phkdfGen_initCtx gen)
+     hmacCtx_ipad = SHA256.update ipad (phkdfGen_state gen)
     }
+  where
+    ipad =
+      case phkdfGen_initCtx gen of
+        Nothing -> hmacCtx_ipad . hmacKey_run $ phkdfGen_hmacKey gen
+        Just x -> x
 
 phkdfGen_read :: PhkdfGen -> (ByteString, PhkdfGen)
 phkdfGen_read gen = (state', gen')
   where
     state' =
       phkdfGen_finalizeHmacCtx gen &
-      hmacCtx_updates [ phkdfGen_state gen
-                      , bytestring32 (phkdfGen_counter gen)
+      hmacCtx_updates [ bytestring32 (phkdfGen_counter gen)
                       , phkdfGen_extTag gen
                       ] &
       hmacCtx_finalize
@@ -372,7 +374,7 @@ phkdfGen_read gen = (state', gen')
 
     gen' = PhkdfGen
       { phkdfGen_hmacKey = hmacKey
-      , phkdfGen_initCtx = hmacKey_ipad hmacKey
+      , phkdfGen_initCtx = Nothing
       , phkdfGen_state = state'
       , phkdfGen_counter = phkdfGen_counter gen + 1
       , phkdfGen_extTag = phkdfGen_extTag gen

@@ -434,7 +434,7 @@ g3pHash_seedInit block args =
         bytes headerUsername headerLongTag longTag domainTag password
       where
         bl = encodedByteLength bcryptTag
-        bytes = add64WhileLt (8413 - bl) 8299
+        bytes = add64WhileLt (8413 - bl) 8298
 
     seguidKey = hmacKey_init seguid
 

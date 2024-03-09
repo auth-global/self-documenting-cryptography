@@ -65,5 +65,5 @@ data PhkdfGen = PhkdfGen
   , phkdfGen_extTag :: !ByteString
   , phkdfGen_counter :: !Word32
   , phkdfGen_state :: !ByteString
-  , phkdfGen_initCtx :: !SHA256.Ctx
+  , phkdfGen_initCtx :: !(Maybe SHA256.Ctx)
   }
