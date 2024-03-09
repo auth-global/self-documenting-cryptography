@@ -2,7 +2,7 @@
 
 {- |
 
-The [Global Password Prehash Protocol (G3P)](https://github.com/auth-global/selfd-ocumenting-cryptography/blob/prerelease/design-documents/g3p.md)
+The [Global Password Prehash Protocol (G3P)](https://github.com/auth-global/self-documenting-cryptography/blob/prerelease/design-documents/g3p.md)
 is a slow, attribution-armored password hash function and cryptographic key
 derivation function. It supports [self-documenting deployments](https://www.cut-the-knot.org/Curriculum/Algebra/SelfDescriptive.shtml)
 whose password hashes are /traceable/ or /useless/ after they have been /stolen/.
@@ -13,7 +13,7 @@ that are as difficult as possible for an adversarial implementation to remove.
 The G3P revisits the role of cryptographic salt, splitting the salt into the
 cartesian product of the /seguid/, /username/, and /tag/ parameters. Any
 parameter with "tag" as part of the name is an embedded attribution to anybody
-who is providing the inputs to the /username/ or /password/ parameters. Tags are
+providing the inputs to the /username/ or /password/ parameters. Tags are
 themselves directly self-documenting embedded attributions, in the sense that
 one cannot easily or efficiently replace the tag with anything else without
 losing the ability to compute the correct hash function.
@@ -24,9 +24,9 @@ HKDF, with the seguid corresponding to HKDF's /salt/ parameter. The G3P also
 mimicks PBKDF2 used in an alternate mode of operation.
 
 The seguid can be trivially replaced with a /precomputed HMAC key/, thus the
-seguid is not a tag. However this key is a cryptographic hash of the seguid,
-and for this reason the seguid is capable of serving as an /indirect/ embedded
-attribution, which the Seguid Protocol is designed to utilize via
+seguid is not a direct tag. However this precomputed key is a cryptographic
+hash of the seguid, and for this reason the seguid is capable of serving as
+an /indirect/ tag, which the Seguid Protocol is designed to utilize via
 Self-Documenting Globally Unique Identifiers (seguids).
 
 It is strongly recommend a deployment identify itself with a single 64-byte
@@ -242,17 +242,17 @@ data G3PInputBlock = G3PInputBlock
     --   as time consuming as 60 PHKDF rounds. Using the recommendation, the
     --   cost should be dominated by bcrypt.
   , g3pInputBlock_bcryptTag :: !ByteString
-    -- ^ One repetition of the first 56 bytes per bcrypt round, plus one
-    --   repetition of the full tag in PHKDF. When combined with the
-    --   @bcryptSaltTag@, 0-118 encoded bytes are constant-time in PHKDF.
+    -- ^ Repeated once or twice per bcrypt round, plus once in PHKDF.
+    --   This tag has exactly two full repetitions per bcrypt round
+    --   when the tag is up to 56 bytes long. Above 56 bytes,
+    --   this tag is cyclically extended to 112 bytes and then split
+    --   into two strings of 56 bytes, each repeated once. Hashed
+    --   once in PHKDF to avoid any truncation gotchas, and to force
+    --   recomputation of PHKDF if this tag is varied.
     --
-    --   Overages incur one sha256 block per 64 bytes.
-  , g3pInputBlock_bcryptSaltTag :: !ByteString
-    -- ^ One repetition of the first 56 bytes per bcrypt round, plus one
-    --   repetition of the full tag in PHKDF. When combined with the
-    --   @bcryptTag@, 0-118 encoded bytes are constant-time in PHKDF.
-    --
-    --   Overages incur one sha256 block per 64 bytes.
+    --   0-112 bytes can be handled in a constant number of cryptographic
+    --   operations.  Overages incur a cost of one SHA-256 block per
+    --   64 bytes.
   } deriving (Eq, Ord, Show)
 
 -- | The username and password are grouped together because they are normally
@@ -344,7 +344,7 @@ data G3PSeed = G3PSeed
 
 data G3PKey = G3PKey
   { g3pKey_secret :: !ByteString
-  , g3pKey_secretKey :: !HmacKey
+  , g3pKey_secretKey :: HmacKey
   , g3pKey_domainTag :: !ByteString
   } deriving (Eq)
 
@@ -355,17 +355,24 @@ data G3PGen = G3PGen
 
 -- | The Global Password Prehash Protocol (G3P). Note that this function is very
 --   intentionally implemented in such a way that the following idiom is
---   efficient, and only performs the expensive key stretching phase once:
+--   efficient.  It performs the expensive key stretching phase only once.
 --
 -- @
 --  let mySeed = g3pHash block args
---   in [ mySeed tweak1, mySeed tweak2, mySeed tweak3 ]
+--      myKey0 = mySeed myRole0
+--      myKey1 = mySeed myRole1
+--   in [ myKey0 myEcho , myKey0 altEcho, myKey1 myEcho, myKey1 altEcho ]
 -- @
 --
---   However in the case that you want or need to persist or serialize the
---   intermediate seed, or change the seguid or domain tag before final output
---   expansion, then the plain-old-datatype 'G3PSeed' and its companion
---   functions 'g3pHash_seedInit' and 'g3pHash_seedFinalize' are needed.
+--   This expression also only performs 2 output key computations, though this
+--   is very fast compared to the stretching applied to the seed. It's still
+--   slower than varying only the echo tag. Thus we end up with four
+--   cryptographically independent bytestreams.
+--
+--   In the case that you want or need to persist or serialize the intermediate
+--   seed, or change the seguid or domain tag before final output expansion,
+--   then the plain-old-datatype 'G3PSeed' and its companion functions
+--   'g3pHash_seedInit' and 'g3pHash_seedFinalize' are needed.
 
 g3pHash :: G3PInputBlock -> G3PInputArgs -> G3PInputRole -> G3PInputEcho -> Stream ByteString
 g3pHash block args role echoTag =
@@ -400,7 +407,6 @@ g3pHash_seedInit block args =
     phkdfRounds = g3pInputBlock_phkdfRounds block
     bcryptRounds = g3pInputBlock_bcryptRounds block
     bcryptTag = g3pInputBlock_bcryptTag block
-    bcryptSaltTag = g3pInputBlock_bcryptSaltTag block
 
     username = g3pInputArgs_username args
     password = g3pInputArgs_password args
@@ -412,12 +418,10 @@ g3pHash_seedInit block args =
 
     -- password will go here
 
-    bcryptHeader = [bcryptTag, bcryptSaltTag]
-
     headerLongTag =
       [ longTag
       , B.concat
-        [ "Global Password Prehash Protocol bcrypt v1 G3Pb1"
+        [ "Global Password Prehash Protocol bcrypt (v1) G3Pb1"
         , leftEncode phkdfRounds
         , bareEncode bcryptRounds
         ]
@@ -426,8 +430,8 @@ g3pHash_seedInit block args =
     longPadding = passwordPaddingBytes
         bytes headerUsername headerLongTag longTag domainTag password
       where
-        bl = encodedVectorByteLength bcryptHeader
-        bytes = add64WhileLt (8413 - bl) 8295
+        bl = encodedVectorByteLength [bcryptTag]
+        bytes = add64WhileLt (8413 - bl) 8298
 
     seguidKey = hmacKey_init seguid
 
@@ -436,18 +440,18 @@ g3pHash_seedInit block args =
         phkdfCtx_addArgs headerUsername &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArg  password &
-        phkdfCtx_addArgs bcryptHeader &
+        phkdfCtx_addArg  bcryptTag &
         phkdfCtx_addArgs headerLongTag &
         -- FIXME: fusing addArg and longPadding can save ~ 8 KiB RAM
         phkdfCtx_addArg  longPadding &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArgs credentials &
-        phkdfCtx_addArg (credentialsPadding credentials bcryptTag bcryptSaltTag) &
+        phkdfCtx_addArg (credentialsPadding credentials bcryptTag bcryptTag) &
         phkdfCtx_assertBufferPosition' 29 &
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
         phkdfSlowCtx_extract
-            (word32 "go\x00\x00" + 2023) domainTag
+            (word32 "go\x00\x00" + 2024) domainTag
             "G3Pb1 bravo" phkdfRounds &
         phkdfSlowCtx_assertBufferPosition' 32 &
         phkdfSlowCtx_addArgs seedTags &
@@ -455,10 +459,17 @@ g3pHash_seedInit block args =
 
     (Cons phkdfHash (Cons bcryptInput _)) = secretStream
 
+    dup a = (a,a)
+
     (bKeyInput, bSaltInput) = B.splitAt 16 bcryptInput
 
-    bKey = bKeyInput <> cycleByteStringWithNull 56 bcryptTag
-    bSalt = bSaltInput <> cycleByteStringWithNull 56 bcryptSaltTag
+    (bKeyTag, bSaltTag) =
+      if B.length bcryptTag <= 56
+      then dup $ cycleByteString 56 (bcryptTag <> "\x00G3Pb1 bcrypt\00")
+      else B.splitAt 56 $ cycleByteStringWithNull 112 bcryptTag
+
+    bKey  = bKeyTag <> bKeyInput
+    bSalt = bSaltInput <> bSaltTag
 
     bcryptHash = assert (B.length bKey == 72 && B.length bSalt == 72) $
                  bcryptRaw bKey bSalt bcryptRounds
@@ -466,7 +477,7 @@ g3pHash_seedInit block args =
     headerCharlie = B.concat [
         "G3Pb1 charlie",
         phkdfHash,
-        cycleByteStringWithNull 56 bcryptSaltTag,
+        cycleByteStringWithNull 56 bcryptTag,
         bcryptHash,
         cycleByteStringWithNull 32 bcryptTag
       ]
