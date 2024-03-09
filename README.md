@@ -46,7 +46,7 @@ Cryptography more typically depends on the property that if you know a key, then
 
 In the cryptoacoustic security model, attackers obfuscate programs in order to hide these tags, and defenders use reverse engineering to reveal these tags. This inverts the roles of Fully Homomorphic Encryption (FHE), where defenders obfuscate programs and attackers reverse engineer them. In this sense, cryptoacoustics is an anti-problem associated with FHE.
 
-Let's say you deploy the G3P for a company, club, or other organization. Now one of your password hashes gets stolen. The thief decides to use a [botnet](https://en.wikipedia.org/wiki/Botnet) or [other stolen computing resources](https://www.reddit.com/r/aws/comments/x03vay/hacked_aws_account_is_facing_200000_in_charges/) to try to crack that password.
+Let's say you deploy the G3P for a company, club, or other organization. Now one of your password hashes gets stolen. The thief decides to use a [botnet](https://arstechnica.com/security/2024/03/attack-wrangles-thousands-of-web-users-into-a-password-cracking-botnet/) or [other stolen computing resources](https://www.reddit.com/r/aws/comments/x03vay/hacked_aws_account_is_facing_200000_in_charges/) to try to crack that password.
 
 A security analyst investigating this incident uncovers the thief's executable payload. Perhaps their company has already tapped into the command and control network of the botnet. Perhaps the fraudulent cloud server instance was suspended and terminated, and snapshot of the machine was given to the analyst to decipher.
 
