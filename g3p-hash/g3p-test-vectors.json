@@ -253,11 +253,11 @@
             }},
          "G3Pb1":"040b6ec4cdf1a22ff0581e43db84a9177da3101e54b47be0f895272d7e6096e5"
         },
-        {"args":{"bcrypt-tag":{"ref":"xkcd password strength #2","len":112}},
-         "G3Pb1":"c68891350859ef218f4e5656481247a4d4ef80e4c6649550de4e0ec21d42be1e"
+        {"args":{"long-tag":"","bcrypt-tag":{"ref":"xkcd password strength #2","len":112}},
+         "G3Pb1":"51c93cdd3f0a278fa0ae3793fd35a760d7166b9074d634dfc712ecb93fa47931"
         },
-        {"args":{"bcrypt-tag":{"ref":"xkcd password strength #2","len":113}},
-         "G3Pb1":"bb104b49d8f90889f7b40e9973f13a65a5fc4542add10366732268ca75a96654"
+        {"args":{"long-tag":"","bcrypt-tag":{"ref":"xkcd password strength #2","len":113}},
+         "G3Pb1":"b39b66508554c04a6a49df3752acf6d9b52b4ff390a0e67f0e8c7ddf0e41e3d5"
         }
     ]
 },{
