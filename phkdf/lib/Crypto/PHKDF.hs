@@ -236,7 +236,7 @@ phkdfSimple block args = echo
 
     headerExtract = [ "phkdf-simple0 username", username ]
 
-    headerUsername = headerExtract ++ [ usernamePadding headerExtract domainTag ]
+    headerUsername = headerExtract ++ [ usernamePadding headerExtract domainTag domainTag ]
     -- password field goes here
 
     headerLongTag =
@@ -263,20 +263,21 @@ phkdfSimple block args = echo
         phkdfCtx_addArgs tags &
         phkdfCtx_addArg (bareEncode (V.length tags)) &
         phkdfSlowCtx_extract
+            (cycleByteStringWithNull domainTag)
             (word32 "go\x00\x00" + 2023) domainTag
             "phkdf-simple0 compact" rounds &
         phkdfSlowCtx_assertBufferPosition 32 &
         phkdfSlowCtx_addArgs tags &
-        phkdfSlowCtx_finalize
+        phkdfSlowCtx_finalize (cycleByteStringWithNull domainTag)
 
     -- Harden the tags vector against length-based timing side-channels
-    echoHeader = cycleByteStringWithNull 30 "phkdf-simple0 expand echo"
+    echoHeader = cycleByteStringWithNull "phkdf-simple0 expand echo" 30
 
     echo = phkdfCtx_init secretKey &
            phkdfCtx_addArg echoHeader &
            phkdfCtx_assertBufferPosition 32 &
            phkdfCtx_addArgs tags &
-           phkdfCtx_finalizeStream (word32 "OUT\x00") domainTag
+           phkdfCtx_finalizeStream (cycleByteStringWithNull domainTag) (word32 "OUT\x00") domainTag
 
 -- | A tweakable, complete prehash protocol.   Note that this function is very
 --   intentionally implemented in such a way that the following idiom is
@@ -318,7 +319,7 @@ phkdfPass_seedInit block args =
 
     headerExtract = [ "phkdf-pass-v0 username", username ]
 
-    headerUsername = headerExtract ++ [ usernamePadding headerExtract domainTag ]
+    headerUsername = headerExtract ++ [ usernamePadding headerExtract domainTag domainTag ]
 
     -- password field goes here
 
@@ -347,11 +348,12 @@ phkdfPass_seedInit block args =
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
         phkdfSlowCtx_extract
+            (cycleByteStringWithNull domainTag)
             (word32 "go\x00\x00" + 2023) domainTag
             "phkdf-pass-v0 compact" rounds &
         phkdfSlowCtx_assertBufferPosition 32 &
         phkdfSlowCtx_addArgs seedTags &
-        phkdfSlowCtx_finalize
+        phkdfSlowCtx_finalize (cycleByteStringWithNull domainTag)
 
 -- | This consumes a seed and tweaks to produce the final output stream.
 -- This function is the output expansion phase of 'phkdfPass'.  This function
@@ -373,9 +375,9 @@ phkdfPass_seedFinalize seed tweak = echo
         phkdfCtx_initFromHmacKey seguidKey &
         phkdfCtx_addArg  headerCombine &
         phkdfCtx_addArgs role &
-        phkdfCtx_finalize (word32 "KEY\x00") domainTag
+        phkdfCtx_finalize (cycleByteStringWithNull domainTag) (word32 "KEY\x00") domainTag
 
-    headerEcho = cycleByteString 32 (domainTag <> "\x00phkdf-pass-v0 echo\x00")
+    headerEcho = cycleByteString (domainTag <> "\x00phkdf-pass-v0 echo\x00") 32
 
     echo = hmacKey_init secretKey &
            phkdfGen_initFromHmacKey headerEcho (word32 "OUT\x00") echoTag &

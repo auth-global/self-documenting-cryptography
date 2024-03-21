@@ -13,8 +13,8 @@ import Debug.Trace
 
 -- FIXME: several functions in here have opportunites for optimization
 
-cycleByteStringToList :: Int -> ByteString -> [ByteString]
-cycleByteStringToList outBytes str =
+cycleByteStringToList :: ByteString -> Int -> [ByteString]
+cycleByteStringToList str outBytes =
     if outBytes <= 0
     then []
     else if n == 0
@@ -24,24 +24,24 @@ cycleByteStringToList outBytes str =
     n = B.length str
     (q,r) = outBytes `quotRem` n
 
-cycleByteStringWithNullToList :: Int -> ByteString -> [ByteString]
-cycleByteStringWithNullToList outBytes str = out
+cycleByteStringWithNullToList :: ByteString -> Int -> [ByteString]
+cycleByteStringWithNullToList str outBytes = out
   where
-    out = cycleByteStringToList outBytes (str <> "\x00")
+    out = cycleByteStringToList (str <> "\x00") outBytes
 
-cycleByteString :: Int -> ByteString -> ByteString
-cycleByteString outBytes str = B.concat (cycleByteStringToList outBytes str)
+cycleByteString :: ByteString -> Int -> ByteString
+cycleByteString str outBytes = B.concat (cycleByteStringToList str outBytes)
 
-cycleByteStringWithNull :: Int -> ByteString -> ByteString
-cycleByteStringWithNull outBytes str =
-    B.concat (cycleByteStringWithNullToList outBytes str)
+cycleByteStringWithNull :: ByteString -> Int -> ByteString
+cycleByteStringWithNull str outBytes =
+    B.concat (cycleByteStringWithNullToList str outBytes)
 
 extendTagToList :: ByteString -> [ByteString]
 extendTagToList tag = if n <= 19 then [tag] else tag'
   where
     n = B.length tag
     x = (18 - n) `mod` 64
-    tag' = cycleByteStringWithNullToList (n+x) tag
+    tag' = cycleByteStringWithNullToList tag (n+x)
          ++ [B.singleton (fromIntegral x)]
 
 extendTag :: ByteString -> ByteString
@@ -49,7 +49,6 @@ extendTag = B.concat <$> extendTagToList
 
 trimExtTag :: ByteString -> Maybe ByteString
 trimExtTag extTag
-  | n <= 0 = Nothing
   | n <= 19 = Just extTag
   | extTag /= extendTag tag = Nothing
   | otherwise = Just tag
@@ -84,18 +83,18 @@ add64WhileLt' b c
    | otherwise = let d = c + ((b - c) .&. 63)
                   in trace (show b ++ " -> " ++ show d) d
 
-usernamePadding :: Foldable f => f ByteString -> ByteString -> ByteString
-usernamePadding headerExtract domainTag
-  =  cycleByteStringWithNull (a-32) domainTag
-  <> cycleByteStringWithNull    32  domainTag
+usernamePadding :: Foldable f => f ByteString -> ByteString -> ByteString -> ByteString
+usernamePadding headerExtract fillerTag domainTag
+  =  cycleByteStringWithNull fillerTag (a-32)
+  <> cycleByteStringWithNull domainTag    32
   where
     al = encodedVectorByteLength headerExtract
     a  = add64WhileLt (157 - al) 32
 
 passwordPaddingBytes :: Foldable f => Int -> f ByteString -> f ByteString -> ByteString -> ByteString -> ByteString -> ByteString
-passwordPaddingBytes bytes headerUsername headerLongTag longTag domainTag password
-  =  cycleByteStringWithNull (c-32) longTag
-  <> cycleByteStringWithNull    32  domainTag
+passwordPaddingBytes bytes headerUsername headerLongTag fillerTag domainTag password
+  =  cycleByteStringWithNull fillerTag (c-32)
+  <> cycleByteStringWithNull domainTag    32
   where
     al = encodedVectorByteLength headerLongTag
     a  = add64WhileLt (bytes - al) 3240
@@ -108,9 +107,9 @@ passwordPadding :: Foldable f => f ByteString -> f ByteString -> ByteString -> B
 passwordPadding = passwordPaddingBytes 8413
 
 credentialsPadding :: Foldable f => f ByteString -> ByteString -> ByteString -> ByteString
-credentialsPadding credentials longTag domainTag
-  =  cycleByteStringWithNull (a-29) longTag
-  <> cycleByteStringWithNull    29  domainTag
+credentialsPadding credentials fillerTag domainTag
+  =  cycleByteStringWithNull fillerTag (a-29)
+  <> cycleByteStringWithNull domainTag    29
   where
     al = encodedVectorByteLength credentials
     a  = add64WhileLt (122 - al) 32

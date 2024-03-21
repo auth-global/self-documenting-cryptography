@@ -225,6 +225,7 @@ module Crypto.PHKDF.Primitives
   , PhkdfGen()
   , phkdfGen_initFromHmacKey
   , phkdfGen_read
+  , phkdfGen_peek
   , phkdfGen_finalizeStream
   ) where
 
@@ -246,6 +247,7 @@ import           Crypto.PHKDF.Primitives.Subtle
 import           Crypto.Encoding.PHKDF
 import           Crypto.Encoding.SHA3.TupleHash
 
+import           Control.Exception(assert)
 
 -- | initialize an empty @phkdfStream@ context from a plaintext HMAC key.
 
@@ -298,8 +300,11 @@ phkdfCtx_addArgsBy f params ctx0 = foldl' delta ctx0 params
 --   examining only the first output block and discarding the rest of the
 --   stream.
 
-phkdfCtx_finalize :: Word32 -> ByteString -> PhkdfCtx -> ByteString
-phkdfCtx_finalize counter tag ctx = Stream.head (phkdfCtx_finalizeStream counter tag ctx)
+phkdfCtx_finalize :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> ByteString
+phkdfCtx_finalize genFillerPad counter tag ctx =
+    phkdfCtx_finalizeGen genFillerPad counter tag ctx &
+    phkdfGen_read &
+    fst
 
 -- | Turn a 'PhkdfCtx' into a incomplete call to @hmac@, with the option of
 --   adding additional data to the end of the message that need not be
@@ -319,26 +324,32 @@ phkdfCtx_finalizeHmac = hmacCtx_finalize . phkdfCtx_finalizeHmacCtx
 
 -- | close out a @phkdfStream@ context with a given counter and tag
 
-phkdfCtx_finalizeStream :: Word32 -> ByteString -> PhkdfCtx -> Stream ByteString
-phkdfCtx_finalizeStream counter0 tag ctx =
-  phkdfCtx_finalizeGen counter0 tag ctx &
+phkdfCtx_finalizeStream :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> Stream ByteString
+phkdfCtx_finalizeStream genFillerPad counter0 tag ctx =
+  phkdfCtx_finalizeGen genFillerPad counter0 tag ctx &
   phkdfGen_finalizeStream
 
-phkdfCtx_finalizeGen :: Word32 -> ByteString -> PhkdfCtx -> PhkdfGen
-phkdfCtx_finalizeGen counter0 tag ctx = PhkdfGen
-    { phkdfGen_hmacKey = phkdfCtx_hmacKey ctx
-    , phkdfGen_extTag = extendTag tag
-    , phkdfGen_counter = counter0
-    , phkdfGen_state = ""
-    , phkdfGen_initCtx = Just context0
-    }
+phkdfCtx_finalizeGen :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> PhkdfGen
+phkdfCtx_finalizeGen genFillerPad counter0 tag ctx =
+    PhkdfGen
+      { phkdfGen_hmacKey = phkdfCtx_hmacKey ctx
+      , phkdfGen_extTag = extendTag tag
+      , phkdfGen_counter = counter0
+      , phkdfGen_state = ""
+      , phkdfGen_initCtx = Just context0
+      }
   where
     n = phkdfCtx_byteLen ctx
-    endPadLen = fromIntegral (64 - ((n - 32) .&. 63))
+    endPadLen = fromIntegral ((31 - n) .&. 63)
 
-    endPadding = cycleByteStringToList endPadLen ("\x00" <> tag)
+    endPadding = genFillerPad endPadLen
 
-    context0 = SHA256.updates (phkdfCtx_state ctx) endPadding
+    ctx' = phkdfCtx_unsafeFeed ["\x00",endPadding] ctx
+
+    endPaddingIsValid = phkdfCtx_byteLen ctx' `mod` 64 == 32
+                     && B.length endPadding == endPadLen
+
+    context0 = assert endPaddingIsValid $ phkdfCtx_state ctx'
 
 phkdfGen_initFromHmacKey :: ByteString -> Word32 -> ByteString -> HmacKey -> PhkdfGen
 phkdfGen_initFromHmacKey state0 counter0 tag hmacKey = PhkdfGen
@@ -346,8 +357,14 @@ phkdfGen_initFromHmacKey state0 counter0 tag hmacKey = PhkdfGen
     , phkdfGen_extTag = extendTag tag
     , phkdfGen_counter = counter0
     , phkdfGen_state = state0
-    , phkdfGen_initCtx = Nothing
+    , phkdfGen_initCtx = Just $ hmacKey_ipad hmacKey
     }
+
+phkdfGen_peek :: PhkdfGen -> Maybe ByteString
+phkdfGen_peek gen =
+  case phkdfGen_initCtx gen of
+    Nothing -> Just $ phkdfGen_state gen
+    Just _  -> Nothing
 
 phkdfGen_finalizeHmacCtx :: PhkdfGen -> HmacCtx
 phkdfGen_finalizeHmacCtx gen =
@@ -389,10 +406,10 @@ phkdfGen_finalizeStream = Stream.unfold phkdfGen_read
 --   depending upon the number of rounds specified. Thus the @fnName@ is
 --   primarily intended to be a protocol constant.
 
-phkdfSlowCtx_extract :: Word32 -> ByteString -> ByteString -> Word32 -> PhkdfCtx -> PhkdfSlowCtx
-phkdfSlowCtx_extract counter tag fnName rounds ctx0 = out
+phkdfSlowCtx_extract :: (Int -> ByteString) -> Word32 -> ByteString -> ByteString -> Word32 -> PhkdfCtx -> PhkdfSlowCtx
+phkdfSlowCtx_extract genFillerPad counter tag fnName rounds ctx0 = out
   where
-    (Cons block0 innerStream) = phkdfCtx_finalizeStream counter tag ctx0
+    (Cons block0 innerStream) = phkdfCtx_finalizeStream genFillerPad counter tag ctx0
 
     approxByteLen = ((fromIntegral rounds :: Int64) + 1) * 64 + 32
     encodedLengthByteLen = lengthOfLeftEncodeFromBytes approxByteLen
@@ -416,14 +433,14 @@ phkdfSlowCtx_extract counter tag fnName rounds ctx0 = out
       if fnNameByteLen >= extFnNameByteLen
       then encodedLength <> B.take extFnNameByteLen fnName
       else let padLen = 31 - encodedLengthByteLen - fnNameByteLen
-               pad = cycleByteStringWithNull padLen tag
+               pad = cycleByteStringWithNull tag padLen
             in B.concat [encodedLength, fnName, "\x00", pad]
 
     outerCtx =
         phkdfCtx_reset ctx0 &
         phkdfCtx_unsafeFeed [extFnName, block0]
 
-    fillerTag = cycleByteString 32 $ B.concat
+    fillerTag = flip cycleByteString 32 $ B.concat
         [ tag, "\x00", fnName, "\x00"]
 
     go n !ctx ~(Cons block stream)
@@ -449,14 +466,14 @@ phkdfSlowCtx_addArgs = phkdfSlowCtx_lift . phkdfCtx_addArgs
 -- | finalize a call to @phkdfSlowExtract@, discarding all but the first block
 --   of the output stream
 
-phkdfSlowCtx_finalize :: PhkdfSlowCtx -> ByteString
-phkdfSlowCtx_finalize = Stream.head . phkdfSlowCtx_finalizeStream
+phkdfSlowCtx_finalize :: (Int -> ByteString) -> PhkdfSlowCtx -> ByteString
+phkdfSlowCtx_finalize genFillerPad = Stream.head . phkdfSlowCtx_finalizeStream genFillerPad
 
 -- | finalize a call to @phkdfSlowExtract@
 
-phkdfSlowCtx_finalizeStream :: PhkdfSlowCtx -> Stream ByteString
-phkdfSlowCtx_finalizeStream ctx =
-    phkdfCtx_finalizeStream
+phkdfSlowCtx_finalizeStream :: (Int -> ByteString) -> PhkdfSlowCtx -> Stream ByteString
+phkdfSlowCtx_finalizeStream genFillerPad ctx =
+    phkdfCtx_finalizeStream genFillerPad
         (phkdfSlowCtx_counter ctx)
         (phkdfSlowCtx_tag ctx)
         (phkdfSlowCtx_phkdfCtx ctx)

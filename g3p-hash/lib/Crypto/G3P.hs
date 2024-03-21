@@ -415,7 +415,7 @@ g3pHash_seedInit block args =
 
     headerAlfa = [ "G3Pb1 alfa username", username ]
 
-    headerUsername = headerAlfa ++ [ usernamePadding headerAlfa domainTag ]
+    headerUsername = headerAlfa ++ [ usernamePadding headerAlfa domainTag domainTag ]
 
     -- password will go here
 
@@ -452,11 +452,12 @@ g3pHash_seedInit block args =
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
         phkdfSlowCtx_extract
+            (cycleByteStringWithNull domainTag)
             (word32 "go\x00\x00" + 2024) domainTag
             "G3Pb1 bravo" phkdfRounds &
         phkdfSlowCtx_assertBufferPosition' 32 &
         phkdfSlowCtx_addArgs seedTags &
-        phkdfSlowCtx_finalizeStream
+        phkdfSlowCtx_finalizeStream (cycleByteStringWithNull domainTag)
 
     (Cons phkdfHash (Cons bcryptInput _)) = secretStream
 
@@ -466,8 +467,8 @@ g3pHash_seedInit block args =
 
     (bKeyTag, bSaltTag) =
       if B.length bcryptTag <= 56
-      then dup $ cycleByteString 56 (bcryptTag <> "\x00G3Pb1 bcrypt\00")
-      else B.splitAt 56 $ cycleByteStringWithNull 112 bcryptTag
+      then dup $ cycleByteString (bcryptTag <> "\x00G3Pb1 bcrypt\00") 56
+      else B.splitAt 56 $ cycleByteStringWithNull bcryptTag 112
 
     bKey  = bKeyTag <> bKeyInput
     bSalt = bSaltInput <> bSaltTag
@@ -478,17 +479,17 @@ g3pHash_seedInit block args =
     headerCharlie = B.concat [
         "G3Pb1 charlie",
         phkdfHash,
-        cycleByteStringWithNull 56 bcryptTag,
+        cycleByteStringWithNull bcryptTag 56,
         bcryptHash,
-        cycleByteStringWithNull 32 bcryptTag
+        cycleByteStringWithNull bcryptTag 32
       ]
 
     secret =
         phkdfCtx_initFromHmacKey seguidKey &
         phkdfCtx_addArg headerCharlie &
-        phkdfCtx_assertBufferPosition'  32 &
+        phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArgs seedTags &
-        phkdfCtx_finalize (word32 "SEED") domainTag
+        phkdfCtx_finalize (cycleByteStringWithNull domainTag) (word32 "SEED") domainTag
 
 -- | This consumes a seed and tweaks to produce the final output stream.
 -- This function is the output expansion phase of 'g3pHash'. This function
@@ -519,7 +520,7 @@ g3pHash_keyInit roleInput seed = G3PKey
         phkdfCtx_initFromHmacKey seguidKey &
         phkdfCtx_addArg  headerDelta &
         phkdfCtx_addArgs role &
-        phkdfCtx_finalize (word32 "KEY\x00") domainTag
+        phkdfCtx_finalize (cycleByteStringWithNull domainTag) (word32 "KEY\x00") domainTag
 
 g3pHash_finalizeGen :: G3PInputEcho -> G3PKey -> G3PGen
 g3pHash_finalizeGen inputEcho gKey = G3PGen
@@ -531,7 +532,7 @@ g3pHash_finalizeGen inputEcho gKey = G3PGen
     domainTag = g3pKey_domainTag gKey
     echoTag = g3pInputEcho_echoTag inputEcho
 
-    echoHeader = cycleByteString 32 (domainTag <> "\x00G3Pb1 echo\x00")
+    echoHeader = cycleByteString (domainTag <> "\x00G3Pb1 echo\x00") 32
 
     echoCtr = word32 "OUT\x00"
 
