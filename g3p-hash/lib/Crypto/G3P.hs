@@ -415,7 +415,10 @@ g3pHash_seedInit block args =
 
     headerAlfa = [ "G3Pb1 alfa username", username ]
 
-    headerUsername = headerAlfa ++ [ usernamePadding headerAlfa domainTag domainTag ]
+    headerUsername = headerAlfa ++ [
+        usernamePadding headerAlfa bcryptTag
+          (domainTag <> "\x00password G3Pb1\x00")
+      ]
 
     -- password will go here
 
@@ -428,11 +431,14 @@ g3pHash_seedInit block args =
         ]
       ]
 
-    longPadding = passwordPaddingBytes
-        bytes headerUsername headerLongTag longTag domainTag password
+    longPadding = passwordPaddingBytes bytes headerUsername headerLongTag
+        longTag (domainTag <> "\x00creds G3Pb1\x00") password
       where
         bl = encodedByteLength bcryptTag
         bytes = add64WhileLt (8413 - bl) 8298
+
+    credsPadding = credentialsPadding credentials bcryptTag
+        (domainTag <> "\x00tags G3Pb1\x00")
 
     seguidKey = hmacKey_init seguid
 
@@ -447,17 +453,17 @@ g3pHash_seedInit block args =
         phkdfCtx_addArg  longPadding &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArgs credentials &
-        phkdfCtx_addArg (credentialsPadding credentials bcryptTag bcryptTag) &
+        phkdfCtx_addArg  credsPadding&
         phkdfCtx_assertBufferPosition' 29 &
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
         phkdfSlowCtx_extract
-            (cycleByteStringWithNull domainTag)
+            (cycleByteStringWithNull bcryptTag)
             (word32 "go\x00\x00" + 2024) domainTag
             "G3Pb1 bravo" phkdfRounds &
         phkdfSlowCtx_assertBufferPosition' 32 &
         phkdfSlowCtx_addArgs seedTags &
-        phkdfSlowCtx_finalizeStream (cycleByteStringWithNull domainTag)
+        phkdfSlowCtx_finalizeStream (cycleByteStringWithNull bcryptTag)
 
     (Cons phkdfHash (Cons bcryptInput _)) = secretStream
 
@@ -481,7 +487,7 @@ g3pHash_seedInit block args =
         phkdfHash,
         cycleByteStringWithNull bcryptTag 56,
         bcryptHash,
-        cycleByteStringWithNull bcryptTag 32
+        cycleByteStringWithNull (domainTag <> "\x00G3Pb1 charlie\x00") 32
       ]
 
     secret =
@@ -489,7 +495,7 @@ g3pHash_seedInit block args =
         phkdfCtx_addArg headerCharlie &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArgs seedTags &
-        phkdfCtx_finalize (cycleByteStringWithNull domainTag) (word32 "SEED") domainTag
+        phkdfCtx_finalize (cycleByteStringWithNull bcryptTag) (word32 "SEED") domainTag
 
 -- | This consumes a seed and tweaks to produce the final output stream.
 -- This function is the output expansion phase of 'g3pHash'. This function
