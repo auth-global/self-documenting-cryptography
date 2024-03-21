@@ -1,5 +1,5 @@
 name:                g3p-hash
-version:             0.1.0.0
+version:             1.0.0.2
 synopsis:            Global Password Prehash Protocol
 description:         A password hash and key derivation function that provides
                      embedded attributions in order to support self-documenting
@@ -7,7 +7,7 @@ description:         A password hash and key derivation function that provides
 license:             Apache-2.0
 license-file:        LICENSE
 author:              Leon P Smith
--- maintainer:
+maintainer:          Auth Global
 copyright:           Auth Global
 category:            Cryptography
 build-type:          Simple
@@ -19,7 +19,7 @@ library
   exposed-modules:   Crypto.G3P
                      Crypto.G3P.BCrypt
 
-  build-depends:     base
+  build-depends:     base < 5
                    , bytestring
                    , network-byte-order
                    , phkdf
@@ -27,9 +27,11 @@ library
                    , tuplehash-utils
                    , vector
   hs-source-dirs:    lib
+  include-dirs:      csrc
   c-sources:         csrc/bcrypt_raw.c
                      csrc/blowfish.c
-  include-dirs:      csrc
+  install-includes:  csrc/bcrypt_raw.h
+                     csrc/g3p_blf.h
   ghc-options:       -Wall
   default-language:  Haskell2010
 
@@ -51,3 +53,4 @@ test-suite test
                    , tasty-hunit
                    , text
                    , vector
+  default-language:  Haskell2010

@@ -43,8 +43,8 @@ is implemented by storing a salt per user.
 
 However, in the context of a client-side prehash, storing a salt per user has
 the potential to leak whether or not an account exists, or if a password has
-changed. The G3P has the option of eliminating these complications, because
-it is perfectly safe to use a plain username as the salt, in addition to the
+changed. The G3P has the option to eliminate these complications, because
+it is safe to use a plain username as the salt, in addition to the
 deployment-identifying seguid and tags.
 
 On the other hand, if one is aware of the potential issues surrounding the
@@ -52,18 +52,17 @@ implementation of a random per-user salt in a client-side hashing context, and
 is willing to mitigate or live with them, then there are potential advantages
 to using a random salt as the input to the G3P's @username@ parameter instead.
 
-In this way, all parameter names are suggestive, not prescriptive. Usage is
-ultimately defined by the deployment.
+All parameter names are suggestive, not prescriptive. Usage is ultimately
+defined by the deployment.
 
 When somebody is guessing a username, they must also know (or guess) the
 password. However, the username need not be revealed to somebody who is guessing
-the password, as the raw username can always be replaced by a hash. If this
-intentional feature is not desired, a deployment might choose to swap the
-username and password, as these inputs are otherwise functionally identical.
+the password, as the raw username can always be replaced by a precomputed hash.
+If this intentional feature is not desired, a deployment might choose to swap
+the username and password, as these inputs are otherwise functionally identical.
 
-In this way, The usage and interpretation(s) of any given parameter is always
-defined by the deployment, and is never defined by offical G3P documentation
-or specifications.
+The usage and interpretation(s) of any given parameter is always defined by the
+deployment, and is never defined by offical G3P documentation or specifications.
 
 The G3P always has room for more salt. It doesn't really make sense to inject
 more than 256 bits of entropy into the username parameter, because when the G3P
@@ -231,12 +230,12 @@ data G3PInputBlock = G3PInputBlock
     -- ^ How expensive will the PHKDF component be? An optimal implementation
     --   computes exactly three SHA256 blocks per round if the domain tag is
     --   19 bytes or less, plus a reasonably large but constant number of
-    --   additional blocks. I recommend at least 20,000 rounds. You might
-    --   consider adjusting that recommendation downward in the case of domain
-    --   tags that exceed 19 bytes in length: 15,000 rounds of PHKDF with
-    --   a domain tag that is 83 bytes long should cost about the same number
-    --   of SHA256 blocks as 20,000 rounds of PHKDF with a domain tag that
-    --   is 19 bytes long.
+    --   additional blocks. I recommend at least 20,000 rounds, if not 40,000.
+    --   You might consider adjusting that recommendation downward in the
+    --   case of domain tags that exceed 19 bytes in length: 15,000 rounds
+    --   of PHKDF with a domain tag that is 83 bytes long should cost about
+    --   the same number of SHA256 blocks as 20,000 rounds of PHKDF with a
+    --  domain tag that is 19 bytes long.
   , g3pInputBlock_bcryptRounds :: !Word32
     -- ^ How expensive will the bcrypt component be? 4000 rounds recommended,
     --   give or take a factor of 2 or so. Each bcrypt round is approximately
@@ -453,7 +452,7 @@ g3pHash_seedInit block args =
         phkdfCtx_addArg  longPadding &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArgs credentials &
-        phkdfCtx_addArg  credsPadding&
+        phkdfCtx_addArg  credsPadding &
         phkdfCtx_assertBufferPosition' 29 &
         phkdfCtx_addArgs seedTags &
         phkdfCtx_addArg (bareEncode (V.length seedTags)) &
