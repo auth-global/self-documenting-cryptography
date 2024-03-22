@@ -197,12 +197,13 @@ data G3PInputBlock = G3PInputBlock
     --   self-documenting globally unique identifiers (seguids).
   , g3pInputBlock_domainTag :: !ByteString
     -- ^ plaintext tag with one repetition per PHKDF round. 0-19 bytes are
-    --   free, 20-83 bytes cost a additional sha256 block /per PHKDF round/,
-    --   with every 64 bytes thereafter incurring a similar cost.
+    --   free, 20-82 bytes cost a additional sha256 block /per PHKDF round/,
+    --   with 83-146 and every 64 bytes thereafter incurring a similar cost.
     --
-    --   Tags up to 83 or maybe even 147 bytes long might be reasonable.
-    --   In the case of longer domain tags, it is strategically advantageous
-    --   to ensure that the first 32 bytes are highly actionable.
+    --   Tags up to 82 or maybe even 146 bytes long are reasonable in most
+    --   contexts. In the case of long domain tags, it is strategically
+    --   advantageous to ensure that the first 32 bytes are highly actionable,
+    --   as these bytes are commonly used as filler padding.
     --
     --   This parameter provides [domain separation](https://csrc.nist.gov/glossary/term/domain_separation).
     --   A suggested value is a ICANN domain name controlled by the deployment.
@@ -235,7 +236,7 @@ data G3PInputBlock = G3PInputBlock
     --   case of domain tags that exceed 19 bytes in length: 15,000 rounds
     --   of PHKDF with a domain tag that is 83 bytes long should cost about
     --   the same number of SHA256 blocks as 20,000 rounds of PHKDF with a
-    --  domain tag that is 19 bytes long.
+    --   domain tag that is 19 bytes long.
   , g3pInputBlock_bcryptRounds :: !Word32
     -- ^ How expensive will the bcrypt component be? 4000 rounds recommended,
     --   give or take a factor of 2 or so. Each bcrypt round is approximately
@@ -251,7 +252,7 @@ data G3PInputBlock = G3PInputBlock
     --   recomputation of PHKDF if this tag is varied.
     --
     --   0-112 bytes can be handled in a constant number of cryptographic
-    --   operations.  Overages incur a cost of one SHA-256 block per
+    --   operations. Overages incur a cost of one SHA-256 block per
     --   64 bytes.
   } deriving (Eq, Ord, Show)
 
@@ -264,16 +265,16 @@ data G3PInputBlock = G3PInputBlock
 --
 --   A deployment can also specify additional constant tags as part of the
 --   credentials vector.  As the plaintext of these tags is only ever hashed
---   into the output a single time, this alongside the bcrypt tags are the
---   least expensive pay-as-you-go options for plaintext tagging.
+--   into the output a single time, this alongside the bcrypt tag and long tag
+--   are incrementally the least expensive options for plaintext tagging.
 --
 --   Note that the username and password are subjected to additional length
 --   hardening. The G3P operates in a constant number of SHA256 blocks so long
 --   as the combined length of the username and password is less than about
 --   3 KiB,  or the combined length of the username, password, and long tag is
 --   less than about 8 KiB. The actual numbers are somewhat less in both cases,
---   but this is a reasonable approximation. Note that the bcrypt tags can
---   subtract up to 114 bytes from the 8 KiB total, and don't effect the 3 KiB
+--   but this is a reasonable approximation. Note that the bcrypt tag can
+--   subtract up to 113 bytes from the 8 KiB total, and don't effect the 3 KiB
 --   total.
 --
 --   In the case of all of the inputs in this record, longer values incur one
@@ -320,9 +321,10 @@ newtype G3PInputRole = G3PInputRole
 newtype G3PInputEcho = G3PInputEcho
   { g3pInputEcho_echoTag :: ByteString
   -- ^ the absolute least expensive parameter to vary, if your implementation
-  --   supports it. Very much analogous to HKDF's info parameter. 0-19 bytes
-  --   are free.  This incurs a cost of one SHA-256 block per output block at
-  --   20 bytes and every 64 bytes thereafter.
+  --   supports efficent parameter variation. Very much analogous to HKDF's
+  --   info parameter. 0-19 bytes are free. This incurs a cost of one SHA-256
+  --   block per output block at 20 bytes, 83 bytes, and every 64 bytes
+  --   thereafter.
   } deriving (Eq, Ord, Show)
 
 -- | A plain-old-data explicit representation of the intermediate 'g3pHash'
@@ -361,18 +363,18 @@ data G3PGen = G3PGen
 --  let mySeed = g3pHash block args
 --      myKey0 = mySeed myRole0
 --      myKey1 = mySeed myRole1
---   in [ myKey0 myEcho , myKey0 altEcho, myKey1 myEcho, myKey1 altEcho ]
+--   in [ myKey0 myEcho, myKey0 altEcho, myKey1 myEcho, myKey1 altEcho ]
 -- @
 --
---   This expression also only performs 2 output key computations, though this
---   is very fast compared to the stretching applied to the seed. It's still
---   slower than varying only the echo tag. Thus we end up with four
---   cryptographically independent bytestreams.
+--   Although the savings from sharing the computation of the seed among all
+--   four computations is much larger, this expression also shares the
+--   computation of the @G3PKey@ among these four output streams, so that
+--   only two keys are computed.
 --
 --   In the case that you want or need to persist or serialize the intermediate
 --   seed, or change the seguid or domain tag before final output expansion,
 --   then the plain-old-datatype 'G3PSeed' and its companion functions
---   'g3pHash_seedInit' and 'g3pHash_seedFinalize' are needed.
+--   'g3pHash_keyInit' and 'g3pHash_finalizeGen' are needed.
 
 g3pHash :: G3PInputBlock -> G3PInputArgs -> G3PInputRole -> G3PInputEcho -> Stream ByteString
 g3pHash block args role echoTag =
@@ -383,8 +385,10 @@ g3pHash block args role echoTag =
 
 -- | This generates a seed, which encapsulates the expensive key-stretching
 --   component of 'g3pHash' into a reusable, tweakable cryptographic value.
---   This function is way slower than it's companion, 'g3pHash_seedFinalize'.
---   Broadly comparable to @HKDF-Extract@, though with key stretching built-in.
+--   This function is way slower than it's companions, 'g3pHash_keyInit' and
+--   'g3pHash_finalizeGen'
+--
+--   Broadly comparable to PBKDF2, and incorporates bcrypt.
 
 g3pHash_seedInit :: G3PInputBlock -> G3PInputArgs -> G3PSeed
 g3pHash_seedInit block args =
@@ -472,7 +476,7 @@ g3pHash_seedInit block args =
 
     (bKeyTag, bSaltTag) =
       if B.length bcryptTag <= 56
-      then dup $ cycleByteString (bcryptTag <> "\x00G3Pb1 bcrypt\00") 56
+      then dup $ cycleByteString (bcryptTag <> "\x00G3Pb1 bcrypt\x00") 56
       else B.splitAt 56 $ cycleByteStringWithNull bcryptTag 112
 
     bKey  = bKeyTag <> bKeyInput
@@ -496,11 +500,14 @@ g3pHash_seedInit block args =
         phkdfCtx_addArgs seedTags &
         phkdfCtx_finalize (cycleByteStringWithNull bcryptTag) (word32 "SEED") domainTag
 
--- | This consumes a seed and tweaks to produce the final output stream.
--- This function is the output expansion phase of 'g3pHash'. This function
--- is way faster than it's companion 'g3pHash_seedInit'. Broadly comparable to
--- HKDF. Note that this function ignores 'g3pSeed_seguid' in favor of
--- 'g3pSeed_seguidKey'.
+-- | This applies the role vector to a computed G3P seed to arrive at
+--   a precomputed G3P key used during the final output expansion.
+--   Broadly comparable to @HKDF-Extract@.  This function applies no
+--   key stretching, and thus output can be available in as little as
+--   6 or 7 SHA256 block computations when you vary its parameters.
+--
+--   Note that this function ignores 'g3pSeed_seguid' in favor of
+--   'g3pSeed_seguidKey'.
 
 g3pHash_keyInit :: G3PInputRole -> G3PSeed -> G3PKey
 g3pHash_keyInit roleInput seed = G3PKey
@@ -527,6 +534,12 @@ g3pHash_keyInit roleInput seed = G3PKey
         phkdfCtx_addArgs role &
         phkdfCtx_finalize (cycleByteStringWithNull domainTag) (word32 "KEY\x00") domainTag
 
+-- | Apply the echo tag parameter to a precomputed G3P key, obtaining a
+--   cryptographically secure output generator. Broadly comparable to
+--   @HKDF-Expand@.  Applies no key stretching, so output is available in
+--   as little as 2 SHA256 block computations.
+
+
 g3pHash_finalizeGen :: G3PInputEcho -> G3PKey -> G3PGen
 g3pHash_finalizeGen inputEcho gKey = G3PGen
     { g3pGen_secret = g3pKey_secret gKey
@@ -543,9 +556,13 @@ g3pHash_finalizeGen inputEcho gKey = G3PGen
 
     echo = phkdfGen_initFromHmacKey echoHeader echoCtr echoTag secretKey
 
+-- | Read a 32-byte hash from the G3P's output generator.
+
 g3pGen_read :: G3PGen -> (ByteString, G3PGen)
 g3pGen_read gen = let (out, next) = phkdfGen_read (g3pGen_phkdfGen gen)
                    in (out, gen { g3pGen_phkdfGen = next })
+
+-- | Turn a G3P output generator into an unbounded stream.
 
 g3pGen_finalizeStream :: G3PGen -> Stream ByteString
 g3pGen_finalizeStream = phkdfGen_finalizeStream . g3pGen_phkdfGen

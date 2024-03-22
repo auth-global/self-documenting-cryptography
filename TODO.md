@@ -8,7 +8,18 @@
 
 2.  seguid-protocol
 
-3.  edit and polish design documents
+3.  major revision of design documents
+
+    * Design documents are currently out of sync with g3p-hash
+
+    * Modify phkdfSimple/phkdfPass into hkdfSimple, phkdfSimple, and phkdfHardened
+        * phkdfSimple will output a single 32-byte block, and omit the padding
+
+        * hdkfSimple will be the same as G3Pb1 delta, but with different constants
+
+        * bring phkdfHardened in line with current g3p-hash design
+
+    * Incorporate some of the better expository material that I've developed since I last worked on the design documents
 
     * finish section on deployment considerations
 
