@@ -162,7 +162,7 @@ lengthOfBareEncode n
   where
     wordLen = finiteBitSize n
     zeros = countLeadingZeros n
-    nSigBits = wordLen - zeros + 3
+    nSigBits = wordLen - zeros
     nSigBytes = max 1 (shiftR (nSigBits + 7) 3)
 
 lengthOfBareEncodeFromBytes :: (Integral b, FiniteBits b) => b -> Int
