@@ -379,6 +379,5 @@ phkdfPass_seedFinalize seed tweak = echo
 
     headerEcho = cycleByteString (domainTag <> "\x00phkdf-pass-v0 echo\x00") 32
 
-    echo = hmacKey_init secretKey &
-           phkdfGen_initFromHmacKey headerEcho (word32 "OUT\x00") echoTag &
+    echo = phkdfGen_init secretKey headerEcho (word32 "OUT\x00") echoTag &
            phkdfGen_finalizeStream

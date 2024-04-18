@@ -223,13 +223,14 @@ module Crypto.PHKDF.Primitives
   , phkdfSlowCtx_finalize
   , phkdfSlowCtx_finalizeStream
   , PhkdfGen()
+  , phkdfGen_init
   , phkdfGen_initFromHmacKey
   , phkdfGen_read
   , phkdfGen_peek
   , phkdfGen_finalizeStream
   ) where
 
-import           Data.Bits((.&.))
+import           Data.Bits((.&.), complement)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.Function((&))
@@ -351,14 +352,24 @@ phkdfCtx_finalizeGen genFillerPad counter0 tag ctx =
 
     context0 = assert endPaddingIsValid $ phkdfCtx_state ctx'
 
-phkdfGen_initFromHmacKey :: ByteString -> Word32 -> ByteString -> HmacKey -> PhkdfGen
-phkdfGen_initFromHmacKey state0 counter0 tag hmacKey = PhkdfGen
-    { phkdfGen_hmacKey = hmacKey
-    , phkdfGen_extTag = extendTag tag
-    , phkdfGen_counter = counter0
-    , phkdfGen_state = state0
-    , phkdfGen_initCtx = Just $ hmacKey_ipad hmacKey
-    }
+phkdfGen_init :: ByteString -> ByteString -> Word32 -> ByteString -> PhkdfGen
+phkdfGen_init key = phkdfGen_initFromHmacKey (hmacKey_init key)
+
+phkdfGen_initFromHmacKey :: HmacKey -> ByteString -> Word32 -> ByteString -> PhkdfGen
+phkdfGen_initFromHmacKey hmacKey initBytes = initGen
+  where
+    -- Round down to the previous buffer boundary
+    n = B.length initBytes .&. complement 63
+    (blocks, state0) = B.splitAt n initBytes
+    ipad0 = SHA256.update (hmacKey_ipad hmacKey) blocks
+
+    initGen counter0 tag = PhkdfGen
+      { phkdfGen_hmacKey = hmacKey
+      , phkdfGen_extTag = extendTag tag
+      , phkdfGen_counter = counter0
+      , phkdfGen_state = state0
+      , phkdfGen_initCtx = Just ipad0
+      }
 
 phkdfGen_peek :: PhkdfGen -> Maybe ByteString
 phkdfGen_peek gen =

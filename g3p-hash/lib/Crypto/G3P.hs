@@ -554,7 +554,7 @@ g3pHash_finalizeGen inputEcho gKey = G3PGen
 
     echoCtr = word32 "OUT\x00"
 
-    echo = phkdfGen_initFromHmacKey echoHeader echoCtr echoTag secretKey
+    echo = phkdfGen_initFromHmacKey secretKey echoHeader echoCtr echoTag
 
 -- | Read a 32-byte hash from the G3P's output generator.
 
