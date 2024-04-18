@@ -1,5 +1,5 @@
 name:                phkdf
-version:             0.0.0.0
+version:             0.1.0.0
 synopsis:
     Toolkit for self-documenting password hash and key derivation functions.
 
@@ -48,7 +48,7 @@ library
 
 source-repository head
   type:     git
-  location: http://github.com/auth-global/self-documenting-cryptography
+  location: https://github.com/auth-global/self-documenting-cryptography
   subdir:   phkdf
 
 test-suite test
@@ -61,7 +61,7 @@ test-suite test
 
   build-depends:     base < 5
                    , aeson >= 2
-                   , base16
+                   , base16 < 1
                    , bytestring
                    , containers
                    , phkdf
