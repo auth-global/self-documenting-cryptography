@@ -54,24 +54,24 @@ typedef struct BlowfishContext {
  *	G3P_Blowfish_expand0state( state, key, keylen )
  */
 
-void G3P_Blowfish_encipher(G3P_blf_ctx *, uint32_t *, uint32_t *);
-void G3P_Blowfish_decipher(G3P_blf_ctx *, uint32_t *, uint32_t *);
+void G3P_Blowfish_encipher(const G3P_blf_ctx *, uint32_t *, uint32_t *);
+void G3P_Blowfish_decipher(const G3P_blf_ctx *, uint32_t *, uint32_t *);
 void G3P_Blowfish_initstate(G3P_blf_ctx *);
-void G3P_Blowfish_expand0state(G3P_blf_ctx *, const uint8_t *, uint16_t);
-void G3P_Blowfish_expandstate
-(G3P_blf_ctx *, const uint8_t *, uint16_t, const uint8_t *, uint16_t);
+void G3P_Blowfish_expand(G3P_blf_ctx *c,
+                         const uint8_t *key, uint16_t keybytes,
+                         const uint8_t *salt, uint16_t saltbytes,
+                         uint32_t ctr);
 
 /* Standard Blowfish */
 
-void G3P_blf_key(G3P_blf_ctx *, const uint8_t *, uint16_t);
-void G3P_blf_enc(G3P_blf_ctx *, uint32_t *, uint16_t);
-void G3P_blf_dec(G3P_blf_ctx *, uint32_t *, uint16_t);
+void G3P_blf_enc(const G3P_blf_ctx *, uint32_t *, uint16_t);
+void G3P_blf_dec(const G3P_blf_ctx *, uint32_t *, uint16_t);
 
-void G3P_blf_ecb_encrypt(G3P_blf_ctx *, uint8_t *, uint32_t);
-void G3P_blf_ecb_decrypt(G3P_blf_ctx *, uint8_t *, uint32_t);
+void G3P_blf_ecb_encrypt(const G3P_blf_ctx *, uint8_t *, uint32_t);
+void G3P_blf_ecb_decrypt(const G3P_blf_ctx *, uint8_t *, uint32_t);
 
-void G3P_blf_cbc_encrypt(G3P_blf_ctx *, uint8_t *, uint8_t *, uint32_t);
-void G3P_blf_cbc_decrypt(G3P_blf_ctx *, uint8_t *, uint8_t *, uint32_t);
+void G3P_blf_cbc_encrypt(const G3P_blf_ctx *, uint8_t *, uint8_t *, uint32_t);
+void G3P_blf_cbc_decrypt(const G3P_blf_ctx *, uint8_t *, uint8_t *, uint32_t);
 
 /* Converts uint8_t to uint32_t */
 uint32_t G3P_Blowfish_stream2word(const uint8_t *, uint16_t , uint16_t *);

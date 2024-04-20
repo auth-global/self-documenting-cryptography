@@ -50,12 +50,12 @@
 #define BLFRND(s,p,i,j,n) (i ^= F(s,j) ^ (p)[n])
 
 void
-G3P_Blowfish_encipher(G3P_blf_ctx *c, uint32_t *xl, uint32_t *xr)
+G3P_Blowfish_encipher(const G3P_blf_ctx *c, uint32_t *xl, uint32_t *xr)
 {
 	uint32_t Xl;
 	uint32_t Xr;
-	uint32_t *s = c->S[0];
-	uint32_t *p = c->P;
+	const uint32_t *s = c->S[0];
+	const uint32_t *p = c->P;
 
 	Xl = *xl;
 	Xr = *xr;
@@ -75,12 +75,12 @@ G3P_Blowfish_encipher(G3P_blf_ctx *c, uint32_t *xl, uint32_t *xr)
 };
 
 void
-G3P_Blowfish_decipher(G3P_blf_ctx *c, uint32_t *xl, uint32_t *xr)
+G3P_Blowfish_decipher(const G3P_blf_ctx *c, uint32_t *xl, uint32_t *xr)
 {
 	uint32_t Xl;
 	uint32_t Xr;
-	uint32_t *s = c->S[0];
-	uint32_t *p = c->P;
+	const uint32_t *s = c->S[0];
+	const uint32_t *p = c->P;
 
 	Xl = *xl;
 	Xr = *xr;
@@ -399,8 +399,12 @@ G3P_Blowfish_stream2word(const uint8_t *data, uint16_t databytes,
 	return temp;
 };
 
+
 void
-G3P_Blowfish_expand0state(G3P_blf_ctx *c, const uint8_t *key, uint16_t keybytes)
+G3P_Blowfish_expand(G3P_blf_ctx *c,
+                    const uint8_t *key, uint16_t keybytes,
+                    const uint8_t *salt, uint16_t saltbytes,
+                    uint32_t ctr)
 {
 	uint16_t i;
 	uint16_t j;
@@ -417,9 +421,16 @@ G3P_Blowfish_expand0state(G3P_blf_ctx *c, const uint8_t *key, uint16_t keybytes)
 	}
 
 	j = 0;
-	datal = 0x00000000;
-	datar = 0x00000000;
-	for (i = 0; i < G3P_BLF_N + 2; i += 2) {
+  datal = G3P_Blowfish_stream2word(salt, saltbytes, &j);
+	datar = G3P_Blowfish_stream2word(salt, saltbytes, &j);
+  datal ^= ctr;
+  G3P_Blowfish_encipher(c, &datal, &datar);
+  c->P[0] = datal;
+  c->P[1] = datar;
+
+	for (i = 2; i < G3P_BLF_N + 2; i += 2) {
+		datal ^= G3P_Blowfish_stream2word(salt, saltbytes, &j);
+		datar ^= G3P_Blowfish_stream2word(salt, saltbytes, &j);
 		G3P_Blowfish_encipher(c, &datal, &datar);
 
 		c->P[i] = datal;
@@ -428,6 +439,8 @@ G3P_Blowfish_expand0state(G3P_blf_ctx *c, const uint8_t *key, uint16_t keybytes)
 
 	for (i = 0; i < 4; i++) {
 		for (k = 0; k < 256; k += 2) {
+			datal ^= G3P_Blowfish_stream2word(salt, saltbytes, &j);
+			datar ^= G3P_Blowfish_stream2word(salt, saltbytes, &j);
 			G3P_Blowfish_encipher(c, &datal, &datar);
 
 			c->S[i][k] = datal;
@@ -436,62 +449,8 @@ G3P_Blowfish_expand0state(G3P_blf_ctx *c, const uint8_t *key, uint16_t keybytes)
 	}
 };
 
-
 void
-G3P_Blowfish_expandstate(G3P_blf_ctx *c, const uint8_t *data, uint16_t databytes,
-    const uint8_t *key, uint16_t keybytes)
-{
-	uint16_t i;
-	uint16_t j;
-	uint16_t k;
-	uint32_t temp;
-	uint32_t datal;
-	uint32_t datar;
-
-	j = 0;
-	for (i = 0; i < G3P_BLF_N + 2; i++) {
-		/* Extract 4 int8 to 1 int32 from keystream */
-		temp = G3P_Blowfish_stream2word(key, keybytes, &j);
-		c->P[i] = c->P[i] ^ temp;
-	}
-
-	j = 0;
-	datal = 0x00000000;
-	datar = 0x00000000;
-	for (i = 0; i < G3P_BLF_N + 2; i += 2) {
-		datal ^= G3P_Blowfish_stream2word(data, databytes, &j);
-		datar ^= G3P_Blowfish_stream2word(data, databytes, &j);
-		G3P_Blowfish_encipher(c, &datal, &datar);
-
-		c->P[i] = datal;
-		c->P[i + 1] = datar;
-	}
-
-	for (i = 0; i < 4; i++) {
-		for (k = 0; k < 256; k += 2) {
-			datal ^= G3P_Blowfish_stream2word(data, databytes, &j);
-			datar ^= G3P_Blowfish_stream2word(data, databytes, &j);
-			G3P_Blowfish_encipher(c, &datal, &datar);
-
-			c->S[i][k] = datal;
-			c->S[i][k + 1] = datar;
-		}
-	}
-
-};
-
-void
-G3P_blf_key(G3P_blf_ctx *c, const uint8_t *k, uint16_t len)
-{
-	/* Initialize S-boxes and subkeys with Pi */
-	G3P_Blowfish_initstate(c);
-
-	/* Transform S-boxes and subkeys with key */
-	G3P_Blowfish_expand0state(c, k, len);
-};
-
-void
-G3P_blf_enc(G3P_blf_ctx *c, uint32_t *data, uint16_t blocks)
+G3P_blf_enc(const G3P_blf_ctx *c, uint32_t *data, uint16_t blocks)
 {
 	uint32_t *d;
 	uint16_t i;
@@ -504,7 +463,7 @@ G3P_blf_enc(G3P_blf_ctx *c, uint32_t *data, uint16_t blocks)
 };
 
 void
-G3P_blf_dec(G3P_blf_ctx *c, uint32_t *data, uint16_t blocks)
+G3P_blf_dec(const G3P_blf_ctx *c, uint32_t *data, uint16_t blocks)
 {
 	uint32_t *d;
 	uint16_t i;
@@ -517,7 +476,7 @@ G3P_blf_dec(G3P_blf_ctx *c, uint32_t *data, uint16_t blocks)
 };
 
 void
-G3P_blf_ecb_encrypt(G3P_blf_ctx *c, uint8_t *data, uint32_t len)
+G3P_blf_ecb_encrypt(const G3P_blf_ctx *c, uint8_t *data, uint32_t len)
 {
 	uint32_t l, r;
 	uint32_t i;
@@ -539,7 +498,7 @@ G3P_blf_ecb_encrypt(G3P_blf_ctx *c, uint8_t *data, uint32_t len)
 };
 
 void
-G3P_blf_ecb_decrypt(G3P_blf_ctx *c, uint8_t *data, uint32_t len)
+G3P_blf_ecb_decrypt(const G3P_blf_ctx *c, uint8_t *data, uint32_t len)
 {
 	uint32_t l, r;
 	uint32_t i;
@@ -561,7 +520,7 @@ G3P_blf_ecb_decrypt(G3P_blf_ctx *c, uint8_t *data, uint32_t len)
 };
 
 void
-G3P_blf_cbc_encrypt(G3P_blf_ctx *c, uint8_t *iv, uint8_t *data, uint32_t len)
+G3P_blf_cbc_encrypt(const G3P_blf_ctx *c, uint8_t *iv, uint8_t *data, uint32_t len)
 {
 	uint32_t l, r;
 	uint32_t i, j;
@@ -586,7 +545,7 @@ G3P_blf_cbc_encrypt(G3P_blf_ctx *c, uint8_t *iv, uint8_t *data, uint32_t len)
 };
 
 void
-G3P_blf_cbc_decrypt(G3P_blf_ctx *c, uint8_t *iva, uint8_t *data, uint32_t len)
+G3P_blf_cbc_decrypt(const G3P_blf_ctx *c, uint8_t *iva, uint8_t *data, uint32_t len)
 {
 	uint32_t l, r;
 	uint8_t *iv;

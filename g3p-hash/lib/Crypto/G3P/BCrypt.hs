@@ -1,4 +1,4 @@
-{-# LANGUAGE CApiFFI, ViewPatterns #-}
+{-# LANGUAGE ViewPatterns, OverloadedStrings #-}
 
 -- |  A very minimal binding to the core of the bcrypt algorithm, adapted from
 --    OpenBSD's implementation. The Global Password Prehash Protocol version
@@ -14,8 +14,15 @@
 --    3.  the G3P needs unimpeded access to the full 72 byte password input.
 --        This is not doable with all bcrypt variants.
 --
---    4.  Standard bcrypt limits salt length to 16 bytes.  The G3P depends on
---        72 byte salt parameters.
+--    4.  Standard bcrypt limits salt length to 16 bytes. Version 1 of the G3P
+--        depends on 72 byte salt parameters, and Version 2 depends on 4168 byte
+--        salts.
+--
+--    5.  In addition to the standard salt parameter, Version 2 of the G3P
+--        depends on two additional 4168 byte salt parameters which are
+--        assumed to be filled with null bytes by standard bcrypt.
+--
+--    6.  G3Pb2 also implements a counter at the start of the excess salt
 --
 --    For this reason, this binding completely removes the code for handling
 --    unix-style bcrypt hashes, which has repeatedly proven problematic. One
@@ -36,29 +43,28 @@ module Crypto.G3P.BCrypt
   ( bcryptRaw
   , bcryptRaw_maxInputLength
   , bcryptRaw_outputLength
+  , BCryptInputs()
+  , bcryptRaw_genInputs
   ) where
-
-#include "bcrypt_raw.h"
 
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Unsafe as B
 import           Data.Word
 
-import           Foreign.C.String
-import           System.IO.Unsafe
-
-foreign import capi "bcrypt_raw.h bcrypt_raw" c_bcrypt_raw :: CString -> Word32 -> CString -> Word32 -> CString -> Word32 -> IO ()
+import           Crypto.G3P.BCrypt.Subtle
 
 -- | Any input longer than 72 bytes will be truncated.
 
 bcryptRaw_maxInputLength :: Int
-bcryptRaw_maxInputLength = (#const BCRYPT_RAW_MAX_INPUT_LENGTH)
+bcryptRaw_maxInputLength = bcryptXS_maxKeyLength
 
 -- | Any output hash from 'bcryptRaw' will be exactly 24 bytes long.
 
 bcryptRaw_outputLength :: Int
-bcryptRaw_outputLength = (#const BCRYPT_RAW_OUTPUT_LENGTH)
+bcryptRaw_outputLength = B.length bcryptRaw_outputSalt
+
+bcryptRaw_outputSalt :: ByteString
+bcryptRaw_outputSalt = "OrpheanBeholderScryDoubt"
 
 -- | @bcryptRaw key salt rounds@ Be aware that keys and salts that are longer
 --   than 72 bytes do get truncated to exactly 72 bytes. This binding will
@@ -70,19 +76,22 @@ bcryptRaw_outputLength = (#const BCRYPT_RAW_OUTPUT_LENGTH)
 --   @2^12 - 1 = 4095@.
 
 bcryptRaw :: ByteString -> ByteString -> Word32 -> ByteString
-bcryptRaw (f -> key) (f -> salt) rounds
-  = unsafePerformIO $ do
-      B.unsafeUseAsCString key $ \keyPtr -> do
-        B.unsafeUseAsCString salt $ \saltPtr -> do
-          -- using a superfluous `seq` to try to ensure that this allocates a new
-          -- unique bytestring.   FIXME: there's almost certainly a better, more
-          -- proper, more idiomatic solution here
-          let output = B.replicate bcryptRaw_outputLength (saltPtr `seq` 0)
-          B.unsafeUseAsCString output $ \outPtr -> do
-            c_bcrypt_raw keyPtr (len key) saltPtr (len salt) outPtr rounds
-            return output
-  where
-    len x = fromIntegral (min bcryptRaw_maxInputLength (B.length x))
+bcryptRaw key salt rounds = bcryptXS (bcryptRaw_genInputs key salt rounds)
+
+-- | Generate an equivalent input block for 'bcryptXS'
+
+bcryptRaw_genInputs :: ByteString -> ByteString -> Word32 -> BCryptInputs
+bcryptRaw_genInputs (f -> key) (f -> salt) rounds =
+    BCryptInputs
+    { bcryptInputs_key0 = key
+    , bcryptInputs_salt0 = salt
+    , bcryptInputs_keyL = key
+    , bcryptInputs_saltL = B.empty
+    , bcryptInputs_keyR = salt
+    , bcryptInputs_saltR = B.empty
+    , bcryptInputs_saltZ = bcryptRaw_outputSalt
+    , bcryptInputs_rounds = rounds
+    }
 
 f :: ByteString -> ByteString
-f key = if B.null key then B.replicate bcryptRaw_maxInputLength 0 else key
+f = B.take bcryptRaw_maxInputLength

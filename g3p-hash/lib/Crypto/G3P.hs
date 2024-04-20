@@ -3,8 +3,8 @@
 {- |
 
 The [Global Password Prehash Protocol (G3P)](https://github.com/auth-global/self-documenting-cryptography/blob/prerelease/design-documents/g3p.md)
-is a slow, attribution-armored password hash function and cryptographic key
-derivation function. It supports [self-documenting deployments](https://www.cut-the-knot.org/Curriculum/Algebra/SelfDescriptive.shtml)
+is a slow, attribution-armored password hash and key derivation function. It
+supports [self-documenting deployments](https://www.cut-the-knot.org/Curriculum/Algebra/SelfDescriptive.shtml)
 whose password hashes are /traceable/ or /useless/ after they have been /stolen/.
 This secondary security goal seeks to use [/cryptoacoustics/](https://github.com/auth-global/self-documenting-cryptography/)
 to provide [/embedded attributions/](https://joeyh.name/blog/entry/attribution_armored_code/)
