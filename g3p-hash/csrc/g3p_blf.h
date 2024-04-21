@@ -41,6 +41,7 @@
 #define G3P_BLF_N	16			/* Number of Subkeys */
 #define G3P_BLF_MAXKEYLEN ((G3P_BLF_N-2)*4)	/* 448 bits */
 #define G3P_BLF_MAXUTILIZED ((G3P_BLF_N+2)*4)	/* 576 bits */
+#define G3P_BLF_CTX_LENGTH 4168
 
 /* Blowfish context */
 typedef struct BlowfishContext {
@@ -62,16 +63,10 @@ void G3P_Blowfish_expand(G3P_blf_ctx *c,
                          const uint8_t *salt, uint16_t saltbytes,
                          uint32_t ctr);
 
-/* Standard Blowfish */
+uint32_t G3P_Blowfish_readP(const G3P_blf_ctx *c, uint8_t i);
+uint32_t G3P_Blowfish_readS(const G3P_blf_ctx *c, uint8_t i, uint8_t j);
 
-void G3P_blf_enc(const G3P_blf_ctx *, uint32_t *, uint16_t);
-void G3P_blf_dec(const G3P_blf_ctx *, uint32_t *, uint16_t);
-
-void G3P_blf_ecb_encrypt(const G3P_blf_ctx *, uint8_t *, uint32_t);
-void G3P_blf_ecb_decrypt(const G3P_blf_ctx *, uint8_t *, uint32_t);
-
-void G3P_blf_cbc_encrypt(const G3P_blf_ctx *, uint8_t *, uint8_t *, uint32_t);
-void G3P_blf_cbc_decrypt(const G3P_blf_ctx *, uint8_t *, uint8_t *, uint32_t);
+void G3P_Blowfish_encodestate(const G3P_blf_ctx *c, uint8_t out[G3P_BLF_CTX_LENGTH]);
 
 /* Converts uint8_t to uint32_t */
 uint32_t G3P_Blowfish_stream2word(const uint8_t *, uint16_t , uint16_t *);

@@ -378,6 +378,32 @@ G3P_Blowfish_initstate(G3P_blf_ctx *c)
 	*c = initstate;
 };
 
+uint32_t G3P_Blowfish_readP(const G3P_blf_ctx *c, uint8_t i) {
+  return c->P[i];
+}
+uint32_t G3P_Blowfish_readS(const G3P_blf_ctx *c, uint8_t i, uint8_t j) {
+  return c->S[i][j];
+}
+void G3P_Blowfish_encodestate(const G3P_blf_ctx *c, uint8_t out[G3P_BLF_CTX_LENGTH]) {
+  uint32_t p = 0;
+  for (int i = 0; i < G3P_BLF_N + 2; i++) {
+    uint32_t x = c->P[i];
+    out[p++] = (x >> 24) & 0xff;
+    out[p++] = (x >> 16) & 0xff;
+    out[p++] = (x >>  8) & 0xff;
+    out[p++] =  x        & 0xff;
+  }
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 256; j++) {
+      uint32_t x = c->S[i][j];
+      out[p++] = (x >> 24) & 0xff;
+      out[p++] = (x >> 16) & 0xff;
+      out[p++] = (x >>  8) & 0xff;
+      out[p++] =  x        & 0xff;
+    }
+  }
+}
+
 uint32_t
 G3P_Blowfish_stream2word(const uint8_t *data, uint16_t databytes,
     uint16_t *current)
@@ -447,140 +473,4 @@ G3P_Blowfish_expand(G3P_blf_ctx *c,
 			c->S[i][k + 1] = datar;
 		}
 	}
-};
-
-void
-G3P_blf_enc(const G3P_blf_ctx *c, uint32_t *data, uint16_t blocks)
-{
-	uint32_t *d;
-	uint16_t i;
-
-	d = data;
-	for (i = 0; i < blocks; i++) {
-		G3P_Blowfish_encipher(c, d, d + 1);
-		d += 2;
-	}
-};
-
-void
-G3P_blf_dec(const G3P_blf_ctx *c, uint32_t *data, uint16_t blocks)
-{
-	uint32_t *d;
-	uint16_t i;
-
-	d = data;
-	for (i = 0; i < blocks; i++) {
-		G3P_Blowfish_decipher(c, d, d + 1);
-		d += 2;
-	}
-};
-
-void
-G3P_blf_ecb_encrypt(const G3P_blf_ctx *c, uint8_t *data, uint32_t len)
-{
-	uint32_t l, r;
-	uint32_t i;
-
-	for (i = 0; i < len; i += 8) {
-		l = data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3];
-		r = data[4] << 24 | data[5] << 16 | data[6] << 8 | data[7];
-		G3P_Blowfish_encipher(c, &l, &r);
-		data[0] = l >> 24 & 0xff;
-		data[1] = l >> 16 & 0xff;
-		data[2] = l >> 8 & 0xff;
-		data[3] = l & 0xff;
-		data[4] = r >> 24 & 0xff;
-		data[5] = r >> 16 & 0xff;
-		data[6] = r >> 8 & 0xff;
-		data[7] = r & 0xff;
-		data += 8;
-	}
-};
-
-void
-G3P_blf_ecb_decrypt(const G3P_blf_ctx *c, uint8_t *data, uint32_t len)
-{
-	uint32_t l, r;
-	uint32_t i;
-
-	for (i = 0; i < len; i += 8) {
-		l = data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3];
-		r = data[4] << 24 | data[5] << 16 | data[6] << 8 | data[7];
-		G3P_Blowfish_decipher(c, &l, &r);
-		data[0] = l >> 24 & 0xff;
-		data[1] = l >> 16 & 0xff;
-		data[2] = l >> 8 & 0xff;
-		data[3] = l & 0xff;
-		data[4] = r >> 24 & 0xff;
-		data[5] = r >> 16 & 0xff;
-		data[6] = r >> 8 & 0xff;
-		data[7] = r & 0xff;
-		data += 8;
-	}
-};
-
-void
-G3P_blf_cbc_encrypt(const G3P_blf_ctx *c, uint8_t *iv, uint8_t *data, uint32_t len)
-{
-	uint32_t l, r;
-	uint32_t i, j;
-
-	for (i = 0; i < len; i += 8) {
-		for (j = 0; j < 8; j++)
-			data[j] ^= iv[j];
-		l = data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3];
-		r = data[4] << 24 | data[5] << 16 | data[6] << 8 | data[7];
-		G3P_Blowfish_encipher(c, &l, &r);
-		data[0] = l >> 24 & 0xff;
-		data[1] = l >> 16 & 0xff;
-		data[2] = l >> 8 & 0xff;
-		data[3] = l & 0xff;
-		data[4] = r >> 24 & 0xff;
-		data[5] = r >> 16 & 0xff;
-		data[6] = r >> 8 & 0xff;
-		data[7] = r & 0xff;
-		iv = data;
-		data += 8;
-	}
-};
-
-void
-G3P_blf_cbc_decrypt(const G3P_blf_ctx *c, uint8_t *iva, uint8_t *data, uint32_t len)
-{
-	uint32_t l, r;
-	uint8_t *iv;
-	uint32_t i, j;
-
-	iv = data + len - 16;
-	data = data + len - 8;
-	for (i = len - 8; i >= 8; i -= 8) {
-		l = data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3];
-		r = data[4] << 24 | data[5] << 16 | data[6] << 8 | data[7];
-		G3P_Blowfish_decipher(c, &l, &r);
-		data[0] = l >> 24 & 0xff;
-		data[1] = l >> 16 & 0xff;
-		data[2] = l >> 8 & 0xff;
-		data[3] = l & 0xff;
-		data[4] = r >> 24 & 0xff;
-		data[5] = r >> 16 & 0xff;
-		data[6] = r >> 8 & 0xff;
-		data[7] = r & 0xff;
-		for (j = 0; j < 8; j++)
-			data[j] ^= iv[j];
-		iv -= 8;
-		data -= 8;
-	}
-	l = data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3];
-	r = data[4] << 24 | data[5] << 16 | data[6] << 8 | data[7];
-	G3P_Blowfish_decipher(c, &l, &r);
-	data[0] = l >> 24 & 0xff;
-	data[1] = l >> 16 & 0xff;
-	data[2] = l >> 8 & 0xff;
-	data[3] = l & 0xff;
-	data[4] = r >> 24 & 0xff;
-	data[5] = r >> 16 & 0xff;
-	data[6] = r >> 8 & 0xff;
-	data[7] = r & 0xff;
-	for (j = 0; j < 8; j++)
-		data[j] ^= iva[j];
 };

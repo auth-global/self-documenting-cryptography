@@ -6,9 +6,10 @@
 module Crypto.G3P.BCrypt.Subtle
   ( BCryptInputs(..)
   , bcryptXS
-  , bcryptXSCtr
+  , bcryptXSCtrDump
   , bcryptXS_maxKeyLength
   , bcryptXS_maxSaltLength
+  , bcryptXSCtrDump_outputLength
   ) where
 
 #include "bcrypt_xs.h"
@@ -39,11 +40,11 @@ foreign import capi "bcrypt_xs.h bcrypt_xs" c_bcrypt_xs
     -> CString -> Word16 -> CString -> Word16
     -> CString -> Word32 -> Word32 -> CString -> IO ()
 
-foreign import capi "bcrypt_xs.h bcrypt_xs_ctr" c_bcrypt_xs_ctr
+foreign import capi "bcrypt_xs.h bcrypt_xs_ctr_dump" c_bcrypt_xs_ctr_dump
     :: CString -> Word16 -> CString -> Word16
     -> CString -> Word16 -> CString -> Word16
     -> CString -> Word16 -> CString -> Word16
-    -> CString -> Word32 -> Word32 -> CString -> IO ()
+    -> Word32 -> CString -> IO ()
 
 -- | Any key longer than 72 bytes will be truncated.
 
@@ -54,6 +55,10 @@ bcryptXS_maxKeyLength = (#const BCRYPT_XS_MAX_KEY_LENGTH)
 
 bcryptXS_maxSaltLength :: Int
 bcryptXS_maxSaltLength = (#const BCRYPT_XS_MAX_SALT_LENGTH)
+
+-- | returns 4168 bytes
+bcryptXSCtrDump_outputLength :: Int
+bcryptXSCtrDump_outputLength = (#const G3P_BLF_CTX_LENGTH)
 
 -- | A bcrypt version with excessive freedom and extended, extra large salts.
 
@@ -87,28 +92,27 @@ bcryptXS x = if B.null sZ then "" else unsafePerformIO $ do
     sZ = bcryptInputs_saltZ x
     rounds = bcryptInputs_rounds x
 
--- | At least somewhat less subtle than the one above, thanks to the addition of a counter.
+-- | Likely at least somewhat less subtle than the one above, thanks to the addition of a counter.
 
-bcryptXSCtr :: BCryptInputs -> ByteString
-bcryptXSCtr x = if B.null sZ then "" else unsafePerformIO $ do
+bcryptXSCtrDump :: BCryptInputs -> ByteString
+bcryptXSCtrDump x = if B.null sZ then "" else unsafePerformIO $ do
   B.unsafeUseAsCString k0 $ \k0' -> do
     B.unsafeUseAsCString s0 $ \s0' -> do
       B.unsafeUseAsCString kL $ \kL' -> do
         B.unsafeUseAsCString sL $ \sL' -> do
           B.unsafeUseAsCString kR $ \kR' -> do
             B.unsafeUseAsCString sR $ \sR' -> do
-              B.unsafeUseAsCString sZ $ \sZ' -> do
-                -- using a superfluous `seq` to try to ensure that this
-                -- allocates a new unique bytestring. FIXME: there's almost
-                -- certainly a better, more proper, more idiomatic solution
-                let out = B.replicate (sZ' `seq` B.length sZ) 0
-                B.unsafeUseAsCString out $ \out' -> do
-                    (c_bcrypt_xs_ctr
+              -- using a superfluous `seq` to try to ensure that this
+              -- allocates a new unique bytestring. FIXME: there's almost
+              -- certainly a better, more proper, more idiomatic solution
+              let out = B.replicate (sR' `seq` bcryptXSCtrDump_outputLength) 0
+              B.unsafeUseAsCString out $ \out' -> do
+                  (c_bcrypt_xs_ctr_dump
                         k0' (len k0) s0' (len s0)
                         kL' (len kL) sL' (len sL)
                         kR' (len kR) sR' (len sR)
-                        sZ' (len' sZ) rounds out')
-                    return out
+                        rounds out')
+                  return out
   where
     k0 = f (bcryptInputs_key0 x)
     s0 = f (bcryptInputs_salt0 x)
