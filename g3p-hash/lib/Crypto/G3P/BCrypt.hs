@@ -43,7 +43,7 @@ module Crypto.G3P.BCrypt
   ( bcryptRaw
   , bcryptRaw_maxInputLength
   , bcryptRaw_outputLength
-  , BCryptInputs()
+  , BCryptXs()
   , bcryptRaw_genInputs
   ) where
 
@@ -56,7 +56,7 @@ import           Crypto.G3P.BCrypt.Subtle
 -- | Any input longer than 72 bytes will be truncated.
 
 bcryptRaw_maxInputLength :: Int
-bcryptRaw_maxInputLength = bcryptXS_maxKeyLength
+bcryptRaw_maxInputLength = bcryptXs_maxKeyLength
 
 -- | Any output hash from 'bcryptRaw' will be exactly 24 bytes long.
 
@@ -76,21 +76,21 @@ bcryptRaw_outputSalt = "OrpheanBeholderScryDoubt"
 --   @2^12 - 1 = 4095@.
 
 bcryptRaw :: ByteString -> ByteString -> Word32 -> ByteString
-bcryptRaw key salt rounds = bcryptXS (bcryptRaw_genInputs key salt rounds)
+bcryptRaw key salt rounds = bcryptXs (bcryptRaw_genInputs key salt rounds)
 
--- | Generate an equivalent input block for 'bcryptXS'
+-- | Generate an equivalent input block for 'bcryptXs'
 
-bcryptRaw_genInputs :: ByteString -> ByteString -> Word32 -> BCryptInputs
+bcryptRaw_genInputs :: ByteString -> ByteString -> Word32 -> BCryptXs
 bcryptRaw_genInputs (f -> key) (f -> salt) rounds =
-    BCryptInputs
-    { bcryptInputs_key0 = key
-    , bcryptInputs_salt0 = salt
-    , bcryptInputs_keyL = key
-    , bcryptInputs_saltL = B.empty
-    , bcryptInputs_keyR = salt
-    , bcryptInputs_saltR = B.empty
-    , bcryptInputs_saltZ = bcryptRaw_outputSalt
-    , bcryptInputs_rounds = rounds
+    BCryptXs
+    { bcryptXs_key0 = key
+    , bcryptXs_salt0 = salt
+    , bcryptXs_keyL = key
+    , bcryptXs_saltL = B.empty
+    , bcryptXs_keyR = salt
+    , bcryptXs_saltR = B.empty
+    , bcryptXs_saltZ = bcryptRaw_outputSalt
+    , bcryptXs_rounds = rounds
     }
 
 f :: ByteString -> ByteString

@@ -1,5 +1,6 @@
 /* aggressively generalized and stripped down version of OpenBSD's implementation of BCrypt */
 
+#include <stdbool.h>
 #include <string.h>
 #include "g3p_blf.h"
 #include "bcrypt_xs.h"
@@ -29,9 +30,8 @@ bcrypt_xs
 
 void
 bcrypt_xs_ctr_dump
-( const char *key0, uint16_t key0bytes, const char *salt0, uint16_t salt0bytes,
-  const char *keyL, uint16_t keyLbytes, const char *saltL, uint16_t saltLbytes,
-  const char *keyR, uint16_t keyRbytes, const char *saltR, uint16_t saltRbytes,
+( const uint8_t *key0, uint32_t key0Len, const uint8_t *key1, uint32_t key1Len,
+  const uint8_t *tag, uint32_t tagLen, const uint8_t *name, uint32_t nameLen,
   uint32_t rounds, char output[G3P_BLF_CTX_LENGTH] )
 {
   G3P_blf_ctx state;
@@ -40,9 +40,8 @@ bcrypt_xs_ctr_dump
 
   bcrypt_xs_ctr_expand
     (&state,
-     key0, key0bytes, salt0, salt0bytes,
-     keyL, keyLbytes, saltL, saltLbytes,
-     keyR, keyRbytes, saltR, saltRbytes,
+     key0, key0Len, key1, key1Len,
+     tag, tagLen, name, nameLen,
      rounds);
 
   G3P_Blowfish_encodestate(&state, output);
@@ -82,36 +81,26 @@ bcrypt_xs_expand
 void
 bcrypt_xs_ctr_expand
 ( G3P_blf_ctx *state,
-  const char *key0, uint16_t key0bytes, const char *salt0, uint16_t salt0bytes,
-  const char *keyL, uint16_t keyLbytes, const char *saltL, uint16_t saltLbytes,
-  const char *keyR, uint16_t keyRbytes, const char *saltR, uint16_t saltRbytes,
+  const uint8_t *key0, uint32_t key0Len, const uint8_t *key1, uint32_t key1Len,
+  const uint8_t *tag, uint32_t tagLen, const uint8_t *name, uint32_t nameLen,
   uint32_t rounds )
 {
-  G3P_Blowfish_expand
-    (state,
-     (const uint8_t *)key0, key0bytes,
-     (const uint8_t *)salt0, salt0bytes, 0);
+  uint32_t tagPos = 0;
+  G3P_Blowfish_expandCtr
+    (state, key0, key0Len, key1, key1Len, tag, tagLen, &tagPos, 0, false);
 
   /* Written so that things work when rounds == UINT32_MAX */
   rounds++;
-  G3P_Blowfish_expand
-    (state,
-     (const uint8_t *) keyL, keyLbytes,
-     (const uint8_t *) saltL, saltLbytes, rounds);
-  G3P_Blowfish_expand
-    (state,
-     (const uint8_t *)keyR, keyRbytes,
-     (const uint8_t *)saltR, saltRbytes, ~rounds);
+  G3P_Blowfish_expandCtr
+    (state, key0, key0Len, name, nameLen, tag, tagLen, &tagPos, rounds, false);
+  G3P_Blowfish_expandCtr
+    (state, key1, key1Len, name, nameLen, tag, tagLen, &tagPos, ~rounds, true);
   do {
     rounds--;
-    G3P_Blowfish_expand
-      (state,
-       (const uint8_t *)keyL, keyLbytes,
-       (const uint8_t *)saltL, saltLbytes, rounds);
-    G3P_Blowfish_expand
-      (state,
-       (const uint8_t *)keyR, keyRbytes,
-       (const uint8_t *)saltR, saltRbytes, ~rounds);
+    G3P_Blowfish_expandCtr
+      (state, key0, key0Len, name, nameLen, tag, tagLen, &tagPos, rounds, false);
+    G3P_Blowfish_expandCtr
+      (state, key1, key1Len, name, nameLen, tag, tagLen, &tagPos, ~rounds, true);
   } while (rounds != 0);
 }
 

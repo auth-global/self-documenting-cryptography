@@ -38,6 +38,8 @@
  * Bruce Schneier.
  */
 
+#include <stdbool.h>
+#include <stddef.h>
 #include "g3p_blf.h"
 
 /* Function for Feistel Networks */
@@ -405,26 +407,104 @@ void G3P_Blowfish_encodestate(const G3P_blf_ctx *c, uint8_t out[G3P_BLF_CTX_LENG
 }
 
 uint32_t
-G3P_Blowfish_stream2word(const uint8_t *data, uint16_t databytes,
-    uint16_t *current)
+G3P_cycle(const uint8_t *data, uint32_t len, uint32_t *current)
 {
-	uint8_t i;
-	uint16_t j;
-	uint32_t temp;
+  if (data == NULL || len == 0 || current == NULL) return 0;
+	uint32_t x, j;
 
-	temp = 0x00000000;
+	x = 0x00000000;
 	j = *current;
 
-	for (i = 0; i < 4; i++, j++) {
-		if (j >= databytes)
+	for (int i = 0; i < 4; i++, j++) {
+		if (j >= len)
 			j = 0;
-		temp = (temp << 8) | data[j];
+		x = (x << 8) | data[j];
 	}
 
 	*current = j;
-	return temp;
+	return x;
 };
 
+
+uint32_t
+G3P_cycleWx00(const uint8_t *data, uint32_t len, uint32_t *current)
+{
+  if (data == NULL || len == 0 || current == NULL) return 0;
+
+	uint32_t x,j;
+	x = 0x00000000;
+	j = *current;
+
+  for (int i = 0; i < 4; i++, j++) {
+    if (j >= len) {
+      if (j == len) {
+        x <<= 8;
+        continue;
+      } else {
+        j = 0;
+      }
+    }
+    x = (x << 8) | data[j];
+  }
+
+	*current = j;
+	return x;
+};
+
+uint32_t
+G3P_leftCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint8_t count) {
+  if (data == NULL || len == 0 || count == 0 || current == NULL) return 0;
+  if (count > 4)
+    count = 4;
+
+  uint32_t x,j;
+	x = 0x00000000;
+	j = *current;
+
+  for (int i = 0; i < count; i++, j++) {
+    if (j >= len) j = 0;
+    x = (x << 8) | data[j];
+  }
+
+  x <<= 8 * (4 - count);
+
+	*current = j;
+	return x;
+}
+
+uint32_t
+G3P_rightCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint8_t count) {
+  if (data == NULL || len == 0 || count == 0 || current == NULL) return 0;
+
+  uint32_t x,j;
+	x = 0x00000000;
+	j = *current;
+
+  for (int i = count; i < 4; i++, j++) {
+    if (j >= len) j = 0;
+    x = (x << 8) | data[j];
+  }
+
+	*current = j;
+	return x;
+}
+
+uint32_t
+G3P_thenCycle(uint32_t *np,
+              const uint8_t *a, uint32_t al, uint32_t *ap,
+              const uint8_t *b, uint32_t bl, uint32_t *bp) {
+  uint32_t n = *np;
+  if (n == 0)
+    return G3P_cycle(b,bl,bp);
+  if (n >= 4) {
+    *np = n - 4;
+    return G3P_cycle(a,al,ap);
+  }
+  *np = 0;
+  n = G3P_leftCycle(a,al,ap,n);
+  n ^= G3P_rightCycle(b,bl,bp,n);
+  return n;
+}
 
 void
 G3P_Blowfish_expand(G3P_blf_ctx *c,
@@ -432,41 +512,98 @@ G3P_Blowfish_expand(G3P_blf_ctx *c,
                     const uint8_t *salt, uint16_t saltbytes,
                     uint32_t ctr)
 {
-	uint16_t i;
-	uint16_t j;
-	uint16_t k;
-	uint32_t temp;
+	uint32_t pos;
 	uint32_t datal;
 	uint32_t datar;
 
-	j = 0;
-	for (i = 0; i < G3P_BLF_N + 2; i++) {
-		/* Extract 4 int8 to 1 int32 from keystream */
-		temp = G3P_Blowfish_stream2word(key, keybytes, &j);
-		c->P[i] = c->P[i] ^ temp;
+	pos = 0;
+	for (int i = 0; i < G3P_BLF_N + 2; i++) {
+    c->P[i] ^= G3P_cycle(key, keybytes, &pos);
 	}
 
-	j = 0;
-  datal = G3P_Blowfish_stream2word(salt, saltbytes, &j);
-	datar = G3P_Blowfish_stream2word(salt, saltbytes, &j);
-  datal ^= ctr;
+	pos = 0;
+  datal = G3P_cycle(salt, saltbytes, &pos) ^ ctr;
+	datar = G3P_cycle(salt, saltbytes, &pos);
   G3P_Blowfish_encipher(c, &datal, &datar);
   c->P[0] = datal;
   c->P[1] = datar;
 
-	for (i = 2; i < G3P_BLF_N + 2; i += 2) {
-		datal ^= G3P_Blowfish_stream2word(salt, saltbytes, &j);
-		datar ^= G3P_Blowfish_stream2word(salt, saltbytes, &j);
+	for (int i = 2; i < G3P_BLF_N + 2; i += 2) {
+		datal ^= G3P_cycle(salt, saltbytes, &pos);
+		datar ^= G3P_cycle(salt, saltbytes, &pos);
 		G3P_Blowfish_encipher(c, &datal, &datar);
 
 		c->P[i] = datal;
 		c->P[i + 1] = datar;
 	}
 
-	for (i = 0; i < 4; i++) {
-		for (k = 0; k < 256; k += 2) {
-			datal ^= G3P_Blowfish_stream2word(salt, saltbytes, &j);
-			datar ^= G3P_Blowfish_stream2word(salt, saltbytes, &j);
+	for (int i = 0; i < 4; i++) {
+		for (int k = 0; k < 256; k += 2) {
+			datal ^= G3P_cycle(salt, saltbytes, &pos);
+			datar ^= G3P_cycle(salt, saltbytes, &pos);
+			G3P_Blowfish_encipher(c, &datal, &datar);
+
+			c->S[i][k] = datal;
+			c->S[i][k + 1] = datar;
+		}
+	}
+};
+
+
+void
+G3P_Blowfish_expandCtr
+( G3P_blf_ctx *c,
+  const uint8_t *key, uint32_t keyLen,
+  const uint8_t *name, uint32_t nameLen,
+  const uint8_t *tag, uint32_t tagLen, uint32_t *tagPos,
+  uint32_t ctr, bool keyIsFirst )
+{
+  if (c == NULL || tagPos == NULL) return;
+
+	uint32_t datal;
+	uint32_t datar;
+
+  uint32_t pos = 0;
+
+  uint32_t n;
+
+  if (keyLen > 72) keyLen = 72;
+  if (keyIsFirst) {
+    n = keyLen;
+
+    for (int i = 0; i < 18; i++) {
+      c->P[i] ^= G3P_thenCycle(&n, key, keyLen, &pos, tag, tagLen, tagPos);
+    }
+  } else {
+    n = 72 - keyLen;
+
+    for (int i = 0; i < 18; i++) {
+      c->P[i] ^= G3P_thenCycle(&n, tag, tagLen, tagPos, key, keyLen, &pos);
+    }
+  }
+
+  n = nameLen;
+  pos = 0;
+
+  datal = G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, tagPos) ^ ctr;
+  datar = G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, tagPos);
+  G3P_Blowfish_encipher(c, &datal, &datar);
+  c->P[0] = datal;
+  c->P[1] = datar;
+
+	for (int i = 2; i < 18; i += 2) {
+    datal ^= G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, tagPos);
+    datar ^= G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, tagPos);
+		G3P_Blowfish_encipher(c, &datal, &datar);
+
+		c->P[i] = datal;
+		c->P[i + 1] = datar;
+	}
+
+	for (int i = 0; i < 4; i++) {
+		for (int k = 0; k < 256; k += 2) {
+      datal ^= G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, tagPos);
+      datar ^= G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, tagPos);
 			G3P_Blowfish_encipher(c, &datal, &datar);
 
 			c->S[i][k] = datal;

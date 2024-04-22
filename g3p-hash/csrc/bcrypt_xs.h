@@ -15,9 +15,8 @@ bcrypt_xs
 
 void
 bcrypt_xs_ctr_dump
-( const char *key0, uint16_t key0bytes, const char *salt0, uint16_t salt0bytes,
-  const char *keyL, uint16_t keyLbytes, const char *saltL, uint16_t saltLbytes,
-  const char *keyR, uint16_t keyRbytes, const char *saltR, uint16_t saltRbytes,
+( const uint8_t *key0, uint32_t key0Len, const uint8_t *key1, uint32_t key1Len,
+  const uint8_t *tag, uint32_t tagLen, const uint8_t *name, uint32_t nameLen,
   uint32_t rounds, char output[G3P_BLF_CTX_LENGTH] );
 
 void
@@ -31,9 +30,8 @@ bcrypt_xs_expand
 void
 bcrypt_xs_ctr_expand
 ( G3P_blf_ctx *state,
-  const char *key0, uint16_t key0bytes, const char *salt0, uint16_t salt0bytes,
-  const char *keyL, uint16_t keyLbytes, const char *saltL, uint16_t saltLbytes,
-  const char *keyR, uint16_t keyRbytes, const char *saltR, uint16_t saltRbytes,
+  const uint8_t *key0, uint32_t key0Len, const uint8_t *key1, uint32_t key1Len,
+  const uint8_t *tag, uint32_t tagLen, const uint8_t *name, uint32_t nameLen,
   uint32_t rounds );
 
 void
