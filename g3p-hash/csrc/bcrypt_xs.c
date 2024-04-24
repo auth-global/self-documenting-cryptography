@@ -102,6 +102,10 @@ bcrypt_xs_ctr_expand
     G3P_Blowfish_expandCtr
       (state, key1, key1Len, name, nameLen, tag, tagLen, &tagPos, ~rounds, true);
   } while (rounds != 0);
+
+  tagPos = 0;
+  G3P_Blowfish_expandCtr
+    (state, key1, key1Len, key0, key0Len, tag, tagLen, &tagPos, 0, false);
 }
 
 void
