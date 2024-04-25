@@ -91,14 +91,19 @@ bcrypt_xs_ctr_expand
 
   /* Written so that things work when rounds == UINT32_MAX */
   rounds++;
+  tagPos = 0;
   G3P_Blowfish_expandCtr
     (state, key0, key0Len, name, nameLen, tag, tagLen, &tagPos, rounds, true);
+  tagPos = 0;
   G3P_Blowfish_expandCtr
     (state, key1, key1Len, name, nameLen, tag, tagLen, &tagPos, ~rounds, true);
+  uint32_t roundPos;
   do {
     rounds--;
+    roundPos = tagPos;
     G3P_Blowfish_expandCtr
       (state, key0, key0Len, name, nameLen, tag, tagLen, &tagPos, rounds, true);
+    tagPos = roundPos;
     G3P_Blowfish_expandCtr
       (state, key1, key1Len, name, nameLen, tag, tagLen, &tagPos, ~rounds, true);
   } while (rounds != 0);

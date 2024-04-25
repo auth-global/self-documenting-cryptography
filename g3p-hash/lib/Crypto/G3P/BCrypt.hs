@@ -43,6 +43,8 @@ module Crypto.G3P.BCrypt
   ( bcryptRaw
   , bcryptRaw_maxInputLength
   , bcryptRaw_outputLength
+  , bcryptRaw_outputSalt
+  , orpheanBeholderScryDoubt
   , BCryptXs()
   , bcryptRaw_genInputs
   ) where
@@ -64,7 +66,10 @@ bcryptRaw_outputLength :: Int
 bcryptRaw_outputLength = B.length bcryptRaw_outputSalt
 
 bcryptRaw_outputSalt :: ByteString
-bcryptRaw_outputSalt = "OrpheanBeholderScryDoubt"
+bcryptRaw_outputSalt = orpheanBeholderScryDoubt
+
+orpheanBeholderScryDoubt :: ByteString
+orpheanBeholderScryDoubt = "OrpheanBeholderScryDoubt"
 
 -- | @bcryptRaw key salt rounds@ Be aware that keys and salts that are longer
 --   than 72 bytes do get truncated to exactly 72 bytes. This binding will
