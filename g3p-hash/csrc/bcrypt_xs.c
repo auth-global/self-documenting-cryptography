@@ -78,6 +78,24 @@ bcrypt_xs_expand
   } while (rounds != 0);
 }
 
+/* bcrypt-xs-ctr (the idealized function, not this implementation) makes the
+   tacit assumptions that:
+     1. len0 <= 72
+     2. len1 <= 72
+     3. len0 == len1 == nameLen
+     4. The first four bytes of "name" are \x00
+   The behavior of this implementation should be considered to be undefined if
+   any of these assumptions are violated.  These conditions imply that:
+
+     4 <= len0 == len1 == nameLen <= 72
+
+   Honestly, I would recommend a much bigger minimum length for any serious
+   deployment. The G3P uses length == 32.
+
+   A more traditional set of names for these parameters would be
+   "salt" instead of "key", and "password" instead of "tag".
+ */
+
 void
 bcrypt_xs_ctr_expand
 ( G3P_blf_ctx *state,
