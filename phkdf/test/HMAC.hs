@@ -24,8 +24,6 @@ tests =
       ]
   ]
   where
-    hmac :: ByteString -> ByteString -> ByteString
-    hmac k m = hmacCtx_init k & hmacCtx_update m & hmacCtx_finalize
     run x = B.encodeBase16 (hmac (key x) (msg x)) @?= B.encodeBase16 (out x)
 
 testVectors :: [TestVector]

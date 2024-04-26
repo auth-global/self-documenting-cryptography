@@ -1,3 +1,5 @@
+{-# LANGUAGE ViewPatterns, LambdaCase #-}
+
 {- |
 
 An alternate implementation of HMAC in terms of cryptohash-sha256, because
@@ -8,14 +10,24 @@ streaming inputs.  TODO: prepare a patch for cryptohash-sha256.
 
 
 module Crypto.PHKDF.HMAC
-  ( HmacCtx
-  , HmacKey
-  , hmacKey_init
+  ( hmac
+  , HmacKeyPlain
+  , HmacKey()
+  , hmacKey
+  , hmacKey_hashed
+  , hmacKey_toHashed
+  , hmacKey_peekInput
+  , hmacKey_forgetInput
   , hmacKey_run
+  , HmacKeyHashed()
+  , hmacKeyHashed
+  , hmacKeyHashed_toKey
+  , HmacCtx()
+  , hmacCtx
   , hmacCtx_init
-  , hmacCtx_initFromHmacKey
-  , hmacCtx_update
-  , hmacCtx_updates
+  , hmacCtx_initWith
+  , hmacCtx_update,  hmacCtx_feed
+  , hmacCtx_updates, hmacCtx_feeds
   , hmacCtx_finalize
   ) where
 
@@ -23,39 +35,98 @@ import qualified Crypto.Hash.SHA256 as SHA256
 import           Data.Bits(xor)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
+import           Data.Function((&))
+import           Data.Foldable(Foldable, toList)
 
 import           Crypto.PHKDF.HMAC.Subtle
 
--- | Precompute an HMAC key for some literal HMAC key.
 
-hmacKey_init :: ByteString -> HmacKey
-hmacKey_init = HmacKey . hmacCtx_init
+hmacKey :: HmacKeyPlain -> HmacKey
+hmacKey key = HmacKeyInput key (hmacKeyHashed key)
 
--- | Initialize a new empty HMAC context from a literal HMAC key.
+hmacKey_peekInput :: HmacKey -> Maybe HmacKeyPlain
+hmacKey_peekInput = \case
+  HmacKeyInput a _ -> Just a
+  HmacKeyOutput _  -> Nothing
 
-hmacCtx_init :: ByteString -> HmacCtx
-hmacCtx_init key =
-    HmacCtx { hmacCtx_ipad = tweak 0x36, hmacCtx_opad = tweak 0x5c }
+hmacKey_forgetInput :: HmacKey -> HmacKey
+hmacKey_forgetInput = \case
+  HmacKeyInput _ b -> HmacKeyOutput b
+  x@(HmacKeyOutput _) -> x
+
+-- | A forgetful initialization, equivalent to 'hmacKey_forgetInput . hmacKey'
+hmacKey_hashed :: HmacKeyPlain -> HmacKey
+hmacKey_hashed = HmacKeyOutput . hmacKeyHashed
+
+hmacKey_run :: HmacKey -> HmacCtx
+hmacKey_run = hmacCtx_init
+
+hmacKeyHashed :: HmacKeyPlain -> HmacKeyHashed
+hmacKeyHashed key = HmacKeyHashed ipad opad
   where
-    tweak c = SHA256.update SHA256.init $ B.map (xor c) k2
+    ipad = tweak 0x36
+    opad = tweak 0x5c
     k1 = if B.length key > 64 then SHA256.hash key else key
     k2 = B.append k1 (B.replicate (64 - B.length k1) 0)
+    hash x = SHA256.update SHA256.init x & hmacKeyPadding_unsafeFromCtx
+    tweak c = hash (B.map (xor c) k2)
+
+hmacKeyHashed_toKey :: HmacKeyHashed -> HmacKey
+hmacKeyHashed_toKey = HmacKeyOutput
+
+hmacKeyHashed_run :: HmacKeyHashed -> HmacCtx
+hmacKeyHashed_run key = HmacCtx
+    { hmacCtx_ipadCtx = hmacKeyHashed_ipadCtx key
+    , hmacCtx_opad = hmacKeyHashed_opad key
+    }
+
+hmacKeyHashed_runWith :: HmacKeyHashed -> ByteString -> HmacCtx
+hmacKeyHashed_runWith key str = HmacCtx
+    { hmacCtx_ipadCtx = SHA256.update (hmacKeyHashed_ipadCtx key) str
+    , hmacCtx_opad = hmacKeyHashed_opad key
+    }
+
+-- | A simple interface to HMAC-SHA-256. Note that this function was written
+--   to make partial application an efficient way to compute the hmac of
+--   multiple messages with exactly the same key:
+--
+--   @
+--     let hash = hmac "my-key"
+--      in (hash "message 1", hash "message 2")
+--   @
+
+-- Written in the point-free style to help ensure the above claim is true
+
+hmac :: HmacKeyPlain -> ByteString -> ByteString
+hmac = fmap hmacCtx_finalize . hmacCtx_initWith . hmacKey_hashed
+
+hmacCtx :: HmacKeyPlain -> HmacCtx
+hmacCtx = hmacCtx_init . hmacKey_hashed
 
 -- | Initialize a new empty HMAC context from a precomputed HMAC key.
 
-hmacCtx_initFromHmacKey :: HmacKey -> HmacCtx
-hmacCtx_initFromHmacKey = hmacKey_run
+hmacCtx_init :: HmacKey -> HmacCtx
+hmacCtx_init = hmacKeyHashed_run . hmacKey_toHashed
+
+hmacCtx_initWith :: HmacKey -> ByteString -> HmacCtx
+hmacCtx_initWith = hmacKeyHashed_runWith . hmacKey_toHashed
 
 -- | Append a bytestring onto the end of the message argument to HMAC.
 
-hmacCtx_update ::  ByteString -> HmacCtx -> HmacCtx
-hmacCtx_update b (HmacCtx ic oc) = HmacCtx (SHA256.update ic b) oc
+hmacCtx_update ::  HmacCtx -> ByteString -> HmacCtx
+hmacCtx_update = flip hmacCtx_feed
+
+hmacCtx_feed :: ByteString -> HmacCtx -> HmacCtx
+hmacCtx_feed b (HmacCtx ic oc) = HmacCtx (SHA256.update ic b) oc
 
 -- | Append zero or more bytestrings onto the end of the message argument to
 --   HMAC.
 
-hmacCtx_updates :: [ByteString] -> HmacCtx -> HmacCtx
-hmacCtx_updates bs (HmacCtx ic oc) = HmacCtx (SHA256.updates ic bs) oc
+hmacCtx_updates :: Foldable f => HmacCtx -> f ByteString -> HmacCtx
+hmacCtx_updates = flip hmacCtx_feeds
+
+hmacCtx_feeds :: Foldable f => f ByteString -> HmacCtx -> HmacCtx
+hmacCtx_feeds bs (HmacCtx ic oc) = HmacCtx (SHA256.updates ic (toList bs)) oc
 
 -- | Finish computing the final 32-byte hash for an HMAC context.
 
@@ -63,4 +134,4 @@ hmacCtx_finalize :: HmacCtx -> ByteString
 hmacCtx_finalize (HmacCtx ic oc) = outer
   where
     inner = SHA256.finalize ic
-    outer = SHA256.finalize (SHA256.update oc inner)
+    outer = SHA256.finalize (SHA256.update (hmacKeyPadding_run oc) inner)

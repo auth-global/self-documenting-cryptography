@@ -331,7 +331,7 @@ phkdfPass_seedInit block args =
         ]
       ]
 
-    seguidKey = hmacKey_init seguid
+    seguidKey = hmacKey seguid
 
     secret =
         phkdfCtx_initFromHmacKey seguidKey &

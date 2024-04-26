@@ -33,6 +33,8 @@ library
                      Crypto.PHKDF.HMAC
                      Crypto.PHKDF.HMAC.Subtle
 
+  other-modules:     Crypto.PHKDF.HMAC.Hidden
+
   build-depends:     base < 5
                    , bytestring
                    , cryptohash-sha256

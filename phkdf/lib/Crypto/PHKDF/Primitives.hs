@@ -201,7 +201,7 @@ forces both to be varied, thus forcing a full recomputation.
 
 module Crypto.PHKDF.Primitives
   ( HmacKey()
-  , hmacKey_init
+  , hmacKey
   , PhkdfCtx()
   , phkdfCtx_init
   , phkdfCtx_initFromHmacKey
@@ -253,7 +253,7 @@ import           Control.Exception(assert)
 -- | initialize an empty @phkdfStream@ context from a plaintext HMAC key.
 
 phkdfCtx_init :: ByteString -> PhkdfCtx
-phkdfCtx_init = phkdfCtx_initFromHmacKey . hmacKey_init
+phkdfCtx_init = phkdfCtx_initFromHmacKey . hmacKey
 
 -- | initialize an empty @phkdfStream@ context from a precomputed HMAC key.
 
@@ -261,7 +261,7 @@ phkdfCtx_initFromHmacKey :: HmacKey -> PhkdfCtx
 phkdfCtx_initFromHmacKey key =
   PhkdfCtx {
     phkdfCtx_byteLen = 0,
-    phkdfCtx_state   = hmacKey_ipad key,
+    phkdfCtx_state   = hmacKey_ipadCtx key,
     phkdfCtx_hmacKey = key
   }
 
@@ -314,7 +314,7 @@ phkdfCtx_finalize genFillerPad counter tag ctx =
 phkdfCtx_finalizeHmacCtx :: PhkdfCtx -> HmacCtx
 phkdfCtx_finalizeHmacCtx ctx =
   (phkdfCtx_resetCtx ctx) {
-    hmacCtx_ipad = phkdfCtx_state ctx
+    hmacCtx_ipadCtx = phkdfCtx_state ctx
   }
 
 -- | "improperly" close out a 'PhkdfCtx' as if it were a call to @hmac@ instead
@@ -353,18 +353,18 @@ phkdfCtx_finalizeGen genFillerPad counter0 tag ctx =
     context0 = assert endPaddingIsValid $ phkdfCtx_state ctx'
 
 phkdfGen_init :: ByteString -> ByteString -> Word32 -> ByteString -> PhkdfGen
-phkdfGen_init key = phkdfGen_initFromHmacKey (hmacKey_init key)
+phkdfGen_init = phkdfGen_initFromHmacKey . hmacKey
 
 phkdfGen_initFromHmacKey :: HmacKey -> ByteString -> Word32 -> ByteString -> PhkdfGen
-phkdfGen_initFromHmacKey hmacKey initBytes = initGen
+phkdfGen_initFromHmacKey key initBytes = initGen
   where
     -- Round down to the previous buffer boundary
     n = B.length initBytes .&. complement 63
     (blocks, state0) = B.splitAt n initBytes
-    ipad0 = SHA256.update (hmacKey_ipad hmacKey) blocks
+    ipad0 = SHA256.update (hmacKey_ipadCtx key) blocks
 
     initGen counter0 tag = PhkdfGen
-      { phkdfGen_hmacKey = hmacKey
+      { phkdfGen_hmacKey = key
       , phkdfGen_extTag = extendTag tag
       , phkdfGen_counter = counter0
       , phkdfGen_state = state0
@@ -380,12 +380,12 @@ phkdfGen_peek gen =
 phkdfGen_finalizeHmacCtx :: PhkdfGen -> HmacCtx
 phkdfGen_finalizeHmacCtx gen =
   (hmacKey_run (phkdfGen_hmacKey gen)) {
-     hmacCtx_ipad = SHA256.update ipad (phkdfGen_state gen)
+     hmacCtx_ipadCtx = SHA256.update ipad (phkdfGen_state gen)
     }
   where
     ipad =
       case phkdfGen_initCtx gen of
-        Nothing -> hmacCtx_ipad . hmacKey_run $ phkdfGen_hmacKey gen
+        Nothing -> hmacCtx_ipadCtx . hmacKey_run $ phkdfGen_hmacKey gen
         Just x -> x
 
 phkdfGen_read :: PhkdfGen -> (ByteString, PhkdfGen)
@@ -393,15 +393,15 @@ phkdfGen_read gen = (state', gen')
   where
     state' =
       phkdfGen_finalizeHmacCtx gen &
-      hmacCtx_updates [ bytestring32 (phkdfGen_counter gen)
-                      , phkdfGen_extTag gen
-                      ] &
+      hmacCtx_feeds [ bytestring32 (phkdfGen_counter gen)
+                   , phkdfGen_extTag gen
+                   ] &
       hmacCtx_finalize
 
-    hmacKey = phkdfGen_hmacKey gen
+    key = phkdfGen_hmacKey gen
 
     gen' = PhkdfGen
-      { phkdfGen_hmacKey = hmacKey
+      { phkdfGen_hmacKey = key
       , phkdfGen_initCtx = Nothing
       , phkdfGen_state = state'
       , phkdfGen_counter = phkdfGen_counter gen + 1

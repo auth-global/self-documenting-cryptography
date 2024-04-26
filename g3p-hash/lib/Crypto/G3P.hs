@@ -443,7 +443,7 @@ g3pHash_seedInit block args =
     credsPadding = credentialsPadding credentials bcryptTag
         (domainTag <> "\x00tags G3Pb1\x00")
 
-    seguidKey = hmacKey_init seguid
+    seguidKey = hmacKey seguid
 
     secretStream =
         phkdfCtx_initFromHmacKey seguidKey &
@@ -512,7 +512,7 @@ g3pHash_seedInit block args =
 g3pHash_keyInit :: G3PInputRole -> G3PSeed -> G3PKey
 g3pHash_keyInit roleInput seed = G3PKey
     { g3pKey_secret = secretKey
-    , g3pKey_secretKey = hmacKey_init secretKey
+    , g3pKey_secretKey = hmacKey secretKey
     , g3pKey_domainTag = g3pSeed_domainTag seed
     }
   where
