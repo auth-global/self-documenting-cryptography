@@ -446,7 +446,7 @@ g3pHash_seedInit block args =
     seguidKey = hmacKey seguid
 
     secretStream =
-        phkdfCtx_initFromHmacKey seguidKey &
+        phkdfCtx_init seguidKey &
         phkdfCtx_addArgs headerUsername &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArg  password &
@@ -494,7 +494,7 @@ g3pHash_seedInit block args =
       ]
 
     secret =
-        phkdfCtx_initFromHmacKey seguidKey &
+        phkdfCtx_init seguidKey &
         phkdfCtx_addArg headerCharlie &
         phkdfCtx_assertBufferPosition' 32 &
         phkdfCtx_addArgs seedTags &
@@ -529,7 +529,7 @@ g3pHash_keyInit roleInput seed = G3PKey
       ]
 
     secretKey =
-        phkdfCtx_initFromHmacKey seguidKey &
+        phkdfCtx_init seguidKey &
         phkdfCtx_addArg  headerDelta &
         phkdfCtx_addArgs role &
         phkdfCtx_finalize (cycleByteStringWithNull domainTag) (word32 "KEY\x00") domainTag
@@ -554,7 +554,7 @@ g3pHash_finalizeGen inputEcho gKey = G3PGen
 
     echoCtr = word32 "OUT\x00"
 
-    echo = phkdfGen_initFromHmacKey secretKey echoHeader echoCtr echoTag
+    echo = phkdfGen_init secretKey echoHeader echoCtr echoTag
 
 -- | Read a 32-byte hash from the G3P's output generator.
 

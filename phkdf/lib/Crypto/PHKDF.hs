@@ -249,7 +249,7 @@ phkdfSimple block args = echo
       ]
 
     secretKey =
-        phkdfCtx_init seguid &
+        phkdfCtx seguid &
         phkdfCtx_addArgs headerUsername &
         phkdfCtx_assertBufferPosition 32 &
         phkdfCtx_addArg  password &
@@ -273,7 +273,7 @@ phkdfSimple block args = echo
     -- Harden the tags vector against length-based timing side-channels
     echoHeader = cycleByteStringWithNull "phkdf-simple0 expand echo" 30
 
-    echo = phkdfCtx_init secretKey &
+    echo = phkdfCtx secretKey &
            phkdfCtx_addArg echoHeader &
            phkdfCtx_assertBufferPosition 32 &
            phkdfCtx_addArgs tags &
@@ -334,7 +334,7 @@ phkdfPass_seedInit block args =
     seguidKey = hmacKey seguid
 
     secret =
-        phkdfCtx_initFromHmacKey seguidKey &
+        phkdfCtx_init seguidKey &
         phkdfCtx_addArgs headerUsername &
         phkdfCtx_assertBufferPosition 32 &
         phkdfCtx_addArg  password &
@@ -372,12 +372,12 @@ phkdfPass_seedFinalize seed tweak = echo
 
     headerCombine = B.concat ["phkdf-pass-v0 combine", secret]
     secretKey =
-        phkdfCtx_initFromHmacKey seguidKey &
+        phkdfCtx_init seguidKey &
         phkdfCtx_addArg  headerCombine &
         phkdfCtx_addArgs role &
         phkdfCtx_finalize (cycleByteStringWithNull domainTag) (word32 "KEY\x00") domainTag
 
     headerEcho = cycleByteString (domainTag <> "\x00phkdf-pass-v0 echo\x00") 32
 
-    echo = phkdfGen_init secretKey headerEcho (word32 "OUT\x00") echoTag &
+    echo = phkdfGen secretKey headerEcho (word32 "OUT\x00") echoTag &
            phkdfGen_finalizeStream

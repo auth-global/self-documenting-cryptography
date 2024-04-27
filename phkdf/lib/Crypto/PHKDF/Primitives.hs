@@ -203,10 +203,11 @@ module Crypto.PHKDF.Primitives
   ( HmacKey()
   , hmacKey
   , PhkdfCtx()
+  , phkdfCtx
   , phkdfCtx_init
-  , phkdfCtx_initFromHmacKey
+  , phkdfCtx_initHashed
   , phkdfCtx_hmacKey
-  , phkdfCtx_resetCtx
+  , phkdfCtx_toResetHmacCtx
   , phkdfCtx_reset
   , phkdfCtx_addArg
   , phkdfCtx_addArgs
@@ -223,8 +224,9 @@ module Crypto.PHKDF.Primitives
   , phkdfSlowCtx_finalize
   , phkdfSlowCtx_finalizeStream
   , PhkdfGen()
+  , phkdfGen
   , phkdfGen_init
-  , phkdfGen_initFromHmacKey
+  , phkdfGen_initHashed
   , phkdfGen_read
   , phkdfGen_peek
   , phkdfGen_finalizeStream
@@ -252,31 +254,35 @@ import           Control.Exception(assert)
 
 -- | initialize an empty @phkdfStream@ context from a plaintext HMAC key.
 
-phkdfCtx_init :: ByteString -> PhkdfCtx
-phkdfCtx_init = phkdfCtx_initFromHmacKey . hmacKey
+phkdfCtx :: ByteString -> PhkdfCtx
+phkdfCtx = phkdfCtx_init . hmacKey
 
 -- | initialize an empty @phkdfStream@ context from a precomputed HMAC key.
 
-phkdfCtx_initFromHmacKey :: HmacKey -> PhkdfCtx
-phkdfCtx_initFromHmacKey key =
+phkdfCtx_init :: HmacKey -> PhkdfCtx
+phkdfCtx_init key =
   PhkdfCtx {
     phkdfCtx_byteLen = 0,
     phkdfCtx_state   = hmacKey_ipadCtx key,
     phkdfCtx_hmacKey = key
   }
 
+phkdfCtx_initHashed :: HmacKeyHashed -> PhkdfCtx
+phkdfCtx_initHashed = phkdfCtx_init . hmacKeyHashed_toKey
+
+
 -- | initialize a new empty @phkdfStream@ context from the HMAC key
 --   originally supplied to the context, discarding all arguments already added.
 
 phkdfCtx_reset :: PhkdfCtx -> PhkdfCtx
-phkdfCtx_reset = phkdfCtx_initFromHmacKey . phkdfCtx_hmacKey
+phkdfCtx_reset = phkdfCtx_init . phkdfCtx_hmacKey
 
 
 -- | initialize a new empty HMAC context from the key originally supplied to
 --   the PHKDF context, discarding all arguments already added.
 
-phkdfCtx_resetCtx :: PhkdfCtx -> HmacCtx
-phkdfCtx_resetCtx = hmacKey_run . phkdfCtx_hmacKey
+phkdfCtx_toResetHmacCtx :: PhkdfCtx -> HmacCtx
+phkdfCtx_toResetHmacCtx = hmacKey_run . phkdfCtx_hmacKey
 
 -- FIXME? what should happen when the SHA256 counters overflow?
 
@@ -313,7 +319,7 @@ phkdfCtx_finalize genFillerPad counter tag ctx =
 
 phkdfCtx_finalizeHmacCtx :: PhkdfCtx -> HmacCtx
 phkdfCtx_finalizeHmacCtx ctx =
-  (phkdfCtx_resetCtx ctx) {
+  (phkdfCtx_toResetHmacCtx ctx) {
     hmacCtx_ipadCtx = phkdfCtx_state ctx
   }
 
@@ -352,11 +358,11 @@ phkdfCtx_finalizeGen genFillerPad counter0 tag ctx =
 
     context0 = assert endPaddingIsValid $ phkdfCtx_state ctx'
 
-phkdfGen_init :: ByteString -> ByteString -> Word32 -> ByteString -> PhkdfGen
-phkdfGen_init = phkdfGen_initFromHmacKey . hmacKey
+phkdfGen :: ByteString -> ByteString -> Word32 -> ByteString -> PhkdfGen
+phkdfGen = phkdfGen_init . hmacKey
 
-phkdfGen_initFromHmacKey :: HmacKey -> ByteString -> Word32 -> ByteString -> PhkdfGen
-phkdfGen_initFromHmacKey key initBytes = initGen
+phkdfGen_init :: HmacKey -> ByteString -> Word32 -> ByteString -> PhkdfGen
+phkdfGen_init key initBytes = initGen
   where
     -- Round down to the previous buffer boundary
     n = B.length initBytes .&. complement 63
@@ -370,6 +376,9 @@ phkdfGen_initFromHmacKey key initBytes = initGen
       , phkdfGen_state = state0
       , phkdfGen_initCtx = Just ipad0
       }
+
+phkdfGen_initHashed :: HmacKeyHashed -> ByteString -> Word32 -> ByteString -> PhkdfGen
+phkdfGen_initHashed = phkdfGen_init . hmacKeyHashed_toKey
 
 phkdfGen_peek :: PhkdfGen -> Maybe ByteString
 phkdfGen_peek gen =
