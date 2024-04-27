@@ -28,25 +28,30 @@ bcrypt_xs
   explicit_bzero(&state, sizeof(state));
 }
 
-void
-bcrypt_xs_ctr_dump
-( const uint8_t *key0, uint32_t key0Len, const uint8_t *key1, uint32_t key1Len,
-  const uint8_t *tag, uint32_t tagLen, const uint8_t *name, uint32_t nameLen,
-  uint32_t rounds, char output[G3P_BLF_CTX_LENGTH] )
+uint32_t
+bcrypt_xs_ctr_superround
+( const uint8_t input[G3P_BLF_CTX_LENGTH],
+  const uint8_t *key0, uint32_t len0, const uint8_t *key1, uint32_t len1,
+  const uint8_t *name, uint32_t nameLen, const uint8_t *tag, uint32_t tagLen,
+  uint32_t tagPos, uint32_t rounds, uint32_t ctr, char output[G3P_BLF_CTX_LENGTH] )
 {
   G3P_blf_ctx state;
 
-  G3P_Blowfish_initstate(&state);
+  if (input == NULL)
+    G3P_Blowfish_initstate(&state);
+  else
+    G3P_Blowfish_decodestate(input, &state);
 
-  bcrypt_xs_ctr_expand
+  tagPos = bcrypt_xs_ctr_expand
     (&state,
-     key0, key0Len, key1, key1Len,
-     tag, tagLen, name, nameLen,
-     rounds);
+     key0, len0, key1, len1,
+     name, nameLen, tag, tagLen,
+     tagPos, rounds, ctr);
 
   G3P_Blowfish_encodestate(&state, output);
 
   explicit_bzero(&state, sizeof(state));
+  return tagPos;
 }
 
 
@@ -96,34 +101,25 @@ bcrypt_xs_expand
    "salt" instead of "key", and "password" instead of "tag".
  */
 
-void
+uint32_t
 bcrypt_xs_ctr_expand
 ( G3P_blf_ctx *state,
-  const uint8_t *key0, uint32_t key0Len, const uint8_t *key1, uint32_t key1Len,
-  const uint8_t *tag, uint32_t tagLen, const uint8_t *name, uint32_t nameLen,
-  uint32_t rounds )
+  const uint8_t *key0, uint32_t len0, const uint8_t *key1, uint32_t len1,
+  const uint8_t *name, uint32_t nameLen, const uint8_t *tag, uint32_t tagLen,
+  uint32_t tagPos, uint32_t rounds, uint32_t ctr)
 {
-  uint32_t tagPos = 0;
   G3P_Blowfish_expandCtr
-    (state, key0, key0Len, key1, key1Len, tag, tagLen, &tagPos, 0, false);
+    (state, key0, len0, key1, len1, tag, tagLen, tagPos, 0, false);
 
-  /* Written so that things work when rounds == UINT32_MAX */
-  rounds++;
-  tagPos = 0;
-  uint32_t roundPos;
-  do {
+  while(rounds > 0) {
+    G3P_Blowfish_expandCtr
+      (state, key0, len0, name, nameLen, tag, tagLen, tagPos, ctr, true);
+    tagPos = G3P_Blowfish_expandCtr
+      (state, key1, len1, name, nameLen, tag, tagLen, tagPos, ~ctr, true);
     rounds--;
-    roundPos = tagPos;
-    G3P_Blowfish_expandCtr
-      (state, key0, key0Len, name, nameLen, tag, tagLen, &tagPos, rounds, true);
-    tagPos = roundPos;
-    G3P_Blowfish_expandCtr
-      (state, key1, key1Len, name, nameLen, tag, tagLen, &tagPos, ~rounds, true);
-  } while (rounds != 0);
-
-  tagPos = 0;
-  G3P_Blowfish_expandCtr
-    (state, key1, key1Len, key0, key0Len, tag, tagLen, &tagPos, 0, false);
+    ctr--;
+  }
+  return tagPos;
 }
 
 void

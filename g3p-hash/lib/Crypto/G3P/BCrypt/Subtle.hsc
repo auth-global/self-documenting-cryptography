@@ -7,10 +7,11 @@ module Crypto.G3P.BCrypt.Subtle
   ( BCryptXs(..)
   , bcryptXs
   , BCryptXsCtr(..)
-  , bcryptXsCtrDump
+  , bcryptXsCtrSuperRound
   , bcryptXs_maxKeyLength
   , bcryptXs_maxSaltLength
-  , bcryptXsCtrDump_outputLength
+  , bcryptXsCtr_outputLength
+  , BCryptState(..)
   ) where
 
 #include "bcrypt_xs.h"
@@ -40,7 +41,6 @@ data BCryptXsCtr = BCryptXsCtr
   , bcryptXsCtr_keyR :: !ByteString
   , bcryptXsCtr_tag  :: !ByteString
   , bcryptXsCtr_name :: !ByteString
-  , bcryptXsCtr_rounds :: !Word32
   }
 
 foreign import capi "bcrypt_xs.h bcrypt_xs" c_bcrypt_xs
@@ -49,10 +49,11 @@ foreign import capi "bcrypt_xs.h bcrypt_xs" c_bcrypt_xs
     -> CString -> Word16 -> CString -> Word16
     -> CString -> Word32 -> Word32 -> CString -> IO ()
 
-foreign import capi "bcrypt_xs.h bcrypt_xs_ctr_dump" c_bcrypt_xs_ctr_dump
-    :: CString -> Word32 -> CString -> Word32
+foreign import capi "bcrypt_xs.h bcrypt_xs_ctr_superround" c_bcrypt_xs_ctr_superround
+    :: CString
     -> CString -> Word32 -> CString -> Word32
-    -> Word32 -> CString -> IO ()
+    -> CString -> Word32 -> CString -> Word32
+    -> Word32 -> Word32 -> Word32 -> CString -> IO Word32
 
 -- | Any key longer than 72 bytes will be truncated.
 
@@ -65,8 +66,8 @@ bcryptXs_maxSaltLength :: Int
 bcryptXs_maxSaltLength = (#const BCRYPT_XS_MAX_SALT_LENGTH)
 
 -- | returns 4168 bytes
-bcryptXsCtrDump_outputLength :: Int
-bcryptXsCtrDump_outputLength = (#const G3P_BLF_CTX_LENGTH)
+bcryptXsCtr_outputLength :: Int
+bcryptXsCtr_outputLength = (#const G3P_BLF_CTX_LENGTH)
 
 -- | A bcrypt version with excessive freedom and extended, extra large salts.
 
@@ -85,10 +86,10 @@ bcryptXs x = if B.null sZ then "" else unsafePerformIO $ do
                 let out = B.replicate (sZ' `seq` B.length sZ) 0
                 B.unsafeUseAsCString out $ \out' -> do
                     (c_bcrypt_xs
-                        k0' (len k0) s0' (len s0)
-                        kL' (len kL) sL' (len sL)
-                        kR' (len kR) sR' (len sR)
-                        sZ' (len' sZ) rounds out')
+                        k0' (len16 k0) s0' (len16 s0)
+                        kL' (len16 kL) sL' (len16 sL)
+                        kR' (len16 kR) sR' (len16 sR)
+                        sZ' (len32 sZ) rounds out')
                     return out
   where
     k0 = f (bcryptXs_key0 x)
@@ -102,30 +103,31 @@ bcryptXs x = if B.null sZ then "" else unsafePerformIO $ do
 
 -- | Likely at least somewhat less subtle than the one above, thanks to the addition of a counter.
 
-bcryptXsCtrDump :: BCryptXsCtr -> ByteString
-bcryptXsCtrDump x = unsafePerformIO $ do
+bcryptXsCtrSuperRound :: BCryptXsCtr -> Word32 -> Word32 -> Word32 -> Maybe BCryptState -> (Word32, BCryptState)
+bcryptXsCtrSuperRound x tagPos rounds ctr mst = unsafePerformIO $ do
   B.unsafeUseAsCString kL $ \kL' -> do
     B.unsafeUseAsCString kR $ \kR' -> do
       B.unsafeUseAsCString tt $ \tt' -> do
         B.unsafeUseAsCString nn $ \nn' -> do
-          -- using a superfluous `seq` to try to ensure that this
-          -- allocates a new unique bytestring. FIXME: there's almost
-          -- certainly a better, more proper, more idiomatic solution
-          let out = B.replicate bcryptXsCtrDump_outputLength (nn' `seq` 0)
-          B.unsafeUseAsCString out $ \out' -> do
-              (c_bcrypt_xs_ctr_dump
-                  kL' (len kL) kR' (len kR)
-                  tt' (len tt) nn' (len nn)
-                  rounds out')
-              return out
+          B.unsafeUseAsCString st $ \st' -> do
+            -- using a superfluous `seq` to try to ensure that this
+            -- allocates a new unique bytestring. FIXME: there's almost
+            -- certainly a better, more proper, more idiomatic solution
+            let out = B.replicate bcryptXsCtr_outputLength (nn' `seq` 0)
+            B.unsafeUseAsCString out $ \out' -> do
+                tagPos' <- c_bcrypt_xs_ctr_superround
+                              st'
+                              kL' (len32 kL) kR' (len32 kR)
+                              nn' (len32 nn) tt' (len32 tt)
+                              tagPos rounds ctr out'
+                return (tagPos',BCryptState out)
   where
     kL = bcryptXsCtr_keyL x
     kR = bcryptXsCtr_keyR x
     tt = bcryptXsCtr_tag x
     nn = bcryptXsCtr_name x
-    rounds = bcryptXsCtr_rounds x
-    len :: ByteString -> Word32
-    len = fromIntegral . B.length
+    st = maybe "" bcryptState_toByteString mst
+
 
 f :: ByteString -> ByteString
 f key = if B.null key then "\x00" else key
@@ -133,8 +135,9 @@ f key = if B.null key then "\x00" else key
 maxLen16 :: Int
 maxLen16 = fromIntegral (maxBound :: Word16)
 
-len :: ByteString -> Word16
-len x = fromIntegral (min maxLen16 (B.length x))
+len16 :: ByteString -> Word16
+len16 x = fromIntegral (min maxLen16 (B.length x))
+
 
 maxWord32 :: Int64
 maxWord32 = fromIntegral (maxBound :: Word32)
@@ -145,5 +148,7 @@ maxInt = fromIntegral (maxBound :: Int)
 maxLen32 :: Int
 maxLen32 = fromIntegral (min maxWord32 maxInt)
 
-len' :: ByteString -> Word32
-len' x = fromIntegral (min maxLen32 (B.length x))
+len32 :: ByteString -> Word32
+len32 x = fromIntegral (min maxLen32 (B.length x))
+
+newtype BCryptState = BCryptState { bcryptState_toByteString :: ByteString } deriving (Eq, Ord, Show)

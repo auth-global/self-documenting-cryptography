@@ -63,18 +63,19 @@ void G3P_Blowfish_expand(G3P_blf_ctx *c,
                          const uint8_t *key, uint16_t keybytes,
                          const uint8_t *salt, uint16_t saltbytes,
                          uint32_t ctr);
-void
+uint32_t
 G3P_Blowfish_expandCtr
 ( G3P_blf_ctx *c,
   const uint8_t *key, uint32_t keyLen,
   const uint8_t *name, uint32_t nameLen,
-  const uint8_t *tag, uint32_t tagLen, uint32_t *tagPos,
+  const uint8_t *tag, uint32_t tagLen, uint32_t tagPos,
   uint32_t ctr, bool keyIsFirst );
 
 uint32_t G3P_Blowfish_readP(const G3P_blf_ctx *c, uint8_t i);
 uint32_t G3P_Blowfish_readS(const G3P_blf_ctx *c, uint8_t i, uint8_t j);
 
 void G3P_Blowfish_encodestate(const G3P_blf_ctx *c, uint8_t out[G3P_BLF_CTX_LENGTH]);
+void G3P_Blowfish_decodestate(const uint8_t in[G3P_BLF_CTX_LENGTH], G3P_blf_ctx *c);
 
 /* Converts uint8_t to uint32_t */
 uint32_t G3P_Blowfish_stream2word(const uint8_t *, uint16_t , uint16_t *);
