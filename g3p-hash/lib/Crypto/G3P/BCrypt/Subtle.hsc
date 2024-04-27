@@ -92,12 +92,12 @@ bcryptXs x = if B.null sZ then "" else unsafePerformIO $ do
                         sZ' (len32 sZ) rounds out')
                     return out
   where
-    k0 = f (bcryptXs_key0 x)
-    s0 = f (bcryptXs_salt0 x)
-    kL = f (bcryptXs_keyL x)
-    sL = f (bcryptXs_saltL x)
-    kR = f (bcryptXs_keyR x)
-    sR = f (bcryptXs_saltR x)
+    k0 = bcryptXs_key0 x
+    s0 = bcryptXs_salt0 x
+    kL = bcryptXs_keyL x
+    sL = bcryptXs_saltL x
+    kR = bcryptXs_keyR x
+    sR = bcryptXs_saltR x
     sZ = bcryptXs_saltZ x
     rounds = bcryptXs_rounds x
 
@@ -127,10 +127,6 @@ bcryptXsCtrSuperRound x tagPos rounds ctr mst = unsafePerformIO $ do
     tt = bcryptXsCtr_tag x
     nn = bcryptXsCtr_name x
     st = maybe "" bcryptState_toByteString mst
-
-
-f :: ByteString -> ByteString
-f key = if B.null key then "\x00" else key
 
 maxLen16 :: Int
 maxLen16 = fromIntegral (maxBound :: Word16)
