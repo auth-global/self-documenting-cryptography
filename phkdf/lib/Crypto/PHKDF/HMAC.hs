@@ -28,6 +28,7 @@ module Crypto.PHKDF.HMAC
   , hmacKeyPrefixed_initHashed
   , hmacKeyPrefixed_feeds
   , hmacKeyPrefixed_feedsWith
+  , hmacKeyPrefixed_run
   , HmacCtx()
   , hmacCtx
   , hmacCtx_init
@@ -125,6 +126,16 @@ hmacKeyPrefixed_feedsWith f = go . map f . toList
                     flip SHA256.updates x &
                     hmacKeyPadding_unsafeFromCtx
                   opad = hmacKeyPrefixed_opad st
+
+hmacKeyPrefixed_run :: HmacKeyPrefixed -> HmacCtx
+hmacKeyPrefixed_run key = HmacCtx
+    { hmacCtx_ipadCtx = ipadCtx
+    , hmacCtx_opad    = opad    }
+  where
+    blockCount = hmacKeyPrefixed_blockCount key
+    ipad = hmacKeyPrefixed_ipad key
+    opad = hmacKeyPrefixed_opad key
+    ipadCtx = hmacKeyPadding_runWith blockCount ipad
 
 -- | A simple interface to HMAC-SHA-256. Note that this function was written
 --   to make partial application an efficient way to compute the hmac of
