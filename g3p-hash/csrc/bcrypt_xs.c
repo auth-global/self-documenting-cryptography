@@ -119,6 +119,16 @@ bcrypt_xs_ctr_expand
     rounds--;
     ctr--;
   }
+
+  if (len1 > 72) len1 = 72;
+  // divide by 4, rounding up
+  uint32_t words = (len1 + 3) >> 2;
+  uint32_t n = len1;
+  uint32_t pos = 0;
+  for (uint32_t i = 0; i < words; i++) {
+    state->P[i] ^= G3P_thenCycle (&n, key1, len1, &pos, NULL, 0, NULL);
+  }
+
   return tagPos;
 }
 

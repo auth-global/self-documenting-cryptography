@@ -524,9 +524,10 @@ G3P_thenCycle(uint32_t *np,
     return G3P_cycle(a,al,ap);
   }
   *np = 0;
-  n = G3P_leftCycle(a,al,ap,n);
-  n ^= G3P_rightCycle(b,bl,bp,n);
-  return n;
+  uint32_t x;
+  x  = G3P_leftCycle(a,al,ap,n);
+  x ^= G3P_rightCycle(b,bl,bp,n);
+  return x;
 }
 
 void
