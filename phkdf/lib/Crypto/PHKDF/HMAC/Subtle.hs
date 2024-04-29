@@ -36,6 +36,7 @@ import           Data.ByteString.Builder.Extra (word64Host)
 
 import           Data.Word(Word64)
 
+import           Crypto.Encoding.PHKDF(nullBuffer)
 import qualified Crypto.Hash.SHA256 as SHA256
 
 type HmacKeyPlain = ByteString
@@ -72,10 +73,6 @@ data HmacCtx = HmacCtx
   { hmacCtx_ipadCtx :: {-# UNPACK #-} !SHA256.Ctx
   , hmacCtx_opad    :: {-# UNPACK #-} !HmacKeyPadding
   } deriving (Eq)
-
-nullBuffer :: ByteString
-nullBuffer = BS.replicate 64 0
-
 
 {--
 data Cached a b

@@ -116,13 +116,11 @@ credentialsPadding credentials fillerTag domainTag
     al = encodedVectorByteLength credentials
     a  = add64WhileLt (122 - al) 32
 
-
-
 dropBs :: Int -> [ ByteString ] -> [ ByteString ]
 dropBs = go
   where
     len = B.length
-    go n [] = []
+    go _ [] = []
     go 0 bs = bs
     go n (b:bs)
       | n >= len b = go (n - len b) bs
@@ -132,7 +130,7 @@ takeBs :: Int -> [ ByteString ] -> [ ByteString ]
 takeBs = go
   where
     len = B.length
-    go n [] = []
+    go _ [] = []
     go n (b:bs)
       | n <= 0 = []
       | len b < n = b : go (n - len b) bs
@@ -142,3 +140,6 @@ takeBs' :: Int -> [ ByteString ] -> [ ByteString ]
 takeBs' n bs = if haveEnough then takeBs n bs else []
   where
     haveEnough = any (>= n) (scanl' (+) 0 (map B.length bs))
+
+nullBuffer :: ByteString
+nullBuffer = B.replicate 64 0
