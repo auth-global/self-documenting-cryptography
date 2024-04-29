@@ -1,4 +1,4 @@
-{-# LANGUAGE ViewPatterns, LambdaCase #-}
+{-# LANGUAGE ViewPatterns, LambdaCase, BangPatterns #-}
 
 {- |
 
@@ -22,6 +22,12 @@ module Crypto.PHKDF.HMAC
   , HmacKeyHashed()
   , hmacKeyHashed
   , hmacKeyHashed_toKey
+  , HmacKeyPrefixed()
+  , hmacKeyPrefixed
+  , hmacKeyPrefixed_init
+  , hmacKeyPrefixed_initHashed
+  , hmacKeyPrefixed_feeds
+  , hmacKeyPrefixed_feedsWith
   , HmacCtx()
   , hmacCtx
   , hmacCtx_init
@@ -39,6 +45,7 @@ import           Data.Function((&))
 import           Data.Foldable(Foldable, toList)
 
 import           Crypto.PHKDF.HMAC.Subtle
+import           Crypto.Encoding.PHKDF(takeBs', dropBs)
 
 
 hmacKey :: HmacKeyPlain -> HmacKey
@@ -85,6 +92,39 @@ hmacKeyHashed_runWith key str = HmacCtx
     { hmacCtx_ipadCtx = SHA256.update (hmacKeyHashed_ipadCtx key) str
     , hmacCtx_opad = hmacKeyHashed_opad key
     }
+
+hmacKeyPrefixed :: HmacKeyPlain -> HmacKeyPrefixed
+hmacKeyPrefixed = hmacKeyPrefixed_initHashed . hmacKeyHashed
+
+hmacKeyPrefixed_init :: HmacKey -> HmacKeyPrefixed
+hmacKeyPrefixed_init = hmacKeyPrefixed_initHashed . hmacKey_toHashed
+
+hmacKeyPrefixed_initHashed :: HmacKeyHashed -> HmacKeyPrefixed
+hmacKeyPrefixed_initHashed (HmacKeyHashed ipad opad) = HmacKeyPrefixed 1 ipad opad
+
+hmacKeyPrefixed_feeds :: Foldable f => f ByteString -> HmacKeyPrefixed -> (ByteString, HmacKeyPrefixed)
+hmacKeyPrefixed_feeds = hmacKeyPrefixed_feedsWith id
+
+hmacKeyPrefixed_feedsWith :: Foldable f => (a -> ByteString) -> f a -> HmacKeyPrefixed -> (ByteString, HmacKeyPrefixed)
+hmacKeyPrefixed_feedsWith f = go . map f . toList
+  where
+    go bss !st =
+      case takeBs' 64 bss of
+        [] -> (B.concat bss, st)
+        x  -> go (dropBs 64 bss) st'
+                where
+                  st' = HmacKeyPrefixed
+                    { hmacKeyPrefixed_blockCount = blockCount + 1
+                    , hmacKeyPrefixed_ipad = ipad'
+                    , hmacKeyPrefixed_opad = opad
+                    }
+                  blockCount = hmacKeyPrefixed_blockCount st
+                  ipad' =
+                    hmacKeyPrefixed_ipad st &
+                    hmacKeyPadding_runWith blockCount &
+                    flip SHA256.updates x &
+                    hmacKeyPadding_unsafeFromCtx
+                  opad = hmacKeyPrefixed_opad st
 
 -- | A simple interface to HMAC-SHA-256. Note that this function was written
 --   to make partial application an efficient way to compute the hmac of
@@ -134,4 +174,4 @@ hmacCtx_finalize :: HmacCtx -> ByteString
 hmacCtx_finalize (HmacCtx ic oc) = outer
   where
     inner = SHA256.finalize ic
-    outer = SHA256.finalize (SHA256.update (hmacKeyPadding_run oc) inner)
+    outer = SHA256.finalize (SHA256.update (hmacKeyPadding_runWith 1 oc) inner)

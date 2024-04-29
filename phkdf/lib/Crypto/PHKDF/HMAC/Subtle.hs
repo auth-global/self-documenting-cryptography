@@ -17,10 +17,11 @@ module Crypto.PHKDF.HMAC.Subtle
   , HmacKeyHashed(..)
   , hmacKeyHashed_ipadCtx
   , hmacKeyHashed_opadCtx
+  , HmacKeyPrefixed(..)
+  , HmacCtx(..)
   , HmacKeyPadding(..)
   , hmacKeyPadding_unsafeFromCtx
-  , hmacKeyPadding_run
-  , HmacCtx(..)
+  , hmacKeyPadding_runWith
   ) where
 
 import           Data.ByteString (ByteString)
@@ -32,6 +33,8 @@ import qualified Data.ByteString.Builder as BB
 import           Data.ByteString.Short (ShortByteString)
 import qualified Data.ByteString.Short as SB
 import           Data.ByteString.Builder.Extra (word64Host)
+
+import           Data.Word(Word64)
 
 import qualified Crypto.Hash.SHA256 as SHA256
 
@@ -49,13 +52,13 @@ hmacKey_ipad :: HmacKey -> HmacKeyPadding
 hmacKey_ipad = hmacKeyHashed_ipad . hmacKey_toHashed
 
 hmacKey_ipadCtx :: HmacKey -> SHA256.Ctx
-hmacKey_ipadCtx = hmacKeyPadding_run . hmacKey_ipad
+hmacKey_ipadCtx = hmacKeyPadding_runWith 1 . hmacKey_ipad
 
 hmacKey_opad :: HmacKey -> HmacKeyPadding
 hmacKey_opad = hmacKeyHashed_opad . hmacKey_toHashed
 
 hmacKey_opadCtx :: HmacKey -> SHA256.Ctx
-hmacKey_opadCtx = hmacKeyPadding_run . hmacKey_opad
+hmacKey_opadCtx = hmacKeyPadding_runWith 1 . hmacKey_opad
 
 hmacKey_toHashed  :: HmacKey -> HmacKeyHashed
 hmacKey_toHashed = \case
@@ -126,21 +129,32 @@ data HmacKeyHashed = HmacKeyHashed
   } deriving (Eq, Ord, Show)
 
 hmacKeyHashed_ipadCtx :: HmacKeyHashed -> SHA256.Ctx
-hmacKeyHashed_ipadCtx = hmacKeyPadding_run . hmacKeyHashed_ipad
+hmacKeyHashed_ipadCtx = hmacKeyPadding_runWith 1 . hmacKeyHashed_ipad
 
 hmacKeyHashed_opadCtx :: HmacKeyHashed -> SHA256.Ctx
-hmacKeyHashed_opadCtx = hmacKeyPadding_run . hmacKeyHashed_opad
+hmacKeyHashed_opadCtx = hmacKeyPadding_runWith 1 . hmacKeyHashed_opad
 
 newtype HmacKeyPadding = HmacKeyPadding ShortByteString deriving (Eq, Ord, Show)
 
-hmacKeyPadding_run :: HmacKeyPadding -> SHA256.Ctx
-hmacKeyPadding_run (HmacKeyPadding pad) = SHA256.Ctx (run out)
+hmacKeyPadding_runWith :: Word64 -> HmacKeyPadding -> SHA256.Ctx
+hmacKeyPadding_runWith blockCount (HmacKeyPadding pad) = SHA256.Ctx (run out)
   where
     run = BL.toStrict . BB.toLazyByteString
-    out = word64Host 64
+    out = word64Host (64 * blockCount)
        <> byteString nullBuffer
        <> shortByteString pad
 
 hmacKeyPadding_unsafeFromCtx :: SHA256.Ctx -> HmacKeyPadding
 hmacKeyPadding_unsafeFromCtx (SHA256.Ctx bs) = HmacKeyPadding out
   where out = SB.toShort (BS.drop 72 bs)
+
+-- | Halfway between an HmacKeyHashed and an HmacCtx.
+--   It's both an HmacKeyHashed that's gained a counter,
+--   and a HmacCtx that's guaranteed to contain no unprocessed
+--   input data.
+
+data HmacKeyPrefixed = HmacKeyPrefixed
+  { hmacKeyPrefixed_blockCount :: {-# UNPACK #-} !Word64
+  , hmacKeyPrefixed_ipad :: {-# UNPACK #-} !HmacKeyPadding
+  , hmacKeyPrefixed_opad :: {-# UNPACK #-} !HmacKeyPadding
+  }

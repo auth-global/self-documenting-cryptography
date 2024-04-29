@@ -6,12 +6,14 @@ import Data.Monoid((<>))
 import Data.Bits(Bits, (.&.))
 import Data.ByteString(ByteString)
 import Data.Foldable(Foldable)
+import Data.List(scanl')
 import qualified Data.ByteString as B
 import Crypto.Encoding.SHA3.TupleHash
 
 import Debug.Trace
 
--- FIXME: several functions in here have opportunites for optimization
+-- FIXME: most of the older parts of this module should be deleted, but
+--        need to move to something better first.
 
 cycleByteStringToList :: ByteString -> Int -> [ByteString]
 cycleByteStringToList str outBytes =
@@ -113,3 +115,30 @@ credentialsPadding credentials fillerTag domainTag
   where
     al = encodedVectorByteLength credentials
     a  = add64WhileLt (122 - al) 32
+
+
+
+dropBs :: Int -> [ ByteString ] -> [ ByteString ]
+dropBs = go
+  where
+    len = B.length
+    go n [] = []
+    go 0 bs = bs
+    go n (b:bs)
+      | n >= len b = go (n - len b) bs
+      | otherwise = B.drop n b : bs
+
+takeBs :: Int -> [ ByteString ] -> [ ByteString ]
+takeBs = go
+  where
+    len = B.length
+    go n [] = []
+    go n (b:bs)
+      | n <= 0 = []
+      | len b < n = b : go (n - len b) bs
+      | otherwise = [B.take n b]
+
+takeBs' :: Int -> [ ByteString ] -> [ ByteString ]
+takeBs' n bs = if haveEnough then takeBs n bs else []
+  where
+    haveEnough = any (>= n) (scanl' (+) 0 (map B.length bs))
