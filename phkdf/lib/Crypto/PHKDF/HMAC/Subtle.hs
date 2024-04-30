@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ViewPatterns, LambdaCase #-}
 {- |
 
 "Internal" data structures representing precomputed HMAC keys and partial HMAC
@@ -42,6 +42,7 @@ import           Data.ByteString.Short (ShortByteString)
 import qualified Data.ByteString.Short as SB
 import           Data.ByteString.Builder.Extra (word64Host)
 
+import           Data.Function(on)
 import           Data.Word(Word64)
 
 import           Crypto.Encoding.PHKDF(nullBuffer)
@@ -58,7 +59,17 @@ instance Eq HmacKey where
   a == b  =  hmacKey_toHashed a == hmacKey_toHashed b
 
 hmacKeyPlain_eq :: HmacKeyPlain -> HmacKeyPlain -> Bool
-hmacKeyPlain_eq a b = BS.dropWhileEnd (== 0) a == BS.dropWhileEnd (== 0) b
+hmacKeyPlain_eq a b =
+  case (BS.length a > 64, BS.length b > 64) of
+    (False, False) -> ((==) `on` normalize) a b
+    (True, False) -> checkEq a b
+    (False, True) -> checkEq b a
+    (True, True) -> a == b
+  where
+    normalize = BS.dropWhileEnd (==0)
+    checkEq x (normalize -> y)
+       | BS.length y > 32 = False
+       | otherwise = normalize (SHA256.hash x) == y
 
 hmacKey_ipad :: HmacKey -> HmacKeyPadding
 hmacKey_ipad = hmacKeyHashed_ipad . hmacKey_toHashed
