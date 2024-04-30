@@ -8,16 +8,22 @@ contexts, supporting incremental computation and backtracking.
 
 module Crypto.PHKDF.HMAC.Subtle
   ( HmacKeyPlain
+  , hmacKeyPlain_eq
   , HmacKey(..)
   , hmacKey_ipad
   , hmacKey_ipadCtx
   , hmacKey_opad
   , hmacKey_opadCtx
   , hmacKey_toHashed
+  , HmacKeyLike(..)
+  , hmacKeyLike_ipadCtx
+  , hmacKeyLike_opad
+  , hmacKeyLike_opadCtx
   , HmacKeyHashed(..)
   , hmacKeyHashed_ipadCtx
   , hmacKeyHashed_opadCtx
   , HmacKeyPrefixed(..)
+  , hmacKeyPrefixed_eqHashed
   , HmacCtx(..)
   , HmacKeyPadding(..)
   , hmacKeyPadding_unsafeFromCtx
@@ -42,12 +48,15 @@ import qualified Crypto.Hash.SHA256 as SHA256
 type HmacKeyPlain = ByteString
 
 data HmacKey
-   = HmacKeyInput  {-# UNPACK #-} !HmacKeyPlain HmacKeyHashed
-   | HmacKeyOutput {-# UNPACK #-} !HmacKeyHashed
+   = HmacKey_Plain  {-# UNPACK #-} !HmacKeyPlain HmacKeyHashed
+   | HmacKey_Hashed {-# UNPACK #-} !HmacKeyHashed
 
 instance Eq HmacKey where
-  (HmacKeyInput a _) == (HmacKeyInput b _)  =  a == b
+  (HmacKey_Plain a _) == (HmacKey_Plain b _)  =  hmacKeyPlain_eq a b
   a == b  =  hmacKey_toHashed a == hmacKey_toHashed b
+
+hmacKeyPlain_eq :: HmacKeyPlain -> HmacKeyPlain -> Bool
+hmacKeyPlain_eq a b = BS.dropWhileEnd (== 0) a == BS.dropWhileEnd (== 0) b
 
 hmacKey_ipad :: HmacKey -> HmacKeyPadding
 hmacKey_ipad = hmacKeyHashed_ipad . hmacKey_toHashed
@@ -63,8 +72,46 @@ hmacKey_opadCtx = hmacKeyPadding_runWith 1 . hmacKey_opad
 
 hmacKey_toHashed  :: HmacKey -> HmacKeyHashed
 hmacKey_toHashed = \case
-  HmacKeyInput _ x -> x
-  HmacKeyOutput x -> x
+  HmacKey_Plain _ x -> x
+  HmacKey_Hashed x -> x
+
+
+data HmacKeyLike
+   = HmacKeyLike_Plain {-# UNPACK #-} !HmacKeyPlain HmacKeyHashed
+   | HmacKeyLike_Hashed {-# UNPACK #-} !HmacKeyHashed
+   | HmacKeyLike_Prefixed {-# UNPACK #-} !HmacKeyPrefixed
+
+hmacKeyPrefixed_eqHashed :: HmacKeyPrefixed -> HmacKeyHashed -> Bool
+hmacKeyPrefixed_eqHashed a
+  | hmacKeyPrefixed_blockCount a /= 1 = const False
+  | otherwise = \b -> hmacKeyPrefixed_ipad a == hmacKeyHashed_ipad b
+                   && hmacKeyPrefixed_opad a == hmacKeyHashed_opad b
+
+instance Eq HmacKeyLike where
+  (HmacKeyLike_Plain a _) == (HmacKeyLike_Plain b _) = hmacKeyPlain_eq a b
+  (HmacKeyLike_Plain _ a) == (HmacKeyLike_Hashed b) = a == b
+  (HmacKeyLike_Plain _ a) == (HmacKeyLike_Prefixed b) = hmacKeyPrefixed_eqHashed b a
+  (HmacKeyLike_Hashed a) == (HmacKeyLike_Plain _ b) = a == b
+  (HmacKeyLike_Hashed a) == (HmacKeyLike_Hashed b) = a == b
+  (HmacKeyLike_Hashed a) == (HmacKeyLike_Prefixed b) = hmacKeyPrefixed_eqHashed b a
+  (HmacKeyLike_Prefixed a) == (HmacKeyLike_Plain _ b) = hmacKeyPrefixed_eqHashed a b
+  (HmacKeyLike_Prefixed a) == (HmacKeyLike_Hashed b) = hmacKeyPrefixed_eqHashed a b
+  (HmacKeyLike_Prefixed a) == (HmacKeyLike_Prefixed b) = a == b
+
+hmacKeyLike_ipadCtx :: HmacKeyLike -> SHA256.Ctx
+hmacKeyLike_ipadCtx = \case
+  HmacKeyLike_Plain _ x -> hmacKeyHashed_ipadCtx x
+  HmacKeyLike_Hashed x -> hmacKeyHashed_ipadCtx x
+  HmacKeyLike_Prefixed x -> hmacKeyPadding_runWith (hmacKeyPrefixed_blockCount x) (hmacKeyPrefixed_ipad x)
+
+hmacKeyLike_opad :: HmacKeyLike -> HmacKeyPadding
+hmacKeyLike_opad = \case
+  HmacKeyLike_Plain _ x -> hmacKeyHashed_opad x
+  HmacKeyLike_Hashed x -> hmacKeyHashed_opad x
+  HmacKeyLike_Prefixed x -> hmacKeyPrefixed_opad x
+
+hmacKeyLike_opadCtx :: HmacKeyLike -> SHA256.Ctx
+hmacKeyLike_opadCtx = hmacKeyPadding_runWith 1 . hmacKeyLike_opad
 
 -- | Fixed-size context representing the state of a partial HMAC computation
 --   with a complete HMAC key and a partial message parameter.
@@ -154,4 +201,4 @@ data HmacKeyPrefixed = HmacKeyPrefixed
   { hmacKeyPrefixed_blockCount :: {-# UNPACK #-} !Word64
   , hmacKeyPrefixed_ipad :: {-# UNPACK #-} !HmacKeyPadding
   , hmacKeyPrefixed_opad :: {-# UNPACK #-} !HmacKeyPadding
-  }
+  } deriving (Eq)

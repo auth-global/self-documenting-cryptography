@@ -8,7 +8,7 @@ module Crypto.PHKDF.Primitives.Subtle
 
 import           Prelude hiding (null)
 import qualified Crypto.Hash.SHA256 as SHA256
-import           Crypto.PHKDF.HMAC (HmacKey)
+import           Crypto.PHKDF.HMAC (HmacKeyLike)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.Foldable(foldl', null)
@@ -30,7 +30,7 @@ import           Data.Word
 data PhkdfCtx = PhkdfCtx
   { phkdfCtx_byteLen :: !Word64
   , phkdfCtx_state :: !SHA256.Ctx
-  , phkdfCtx_hmacKey :: !HmacKey
+  , phkdfCtx_hmacKey :: !HmacKeyLike
   }
 
 data P = P !Word64 !SHA256.Ctx
@@ -61,7 +61,7 @@ phkdfSlowCtx_lift f ctx = ctx {
   }
 
 data PhkdfGen = PhkdfGen
-  { phkdfGen_hmacKey :: !HmacKey
+  { phkdfGen_hmacKey :: !HmacKeyLike
   , phkdfGen_extTag :: !ByteString
   , phkdfGen_counter :: !Word32
   , phkdfGen_state :: !ByteString

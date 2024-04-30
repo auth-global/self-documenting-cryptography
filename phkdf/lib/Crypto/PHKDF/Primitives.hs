@@ -260,10 +260,13 @@ phkdfCtx = phkdfCtx_init . hmacKey
 -- | initialize an empty @phkdfStream@ context from a precomputed HMAC key.
 
 phkdfCtx_init :: HmacKey -> PhkdfCtx
-phkdfCtx_init key =
+phkdfCtx_init = phkdfCtx_initLike . hmacKeyLike_init
+
+phkdfCtx_initLike :: HmacKeyLike -> PhkdfCtx
+phkdfCtx_initLike key =
   PhkdfCtx {
     phkdfCtx_byteLen = 0,
-    phkdfCtx_state   = hmacKey_ipadCtx key,
+    phkdfCtx_state   = hmacKeyLike_ipadCtx key,
     phkdfCtx_hmacKey = key
   }
 
@@ -275,14 +278,14 @@ phkdfCtx_initHashed = phkdfCtx_init . hmacKeyHashed_toKey
 --   originally supplied to the context, discarding all arguments already added.
 
 phkdfCtx_reset :: PhkdfCtx -> PhkdfCtx
-phkdfCtx_reset = phkdfCtx_init . phkdfCtx_hmacKey
+phkdfCtx_reset = phkdfCtx_initLike . phkdfCtx_hmacKey
 
 
 -- | initialize a new empty HMAC context from the key originally supplied to
 --   the PHKDF context, discarding all arguments already added.
 
 phkdfCtx_toResetHmacCtx :: PhkdfCtx -> HmacCtx
-phkdfCtx_toResetHmacCtx = hmacKey_run . phkdfCtx_hmacKey
+phkdfCtx_toResetHmacCtx = hmacKeyLike_run . phkdfCtx_hmacKey
 
 -- FIXME? what should happen when the SHA256 counters overflow?
 
@@ -362,12 +365,15 @@ phkdfGen :: ByteString -> ByteString -> Word32 -> ByteString -> PhkdfGen
 phkdfGen = phkdfGen_init . hmacKey
 
 phkdfGen_init :: HmacKey -> ByteString -> Word32 -> ByteString -> PhkdfGen
-phkdfGen_init key initBytes = initGen
+phkdfGen_init = phkdfGen_initLike . hmacKeyLike_init
+
+phkdfGen_initLike :: HmacKeyLike -> ByteString -> Word32 -> ByteString -> PhkdfGen
+phkdfGen_initLike key initBytes = initGen
   where
     -- Round down to the previous buffer boundary
     n = B.length initBytes .&. complement 63
     (blocks, state0) = B.splitAt n initBytes
-    ipad0 = SHA256.update (hmacKey_ipadCtx key) blocks
+    ipad0 = SHA256.update (hmacKeyLike_ipadCtx key) blocks
 
     initGen counter0 tag = PhkdfGen
       { phkdfGen_hmacKey = key
@@ -388,13 +394,13 @@ phkdfGen_peek gen =
 
 phkdfGen_finalizeHmacCtx :: PhkdfGen -> HmacCtx
 phkdfGen_finalizeHmacCtx gen =
-  (hmacKey_run (phkdfGen_hmacKey gen)) {
+  (hmacKeyLike_run (phkdfGen_hmacKey gen)) {
      hmacCtx_ipadCtx = SHA256.update ipad (phkdfGen_state gen)
     }
   where
     ipad =
       case phkdfGen_initCtx gen of
-        Nothing -> hmacCtx_ipadCtx . hmacKey_run $ phkdfGen_hmacKey gen
+        Nothing -> hmacCtx_ipadCtx . hmacKeyLike_run $ phkdfGen_hmacKey gen
         Just x -> x
 
 phkdfGen_read :: PhkdfGen -> (ByteString, PhkdfGen)
