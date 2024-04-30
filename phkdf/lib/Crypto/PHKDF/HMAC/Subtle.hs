@@ -58,6 +58,11 @@ instance Eq HmacKey where
   (HmacKey_Plain a _) == (HmacKey_Plain b _)  =  hmacKeyPlain_eq a b
   a == b  =  hmacKey_toHashed a == hmacKey_toHashed b
 
+-- | This function can in theory return False, when converting both strings
+--   to a 'HmacKeyHashed' first and then comparing returns True. However,
+--   probabilistically speaking, the recall of this function is
+--   cryptographically close to 1, and a lot faster.
+
 hmacKeyPlain_eq :: HmacKeyPlain -> HmacKeyPlain -> Bool
 hmacKeyPlain_eq a b =
   case (BS.length a > 64, BS.length b > 64) of
@@ -68,7 +73,7 @@ hmacKeyPlain_eq a b =
   where
     normalize = BS.dropWhileEnd (==0)
     checkEq x (normalize -> y)
-       | BS.length y > 32 = False
+       | BS.length y > 32 || BS.length y <= 16 = False
        | otherwise = normalize (SHA256.hash x) == y
 
 hmacKey_ipad :: HmacKey -> HmacKeyPadding
