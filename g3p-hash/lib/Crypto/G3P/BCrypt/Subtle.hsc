@@ -37,8 +37,8 @@ data BCryptXs = BCryptXs
   }
 
 data BCryptXsCtr = BCryptXsCtr
-  { bcryptXsCtr_keyL :: !ByteString
-  , bcryptXsCtr_keyR :: !ByteString
+  { bcryptXsCtr_key0 :: !ByteString
+  , bcryptXsCtr_key1 :: !ByteString
   , bcryptXsCtr_tag  :: !ByteString
   , bcryptXsCtr_name :: !ByteString
   }
@@ -105,8 +105,8 @@ bcryptXs x = if B.null sZ then "" else unsafePerformIO $ do
 
 bcryptXsCtrSuperRound :: BCryptXsCtr -> Word32 -> Word32 -> Word32 -> Maybe BCryptState -> (Word32, BCryptState)
 bcryptXsCtrSuperRound x tagPos rounds ctr mst = unsafePerformIO $ do
-  B.unsafeUseAsCString kL $ \kL' -> do
-    B.unsafeUseAsCString kR $ \kR' -> do
+  B.unsafeUseAsCString k0 $ \k0' -> do
+    B.unsafeUseAsCString k1 $ \k1' -> do
       B.unsafeUseAsCString tt $ \tt' -> do
         B.unsafeUseAsCString nn $ \nn' -> do
           B.unsafeUseAsCString st $ \st' -> do
@@ -117,13 +117,13 @@ bcryptXsCtrSuperRound x tagPos rounds ctr mst = unsafePerformIO $ do
             B.unsafeUseAsCString out $ \out' -> do
                 tagPos' <- c_bcrypt_xs_ctr_superround
                               st'
-                              kL' (len32 kL) kR' (len32 kR)
+                              k0' (len32 k0) k1' (len32 k1)
                               nn' (len32 nn) tt' (len32 tt)
                               tagPos rounds ctr out'
                 return (tagPos',BCryptState out)
   where
-    kL = bcryptXsCtr_keyL x
-    kR = bcryptXsCtr_keyR x
+    k0 = bcryptXsCtr_key0 x
+    k1 = bcryptXsCtr_key1 x
     tt = bcryptXsCtr_tag x
     nn = bcryptXsCtr_name x
     st = maybe "" bcryptState_toByteString mst

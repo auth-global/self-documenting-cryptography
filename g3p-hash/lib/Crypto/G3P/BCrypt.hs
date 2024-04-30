@@ -1,4 +1,4 @@
-{-# LANGUAGE ViewPatterns, OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns, OverloadedStrings, BangPatterns, ScopedTypeVariables #-}
 
 -- |  A very minimal binding to the core of the bcrypt algorithm, adapted from
 --    OpenBSD's implementation. The Global Password Prehash Protocol version
@@ -47,12 +47,24 @@ module Crypto.G3P.BCrypt
   , orpheanBeholderScryDoubt
   , BCryptXs()
   , bcryptRaw_genInputs
+  , bcryptXsFree
   ) where
 
+import           Control.Exception(assert)
+
+import           Data.Bits((.&.), complement)
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString as B
+import           Data.Function((&))
+import           Data.Int
 import           Data.Word
 
+import           Network.ByteOrder(word32, bytestring32)
+
+import           Crypto.PHKDF.HMAC (HmacKeyPrefixed, hmacKeyPrefixed_feeds)
+import           Crypto.PHKDF.Primitives(phkdfCtx_initPrefixed, phkdfCtx_addArgsBy, phkdfCtx_finalize)
+
+import           Crypto.Encoding.PHKDF (chunkify, chunkifyCycle, takeBs, nullBuffer)
 import           Crypto.G3P.BCrypt.Subtle
 
 -- | Any input longer than 72 bytes will be truncated.
@@ -100,3 +112,126 @@ bcryptRaw_genInputs (f -> key) (f -> salt) rounds =
 
 f :: ByteString -> ByteString
 f = B.take bcryptRaw_maxInputLength
+
+formatFnName :: ByteString -> ByteString
+formatFnName (B.take 28 -> name) = B.concat [bytestring32 0, name, nameExt]
+  where
+    nameExt = B.take (28 - B.length name) nullBuffer
+
+bcryptXsFree_tagBytesPerRound :: Int
+bcryptXsFree_tagBytesPerRound = 4176
+
+concatTakeBs :: Int -> [ByteString] -> ByteString
+concatTakeBs n bs = B.concat (takeBs (fromIntegral n) bs)
+
+bcryptXsFree :: Foldable f => (a -> ByteString) -> ByteString
+             -> ByteString -> f a -> ByteString -> Word32
+             -> HmacKeyPrefixed -> (Int, HmacKeyPrefixed)
+bcryptXsFree toString fnName longTag contextTags domainTag rounds_ = initRound
+  where
+    rounds :: Int64 = fromIntegral rounds_ + 1
+    -- Do 1-128 minirounds in the first superround, so that we end on an
+    -- exact multiple of 128
+    miniRoundBytes :: Int64 = fromIntegral bcryptXsFree_tagBytesPerRound
+    miniRounds0 = 128 - (- rounds) .&. (complement 127)
+    -- The number of superrounds after the first
+    superRounds0 = (rounds - miniRounds0) `div` 128
+    tagBytesFrom = chunkifyCycle 32 longTag
+
+    -- minimum number of half blocks to complete a local commitment to the
+    -- entirety of an excessively long extended salt for a single bcrypt round.
+
+    -- The first and last rounds of the superround have their extended salts
+    -- committed to as part of deriving the keys in use for that superround.
+
+    -- This turns into cryptoacoustic repetition if the longTag is not
+    -- excessively long.
+
+    halfBlocks :: Int = ceiling ((fromIntegral miniRoundBytes :: Float) / 32)
+
+    initRound :: HmacKeyPrefixed -> (Int, HmacKeyPrefixed)
+    initRound !sha0 =
+      let
+        -- Locally ensure that the extended salt for the first and last
+        -- rounds have been committed to before deriving the keys.
+
+        -- (This turns into cryptoacoustic repetition if the extended salt
+        -- isn't excessively long.)
+
+        lastOffset = (miniRounds0 - 1) * miniRoundBytes
+
+        ltA = take halfBlocks $ tagBytesFrom 0
+        ltZ = take halfBlocks $ tagBytesFrom lastOffset
+
+        -- Now actually perform the commitment:
+        ("", sha1) = hmacKeyPrefixed_feeds (ltA ++ ltZ) sha0
+
+      in superRound 0 sha1 Nothing rounds_ (fromIntegral miniRounds0) (fromIntegral superRounds0)
+
+    superRound :: Word32 -> HmacKeyPrefixed -> Maybe BCryptState -> Word32 -> Word32 -> Word32 -> (Int, HmacKeyPrefixed)
+    superRound tagPos !sha0 mBcrypt0 ctr miniRounds superRounds =
+          -- do 1-128 rounds in the first superround, so that we
+          -- land on an exact multiple of 128 rounds left to do.
+      let
+        -- The derivation of the keys for the superround will locally commit
+        -- to the first 64 - 190 bytes of the extended salt of the
+        -- penultimate miniround.  (The first 40 bytes are P-Box salt)
+        penOffset = fromIntegral tagPos + 40 + (fromIntegral miniRounds - 2) * miniRoundBytes
+        endPad0 n = concatTakeBs n (tagBytesFrom (penOffset + 64))
+        endPad1 n = concatTakeBs n (tagBytesFrom (penOffset + 64 + fromIntegral n))
+        key0 = phkdfCtx_initPrefixed (tagBytesFrom penOffset !! 0) sha0 &
+               phkdfCtx_addArgsBy toString contextTags &
+               phkdfCtx_finalize endPad0 (word32 "KEY0") domainTag
+        key1 = phkdfCtx_initPrefixed (tagBytesFrom penOffset !! 1) sha0 &
+               phkdfCtx_addArgsBy toString contextTags &
+               phkdfCtx_finalize endPad1 (word32 "KEY1") domainTag
+        args = BCryptXsCtr
+          { bcryptXsCtr_key0 = key0
+          , bcryptXsCtr_key1 = key1
+          , bcryptXsCtr_tag  = longTag <> "\x00"
+          , bcryptXsCtr_name = formatFnName fnName
+          }
+
+        (tagPos', bcrypt1) = bcryptXsCtrSuperRound args
+                                tagPos (fromIntegral miniRounds) ctr mBcrypt0
+        -- Now we need to do the local commitment for the *next* superround,
+        -- or end-of-key-stretching finalization.
+
+        -- Here's the next local commitment:
+        -- offset of the tag used for the last miniround:
+
+        lastOffset = fromIntegral tagPos' + 127 * miniRoundBytes
+
+        (ltA : ltAs) = take halfBlocks (tagBytesFrom (fromIntegral tagPos'))
+        ltZ = take (halfBlocks + 3) (tagBytesFrom lastOffset)
+
+        (pBit, pBox) = B.splitAt 8 (bcryptState_toByteString bcrypt1)
+
+        chunksR = key0 : key1 : orpheanBeholderScryDoubt <> pBit :
+                      chunkify 32 pBox ++ [ltA]
+
+        list2 x y = [x,y]
+
+        nextChunks = assert (length ltZ == length chunksR) $
+                        concat (zipWith list2 ltZ chunksR) ++ ltAs
+
+        ("",nextSha) = hmacKeyPrefixed_feeds nextChunks sha0
+
+        -- If we are finishing up, we just repeat the most recent tag:
+
+        endOffset = fromIntegral tagPos' - 32 * (fromIntegral halfBlocks + 2)
+
+        endChunksL = take (halfBlocks + 2) (tagBytesFrom endOffset)
+
+        endChunksR = key0 : key1 : orpheanBeholderScryDoubt <> pBit :
+                        chunkify 32 pBox
+
+        endChunks = assert (length endChunksL == length endChunksR) $
+                       concat (zipWith list2 endChunksL endChunksR)
+
+        ("",endSha) = hmacKeyPrefixed_feeds endChunks sha0
+
+       in if superRounds == 0
+          then (fromIntegral tagPos', endSha)
+          else superRound tagPos' nextSha (Just bcrypt1)
+                          (ctr - miniRounds) 128 (superRounds - 1)
