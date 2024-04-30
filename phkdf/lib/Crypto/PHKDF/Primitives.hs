@@ -206,9 +206,13 @@ module Crypto.PHKDF.Primitives
   , phkdfCtx
   , phkdfCtx_init
   , phkdfCtx_initHashed
-  , phkdfCtx_initPrefixedWith
+  , phkdfCtx_initPrefixed
   , phkdfCtx_initLike
+  , phkdfCtx_hmacKeyPlain
+  , phkdfCtx_hmacKeyHashed
+  , phkdfCtx_hmacKeyPrefixed
   , phkdfCtx_hmacKey
+  , phkdfCtx_hmacKeyLike
   , phkdfCtx_toResetHmacCtx
   , phkdfCtx_reset
   , phkdfCtx_addArg
@@ -229,6 +233,13 @@ module Crypto.PHKDF.Primitives
   , phkdfGen
   , phkdfGen_init
   , phkdfGen_initHashed
+  , phkdfGen_initPrefixed
+  , phkdfGen_initLike
+  , phkdfGen_hmacKeyPlain
+  , phkdfGen_hmacKeyHashed
+  , phkdfGen_hmacKeyPrefixed
+  , phkdfGen_hmacKey
+  , phkdfGen_hmacKeyLike
   , phkdfGen_read
   , phkdfGen_peek
   , phkdfGen_finalizeStream
@@ -259,43 +270,59 @@ import           Control.Exception(assert)
 phkdfCtx :: ByteString -> PhkdfCtx
 phkdfCtx = phkdfCtx_init . hmacKey
 
--- | initialize an empty @phkdfStream@ context from a precomputed HMAC key.
+-- | initialize an empty @phkdfStream@ context from a plaintext or precomputed HMAC key.
 
 phkdfCtx_init :: HmacKey -> PhkdfCtx
 phkdfCtx_init = phkdfCtx_initLike . hmacKeyLike_init
+
+-- | initialize an empty @phkdfStream@ context from a plaintext, precomputed, or buffer-prefixed HMAC key.
 
 phkdfCtx_initLike :: HmacKeyLike -> PhkdfCtx
 phkdfCtx_initLike key =
   PhkdfCtx {
     phkdfCtx_byteLen = 0,
     phkdfCtx_state   = hmacKeyLike_ipadCtx key,
-    phkdfCtx_hmacKey = key
+    phkdfCtx_hmacKeyLike = key
   }
+
+-- | initialize an empty @phkdfStream@ context from a precomputed HMAC key.
 
 phkdfCtx_initHashed :: HmacKeyHashed -> PhkdfCtx
 phkdfCtx_initHashed = phkdfCtx_init . hmacKeyHashed_toKey
 
+-- | initialize an empty @phkdfStream@ context from a buffer-prefixed HMAC key.
 
-phkdfCtx_initPrefixedWith :: ByteString -> HmacKeyPrefixed -> PhkdfCtx
-phkdfCtx_initPrefixedWith str key = PhkdfCtx
+phkdfCtx_initPrefixed :: ByteString -> HmacKeyPrefixed -> PhkdfCtx
+phkdfCtx_initPrefixed str key = PhkdfCtx
     { phkdfCtx_byteLen = 64 * hmacKeyPrefixed_blockCount key
                        + fromIntegral (B.length str)
     , phkdfCtx_state = SHA256.update (hmacKeyPrefixed_ipadCtx key) str
-    , phkdfCtx_hmacKey = hmacKeyLike_initPrefixed key
+    , phkdfCtx_hmacKeyLike = hmacKeyLike_initPrefixed key
     }
+
+phkdfCtx_hmacKeyPlain :: PhkdfCtx -> Maybe HmacKeyPlain
+phkdfCtx_hmacKeyPlain = hmacKeyLike_toPlain . phkdfCtx_hmacKeyLike
+
+phkdfCtx_hmacKeyHashed :: PhkdfCtx -> Maybe HmacKeyHashed
+phkdfCtx_hmacKeyHashed = hmacKeyLike_toHashed . phkdfCtx_hmacKeyLike
+
+phkdfCtx_hmacKeyPrefixed  :: PhkdfCtx -> HmacKeyPrefixed
+phkdfCtx_hmacKeyPrefixed = hmacKeyLike_toPrefixed . phkdfCtx_hmacKeyLike
+
+phkdfCtx_hmacKey :: PhkdfCtx -> Maybe HmacKey
+phkdfCtx_hmacKey = hmacKeyLike_toKey . phkdfCtx_hmacKeyLike
 
 -- | initialize a new empty @phkdfStream@ context from the HMAC key
 --   originally supplied to the context, discarding all arguments already added.
 
 phkdfCtx_reset :: PhkdfCtx -> PhkdfCtx
-phkdfCtx_reset = phkdfCtx_initLike . phkdfCtx_hmacKey
-
+phkdfCtx_reset = phkdfCtx_initLike . phkdfCtx_hmacKeyLike
 
 -- | initialize a new empty HMAC context from the key originally supplied to
 --   the PHKDF context, discarding all arguments already added.
 
 phkdfCtx_toResetHmacCtx :: PhkdfCtx -> HmacCtx
-phkdfCtx_toResetHmacCtx = hmacKeyLike_run . phkdfCtx_hmacKey
+phkdfCtx_toResetHmacCtx = hmacKeyLike_run . phkdfCtx_hmacKeyLike
 
 -- FIXME? what should happen when the SHA256 counters overflow?
 
@@ -352,7 +379,7 @@ phkdfCtx_finalizeStream genFillerPad counter0 tag ctx =
 phkdfCtx_finalizeGen :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> PhkdfGen
 phkdfCtx_finalizeGen genFillerPad counter0 tag ctx =
     PhkdfGen
-      { phkdfGen_hmacKey = phkdfCtx_hmacKey ctx
+      { phkdfGen_hmacKeyLike = phkdfCtx_hmacKeyLike ctx
       , phkdfGen_extTag = extendTag tag
       , phkdfGen_counter = counter0
       , phkdfGen_state = ""
@@ -386,7 +413,7 @@ phkdfGen_initLike key initBytes = initGen
     ipad0 = SHA256.update (hmacKeyLike_ipadCtx key) blocks
 
     initGen counter0 tag = PhkdfGen
-      { phkdfGen_hmacKey = key
+      { phkdfGen_hmacKeyLike = key
       , phkdfGen_extTag = extendTag tag
       , phkdfGen_counter = counter0
       , phkdfGen_state = state0
@@ -394,7 +421,22 @@ phkdfGen_initLike key initBytes = initGen
       }
 
 phkdfGen_initHashed :: HmacKeyHashed -> ByteString -> Word32 -> ByteString -> PhkdfGen
-phkdfGen_initHashed = phkdfGen_init . hmacKeyHashed_toKey
+phkdfGen_initHashed = phkdfGen_initLike . hmacKeyLike_initHashed
+
+phkdfGen_initPrefixed :: HmacKeyPrefixed -> ByteString -> Word32 -> ByteString -> PhkdfGen
+phkdfGen_initPrefixed = phkdfGen_initLike . hmacKeyLike_initPrefixed
+
+phkdfGen_hmacKeyPlain :: PhkdfGen -> Maybe HmacKeyPlain
+phkdfGen_hmacKeyPlain = hmacKeyLike_toPlain . phkdfGen_hmacKeyLike
+
+phkdfGen_hmacKeyHashed :: PhkdfGen -> Maybe HmacKeyHashed
+phkdfGen_hmacKeyHashed = hmacKeyLike_toHashed . phkdfGen_hmacKeyLike
+
+phkdfGen_hmacKeyPrefixed :: PhkdfGen -> HmacKeyPrefixed
+phkdfGen_hmacKeyPrefixed = hmacKeyLike_toPrefixed . phkdfGen_hmacKeyLike
+
+phkdfGen_hmacKey :: PhkdfGen -> Maybe HmacKey
+phkdfGen_hmacKey = hmacKeyLike_toKey . phkdfGen_hmacKeyLike
 
 phkdfGen_peek :: PhkdfGen -> Maybe ByteString
 phkdfGen_peek gen =
@@ -404,13 +446,13 @@ phkdfGen_peek gen =
 
 phkdfGen_finalizeHmacCtx :: PhkdfGen -> HmacCtx
 phkdfGen_finalizeHmacCtx gen =
-  (hmacKeyLike_run (phkdfGen_hmacKey gen)) {
+  (hmacKeyLike_run (phkdfGen_hmacKeyLike gen)) {
      hmacCtx_ipadCtx = SHA256.update ipad (phkdfGen_state gen)
     }
   where
     ipad =
       case phkdfGen_initCtx gen of
-        Nothing -> hmacCtx_ipadCtx . hmacKeyLike_run $ phkdfGen_hmacKey gen
+        Nothing -> hmacCtx_ipadCtx . hmacKeyLike_run $ phkdfGen_hmacKeyLike gen
         Just x -> x
 
 phkdfGen_read :: PhkdfGen -> (ByteString, PhkdfGen)
@@ -423,10 +465,10 @@ phkdfGen_read gen = (state', gen')
                    ] &
       hmacCtx_finalize
 
-    key = phkdfGen_hmacKey gen
+    key = phkdfGen_hmacKeyLike gen
 
     gen' = PhkdfGen
-      { phkdfGen_hmacKey = key
+      { phkdfGen_hmacKeyLike = key
       , phkdfGen_initCtx = Nothing
       , phkdfGen_state = state'
       , phkdfGen_counter = phkdfGen_counter gen + 1

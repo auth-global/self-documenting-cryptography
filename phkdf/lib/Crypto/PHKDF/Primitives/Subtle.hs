@@ -30,7 +30,7 @@ import           Data.Word
 data PhkdfCtx = PhkdfCtx
   { phkdfCtx_byteLen :: !Word64
   , phkdfCtx_state :: !SHA256.Ctx
-  , phkdfCtx_hmacKey :: !HmacKeyLike
+  , phkdfCtx_hmacKeyLike :: !HmacKeyLike
   }
 
 data P = P !Word64 !SHA256.Ctx
@@ -61,7 +61,7 @@ phkdfSlowCtx_lift f ctx = ctx {
   }
 
 data PhkdfGen = PhkdfGen
-  { phkdfGen_hmacKey :: !HmacKeyLike
+  { phkdfGen_hmacKeyLike :: !HmacKeyLike
   , phkdfGen_extTag :: !ByteString
   , phkdfGen_counter :: !Word32
   , phkdfGen_state :: !ByteString
