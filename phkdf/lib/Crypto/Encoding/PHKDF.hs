@@ -6,6 +6,7 @@ import Data.Monoid((<>))
 import Data.Bits(Bits, (.&.))
 import Data.ByteString(ByteString)
 import Data.Foldable(Foldable)
+import Data.Int(Int64)
 import Data.List(scanl')
 import qualified Data.ByteString as B
 import Crypto.Encoding.SHA3.TupleHash
@@ -116,30 +117,57 @@ credentialsPadding credentials fillerTag domainTag
     al = encodedVectorByteLength credentials
     a  = add64WhileLt (122 - al) 32
 
-dropBs :: Int -> [ ByteString ] -> [ ByteString ]
+dropBs :: Int64 -> [ ByteString ] -> [ ByteString ]
 dropBs = go
   where
-    len = B.length
+    len = fromIntegral . B.length
     go _ [] = []
     go 0 bs = bs
     go n (b:bs)
       | n >= len b = go (n - len b) bs
-      | otherwise = B.drop n b : bs
+      | otherwise = B.drop (fromIntegral n) b : bs
 
-takeBs :: Int -> [ ByteString ] -> [ ByteString ]
+takeBs :: Int64 -> [ ByteString ] -> [ ByteString ]
 takeBs = go
   where
-    len = B.length
+    len = fromIntegral . B.length
     go _ [] = []
     go n (b:bs)
       | n <= 0 = []
       | len b < n = b : go (n - len b) bs
-      | otherwise = [B.take n b]
+      | otherwise = [B.take (fromIntegral n) b]
 
-takeBs' :: Int -> [ ByteString ] -> [ ByteString ]
+takeBs' :: Int64 -> [ ByteString ] -> [ ByteString ]
 takeBs' n bs = if haveEnough then takeBs n bs else []
   where
-    haveEnough = any (>= n) (scanl' (+) 0 (map B.length bs))
+    len = fromIntegral . B.length
+    haveEnough = any (>= n) (scanl' (+) 0 (map len bs))
+
+takeB' :: Int64 -> ByteString -> Maybe ByteString
+takeB' n bs =
+  -- this fromIntegral is inherently safe
+  if fromIntegral (B.length bs) < n
+  then Nothing
+  -- this fromIntegral is safe because of the check above
+  else Just (B.take (fromIntegral n) bs)
+
+assertTakeB' :: Int64 -> ByteString -> ByteString
+assertTakeB' = (maybe (error "not enough bytes") id <$>) . takeB'
 
 nullBuffer :: ByteString
 nullBuffer = B.replicate 64 0
+
+chunkify :: Int -> ByteString -> [ ByteString ]
+chunkify n = go
+  where
+    go bs
+      | B.null bs = []
+      | otherwise = bs0 : go bs1
+        where (bs0, bs1) = B.splitAt n bs
+
+chunkifyCycle :: Int64 -> ByteString -> Int64 -> [ ByteString ]
+chunkifyCycle len bs = go
+  where
+    modN pos = pos `mod` (fromIntegral (B.length bs) + 1)
+    ext = B.concat (bs:takeBs len (cycle ["\x00", bs]))
+    go (modN -> pos) = assertTakeB' len (B.drop (fromIntegral pos) ext) : go (pos + len)
