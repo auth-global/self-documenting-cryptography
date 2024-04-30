@@ -206,6 +206,8 @@ module Crypto.PHKDF.Primitives
   , phkdfCtx
   , phkdfCtx_init
   , phkdfCtx_initHashed
+  , phkdfCtx_initPrefixedWith
+  , phkdfCtx_initLike
   , phkdfCtx_hmacKey
   , phkdfCtx_toResetHmacCtx
   , phkdfCtx_reset
@@ -273,6 +275,14 @@ phkdfCtx_initLike key =
 phkdfCtx_initHashed :: HmacKeyHashed -> PhkdfCtx
 phkdfCtx_initHashed = phkdfCtx_init . hmacKeyHashed_toKey
 
+
+phkdfCtx_initPrefixedWith :: ByteString -> HmacKeyPrefixed -> PhkdfCtx
+phkdfCtx_initPrefixedWith str key = PhkdfCtx
+    { phkdfCtx_byteLen = 64 * hmacKeyPrefixed_blockCount key
+                       + fromIntegral (B.length str)
+    , phkdfCtx_state = SHA256.update (hmacKeyPrefixed_ipadCtx key) str
+    , phkdfCtx_hmacKey = hmacKeyLike_initPrefixed key
+    }
 
 -- | initialize a new empty @phkdfStream@ context from the HMAC key
 --   originally supplied to the context, discarding all arguments already added.

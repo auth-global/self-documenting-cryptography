@@ -23,6 +23,8 @@ module Crypto.PHKDF.HMAC.Subtle
   , hmacKeyHashed_ipadCtx
   , hmacKeyHashed_opadCtx
   , HmacKeyPrefixed(..)
+  , hmacKeyPrefixed_ipadCtx
+  , hmacKeyPrefixed_opadCtx
   , hmacKeyPrefixed_eqHashed
   , HmacCtx(..)
   , HmacKeyPadding(..)
@@ -75,7 +77,6 @@ hmacKey_toHashed = \case
   HmacKey_Plain _ x -> x
   HmacKey_Hashed x -> x
 
-
 data HmacKeyLike
    = HmacKeyLike_Plain {-# UNPACK #-} !HmacKeyPlain HmacKeyHashed
    | HmacKeyLike_Hashed {-# UNPACK #-} !HmacKeyHashed
@@ -86,6 +87,14 @@ hmacKeyPrefixed_eqHashed a
   | hmacKeyPrefixed_blockCount a /= 1 = const False
   | otherwise = \b -> hmacKeyPrefixed_ipad a == hmacKeyHashed_ipad b
                    && hmacKeyPrefixed_opad a == hmacKeyHashed_opad b
+
+hmacKeyPrefixed_ipadCtx :: HmacKeyPrefixed -> SHA256.Ctx
+hmacKeyPrefixed_ipadCtx x =
+  hmacKeyPadding_runWith (hmacKeyPrefixed_blockCount x) (hmacKeyPrefixed_ipad x)
+
+hmacKeyPrefixed_opadCtx :: HmacKeyPrefixed -> SHA256.Ctx
+hmacKeyPrefixed_opadCtx x =
+  hmacKeyPadding_runWith 1 (hmacKeyPrefixed_opad x)
 
 instance Eq HmacKeyLike where
   (HmacKeyLike_Plain a _) == (HmacKeyLike_Plain b _) = hmacKeyPlain_eq a b

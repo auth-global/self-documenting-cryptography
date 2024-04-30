@@ -23,6 +23,7 @@ module Crypto.PHKDF.HMAC
   , hmacKeyLike
   , hmacKeyLike_init
   , hmacKeyLike_initHashed
+  , hmacKeyLike_initPrefixed
   , hmacKeyLike_toKey
   , hmacKeyLike_toPlain
   , hmacKeyLike_toHashed
@@ -83,6 +84,9 @@ hmacKeyLike_init = \case
 
 hmacKeyLike_initHashed :: HmacKeyHashed -> HmacKeyLike
 hmacKeyLike_initHashed = HmacKeyLike_Hashed
+
+hmacKeyLike_initPrefixed :: HmacKeyPrefixed -> HmacKeyLike
+hmacKeyLike_initPrefixed = HmacKeyLike_Prefixed
 
 hmacKeyLike_toPlain :: HmacKeyLike -> Maybe HmacKeyPlain
 hmacKeyLike_toPlain = \case
