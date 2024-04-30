@@ -127,13 +127,13 @@ concatTakeBs n bs = B.concat (takeBs (fromIntegral n) bs)
 bcryptXsFree :: Foldable f => (a -> ByteString) -> ByteString
              -> ByteString -> f a -> ByteString -> Word32
              -> HmacKeyPrefixed -> (Int, HmacKeyPrefixed)
-bcryptXsFree toString fnName longTag contextTags domainTag rounds_ = initRound
+bcryptXsFree toString fnName longTag contextTags domainTag ctr0 = initRound
   where
-    rounds :: Int64 = fromIntegral rounds_ + 1
+    rounds :: Int64 = fromIntegral ctr0 + 1
     -- Do 1-128 minirounds in the first superround, so that we end on an
     -- exact multiple of 128
     miniRoundBytes :: Int64 = fromIntegral bcryptXsFree_tagBytesPerRound
-    miniRounds0 = 128 - (- rounds) .&. (complement 127)
+    miniRounds0 = 128 - ((- rounds) .&. (complement 127))
     -- The number of superrounds after the first
     superRounds0 = (rounds - miniRounds0) `div` 128
     tagBytesFrom = chunkifyCycle 32 longTag
@@ -161,17 +161,15 @@ bcryptXsFree toString fnName longTag contextTags domainTag rounds_ = initRound
         lastOffset = (miniRounds0 - 1) * miniRoundBytes
 
         ltA = take halfBlocks $ tagBytesFrom 0
-        ltZ = take halfBlocks $ tagBytesFrom lastOffset
+        ltZ = take (halfBlocks + 4) $ tagBytesFrom lastOffset
 
         -- Now actually perform the commitment:
         ("", sha1) = hmacKeyPrefixed_feeds (ltA ++ ltZ) sha0
 
-      in superRound 0 sha1 Nothing rounds_ (fromIntegral miniRounds0) (fromIntegral superRounds0)
+      in superRound 0 sha1 Nothing ctr0 (fromIntegral miniRounds0) (fromIntegral superRounds0)
 
     superRound :: Word32 -> HmacKeyPrefixed -> Maybe BCryptState -> Word32 -> Word32 -> Word32 -> (Int, HmacKeyPrefixed)
     superRound tagPos !sha0 mBcrypt0 ctr miniRounds superRounds =
-          -- do 1-128 rounds in the first superround, so that we
-          -- land on an exact multiple of 128 rounds left to do.
       let
         -- The derivation of the keys for the superround will locally commit
         -- to the first 64 - 190 bytes of the extended salt of the
@@ -232,6 +230,6 @@ bcryptXsFree toString fnName longTag contextTags domainTag rounds_ = initRound
         ("",endSha) = hmacKeyPrefixed_feeds endChunks sha0
 
        in if superRounds == 0
-          then (fromIntegral tagPos', endSha)
+          then ((,) $! fromIntegral tagPos') $! endSha
           else superRound tagPos' nextSha (Just bcrypt1)
                           (ctr - miniRounds) 128 (superRounds - 1)
