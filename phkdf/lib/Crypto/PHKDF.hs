@@ -277,7 +277,7 @@ phkdfSimple block args = echo
            phkdfCtx_addArg echoHeader &
            phkdfCtx_assertBufferPosition 32 &
            phkdfCtx_addArgs tags &
-           phkdfCtx_finalizeStream (cycleByteStringWithNull domainTag) (word32 "OUT\x00") domainTag
+           phkdfCtx_toStream (cycleByteStringWithNull domainTag) (word32 "OUT\x00") domainTag
 
 -- | A tweakable, complete prehash protocol.   Note that this function is very
 --   intentionally implemented in such a way that the following idiom is
@@ -380,4 +380,4 @@ phkdfPass_seedFinalize seed tweak = echo
     headerEcho = cycleByteString (domainTag <> "\x00phkdf-pass-v0 echo\x00") 32
 
     echo = phkdfGen secretKey headerEcho (word32 "OUT\x00") echoTag &
-           phkdfGen_finalizeStream
+           phkdfGen_toStream

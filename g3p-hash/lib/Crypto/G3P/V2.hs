@@ -527,7 +527,7 @@ g3pSpark_init salt inputs = spark
         phkdfCtx_assertBufferPosition' 29 &
         phkdfCtx_addArgs contextTags &
         phkdfCtx_addArg (bareEncode (V.length contextTags)) &
-        phkdfCtx_finalizeStream endPadding
+        phkdfCtx_toStream endPadding
            (word32 "go\x00\x00" + 2024) domainTag &
         xorScan & myDrop' 1 & -- ensure that the sum is not filled with nulls
         myDrop' phkdfRounds & -- do the requested number of additional rounds
@@ -696,5 +696,5 @@ g3pKey_toStream
   -- ^ The @echo tag@, functionally identical to HKDF's info parameter.
   -> G3PKey -> Stream ByteString
 g3pKey_toStream hdr ctr tag key =
-  phkdfGen_finalizeStream (g3pKey_toGen hdr ctr tag key)
+  phkdfGen_toStream (g3pKey_toGen hdr ctr tag key)
 

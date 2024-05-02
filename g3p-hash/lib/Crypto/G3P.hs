@@ -466,7 +466,7 @@ g3pHash_seedInit block args =
             "G3Pb1 bravo" phkdfRounds &
         phkdfSlowCtx_assertBufferPosition' 32 &
         phkdfSlowCtx_addArgs seedTags &
-        phkdfSlowCtx_finalizeStream (cycleByteStringWithNull bcryptTag)
+        phkdfSlowCtx_toStream (cycleByteStringWithNull bcryptTag)
 
     (Cons phkdfHash (Cons bcryptInput _)) = secretStream
 
@@ -565,4 +565,4 @@ g3pGen_read gen = let (out, next) = phkdfGen_read (g3pGen_phkdfGen gen)
 -- | Turn a G3P output generator into an unbounded stream.
 
 g3pGen_finalizeStream :: G3PGen -> Stream ByteString
-g3pGen_finalizeStream = phkdfGen_finalizeStream . g3pGen_phkdfGen
+g3pGen_finalizeStream = phkdfGen_toStream . g3pGen_phkdfGen

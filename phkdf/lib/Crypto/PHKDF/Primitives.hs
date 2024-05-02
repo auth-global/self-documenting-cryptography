@@ -221,15 +221,15 @@ module Crypto.PHKDF.Primitives
   , phkdfCtx_addArgConcat
   , phkdfCtx_finalize
   , phkdfCtx_finalizeHmac
-  , phkdfCtx_finalizeHmacCtx
-  , phkdfCtx_finalizeStream
-  , phkdfCtx_finalizeGen
+  , phkdfCtx_toHmacCtx
+  , phkdfCtx_toStream
+  , phkdfCtx_toGen
   , PhkdfSlowCtx()
   , phkdfSlowCtx_extract
   , phkdfSlowCtx_addArg
   , phkdfSlowCtx_addArgs
   , phkdfSlowCtx_finalize
-  , phkdfSlowCtx_finalizeStream
+  , phkdfSlowCtx_toStream
   , PhkdfGen()
   , phkdfGen
   , phkdfGen_init
@@ -359,7 +359,7 @@ phkdfCtx_addArgConcat strs =
 
 phkdfCtx_finalize :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> ByteString
 phkdfCtx_finalize genFillerPad counter tag ctx =
-    phkdfCtx_finalizeGen genFillerPad counter tag ctx &
+    phkdfCtx_toGen genFillerPad counter tag ctx &
     phkdfGen_read &
     fst
 
@@ -367,8 +367,8 @@ phkdfCtx_finalize genFillerPad counter tag ctx =
 --   adding additional data to the end of the message that need not be
 --   TupleHash encoded.
 
-phkdfCtx_finalizeHmacCtx :: PhkdfCtx -> HmacCtx
-phkdfCtx_finalizeHmacCtx ctx =
+phkdfCtx_toHmacCtx :: PhkdfCtx -> HmacCtx
+phkdfCtx_toHmacCtx ctx =
   (phkdfCtx_toResetHmacCtx ctx) {
     hmacCtx_ipadCtx = phkdfCtx_state ctx
   }
@@ -377,17 +377,17 @@ phkdfCtx_finalizeHmacCtx ctx =
 --   of @phkdfStream@, though with a TupleHash message encoding.
 
 phkdfCtx_finalizeHmac :: PhkdfCtx -> ByteString
-phkdfCtx_finalizeHmac = hmacCtx_finalize . phkdfCtx_finalizeHmacCtx
+phkdfCtx_finalizeHmac = hmacCtx_finalize . phkdfCtx_toHmacCtx
 
 -- | close out a @phkdfStream@ context with a given counter and tag
 
-phkdfCtx_finalizeStream :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> Stream ByteString
-phkdfCtx_finalizeStream genFillerPad counter0 tag ctx =
-  phkdfCtx_finalizeGen genFillerPad counter0 tag ctx &
-  phkdfGen_finalizeStream
+phkdfCtx_toStream :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> Stream ByteString
+phkdfCtx_toStream genFillerPad counter0 tag ctx =
+  phkdfCtx_toGen genFillerPad counter0 tag ctx &
+  phkdfGen_toStream
 
-phkdfCtx_finalizeGen :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> PhkdfGen
-phkdfCtx_finalizeGen genFillerPad counter0 tag ctx =
+phkdfCtx_toGen :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> PhkdfGen
+phkdfCtx_toGen genFillerPad counter0 tag ctx =
     PhkdfGen
       { phkdfGen_hmacKeyLike = phkdfCtx_hmacKeyLike ctx
       , phkdfGen_extTag = extendTag tag
@@ -454,8 +454,8 @@ phkdfGen_peek gen =
     Nothing -> Just $ phkdfGen_state gen
     Just _  -> Nothing
 
-phkdfGen_finalizeHmacCtx :: PhkdfGen -> HmacCtx
-phkdfGen_finalizeHmacCtx gen =
+phkdfGen_toHmacCtx :: PhkdfGen -> HmacCtx
+phkdfGen_toHmacCtx gen =
   (hmacKeyLike_run (phkdfGen_hmacKeyLike gen)) {
      hmacCtx_ipadCtx = SHA256.update ipad (phkdfGen_state gen)
     }
@@ -469,7 +469,7 @@ phkdfGen_read :: PhkdfGen -> (ByteString, PhkdfGen)
 phkdfGen_read gen = (state', gen')
   where
     state' =
-      phkdfGen_finalizeHmacCtx gen &
+      phkdfGen_toHmacCtx gen &
       hmacCtx_feeds [ bytestring32 (phkdfGen_counter gen)
                    , phkdfGen_extTag gen
                    ] &
@@ -485,8 +485,8 @@ phkdfGen_read gen = (state', gen')
       , phkdfGen_extTag = phkdfGen_extTag gen
       }
 
-phkdfGen_finalizeStream :: PhkdfGen -> Stream ByteString
-phkdfGen_finalizeStream = Stream.unfold phkdfGen_read
+phkdfGen_toStream :: PhkdfGen -> Stream ByteString
+phkdfGen_toStream = Stream.unfold phkdfGen_read
 
 -- | close out a @phkdfStream@ context with a call to @phkdfSlowExtract@,
 --   providing the counter, tag, @fnName@, and number of rounds to compute.
@@ -497,7 +497,7 @@ phkdfGen_finalizeStream = Stream.unfold phkdfGen_read
 phkdfSlowCtx_extract :: (Int -> ByteString) -> Word32 -> ByteString -> ByteString -> Word32 -> PhkdfCtx -> PhkdfSlowCtx
 phkdfSlowCtx_extract genFillerPad counter tag fnName rounds ctx0 = out
   where
-    (Cons block0 innerStream) = phkdfCtx_finalizeStream genFillerPad counter tag ctx0
+    (Cons block0 innerStream) = phkdfCtx_toStream genFillerPad counter tag ctx0
 
     approxByteLen = ((fromIntegral rounds :: Int64) + 1) * 64 + 32
     encodedLengthByteLen = lengthOfLeftEncodeFromBytes approxByteLen
@@ -555,13 +555,13 @@ phkdfSlowCtx_addArgs = phkdfSlowCtx_lift . phkdfCtx_addArgs
 --   of the output stream
 
 phkdfSlowCtx_finalize :: (Int -> ByteString) -> PhkdfSlowCtx -> ByteString
-phkdfSlowCtx_finalize genFillerPad = Stream.head . phkdfSlowCtx_finalizeStream genFillerPad
+phkdfSlowCtx_finalize genFillerPad = Stream.head . phkdfSlowCtx_toStream genFillerPad
 
 -- | finalize a call to @phkdfSlowExtract@
 
-phkdfSlowCtx_finalizeStream :: (Int -> ByteString) -> PhkdfSlowCtx -> Stream ByteString
-phkdfSlowCtx_finalizeStream genFillerPad ctx =
-    phkdfCtx_finalizeStream genFillerPad
+phkdfSlowCtx_toStream :: (Int -> ByteString) -> PhkdfSlowCtx -> Stream ByteString
+phkdfSlowCtx_toStream genFillerPad ctx =
+    phkdfCtx_toStream genFillerPad
         (phkdfSlowCtx_counter ctx)
         (phkdfSlowCtx_tag ctx)
         (phkdfSlowCtx_phkdfCtx ctx)
