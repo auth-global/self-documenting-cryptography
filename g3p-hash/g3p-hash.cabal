@@ -17,6 +17,8 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:   Crypto.G3P
+                     Crypto.G3P.V2
+                     Crypto.G3P.V2.Subtle
                      Crypto.G3P.BCrypt
                      Crypto.G3P.BCrypt.Subtle
 

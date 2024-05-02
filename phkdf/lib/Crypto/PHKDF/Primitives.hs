@@ -218,6 +218,7 @@ module Crypto.PHKDF.Primitives
   , phkdfCtx_addArg
   , phkdfCtx_addArgs
   , phkdfCtx_addArgsBy
+  , phkdfCtx_addArgConcat
   , phkdfCtx_finalize
   , phkdfCtx_finalizeHmac
   , phkdfCtx_finalizeHmacCtx
@@ -242,9 +243,10 @@ module Crypto.PHKDF.Primitives
   , phkdfGen_hmacKeyLike
   , phkdfGen_read
   , phkdfGen_peek
-  , phkdfGen_finalizeStream
+  , phkdfGen_toStream
   ) where
 
+import           Control.Arrow((>>>))
 import           Data.Bits((.&.), complement)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
@@ -330,8 +332,9 @@ phkdfCtx_toResetHmacCtx = hmacKeyLike_run . phkdfCtx_hmacKeyLike
 --   arguments.
 
 phkdfCtx_addArg :: ByteString -> PhkdfCtx -> PhkdfCtx
-phkdfCtx_addArg b ctx = phkdfCtx_unsafeFeed [ leftEncodeFromBytes (B.length b), b ] ctx
-
+phkdfCtx_addArg str = phkdfCtx_unsafeFeed [len, str]
+  where
+    len = leftEncodeFromBytes (B.length str)
 -- | append zero or more strings onto the end of @phkdfStream@'s list of
 --   arguments.
 
@@ -342,6 +345,13 @@ phkdfCtx_addArgsBy :: Foldable f => (a -> ByteString) -> f a -> PhkdfCtx -> Phkd
 phkdfCtx_addArgsBy f params ctx0 = foldl' delta ctx0 params
   where delta ctx a = phkdfCtx_addArg (f a) ctx
 
+phkdfCtx_addArgConcat :: Foldable f => f ByteString -> PhkdfCtx -> PhkdfCtx
+phkdfCtx_addArgConcat strs =
+    phkdfCtx_unsafeFeed [len] >>>
+    phkdfCtx_unsafeFeed strs
+  where
+    len = leftEncodeFromBytes (foldl' delta 0 strs)
+    delta tot str = tot + B.length str
 
 -- | close out a @phkdfStream@ context using the first mode of operation,
 --   examining only the first output block and discarding the rest of the
