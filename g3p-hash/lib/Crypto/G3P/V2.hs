@@ -56,7 +56,7 @@ There are several themes worked into this design:
     Both of these documents have profoundly contributed to the design of the
     G3P. PHKDF can be thought of as backporting the advice of these newer
     documents to the older PBKDF2 design, as well as finding new applications
-    and justifications for the use of context parameters in password hash
+    and justifications for the use of contextual parameters in password hash
     functions and key derivation protocols.
 
 6.  From the viewpoint of an implementer, standard PBKDF2, HKDF, and bcrypt
@@ -65,7 +65,12 @@ There are several themes worked into this design:
     However, most library implementations of HMAC-SHA256 won't do, as G3Pb2
     uses bitstring end-of-message padding. Moreover, any reasonably practical
     implementation of the G3P requires an HMAC implementation that supports
-    precomputed HMAC keys (for PHKDF) and backtracking (for bcrypt).
+    precomputed HMAC keys (for PHKDF) as well as streaming with backtracking
+    (for bcrypt). These latter features aren't strictly required to compute
+    the correct result, meaning that the G3P respects the HMAC's abstract
+    specification.  Precomputed keys, streaming, and backtracking are all
+    strictly required in order to implement the G3P in the most secure way
+    possible.
 
 7.  From the viewpoint of an academic cryptographer, morally speaking, this
     design is literally a PBKDF2, an HKDF, and a bcrypt all at the same time,
