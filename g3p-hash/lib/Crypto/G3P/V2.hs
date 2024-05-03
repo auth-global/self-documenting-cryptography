@@ -3,8 +3,10 @@
 {- |
 
 The [Global Password Prehash Protocol (G3P)](https://github.com/auth-global/self-documenting-cryptography/blob/prerelease/design-documents/g3p.md)
-is a slow, attribution-armored password hash and key derivation function. It
-supports [self-documenting deployments](https://www.cut-the-knot.org/Curriculum/Algebra/SelfDescriptive.shtml)
+is a slow, attribution-armored password hash and key derivation function. Its
+intented purpose is to ensure the delivery of plaintext salts from deployed
+authentication databases to password crackers in order to support
+[self-documenting deployments](https://www.cut-the-knot.org/Curriculum/Algebra/SelfDescriptive.shtml)
 whose password hashes are /traceable/ or /useless/ after they have been /stolen/.
 This secondary security goal seeks to use [/cryptoacoustics/](https://github.com/auth-global/self-documenting-cryptography/)
 to provide [/embedded attributions/](https://joeyh.name/blog/entry/attribution_armored_code/)
@@ -14,127 +16,60 @@ The G3P revisits the role of cryptographic salt, splitting the salt into the
 cartesian product of the /seguid/, /username/, and /tag/ parameters. Any
 parameter with "tag" as part of the name is an embedded attribution to anybody
 providing the inputs to the /username/ or /password/ parameters. Tags are
-themselves directly self-documenting embedded attributions, in the sense that
-one cannot easily or efficiently replace the tag with anything else without
-losing the ability to compute the correct hash function.
+themselves directly self-documenting embedded plaintext salts, in the sense
+that one cannot easily or efficiently replace the tag with anything else
+without losing the ability to compute the correct hash function.
 
-The /seguid/ corresponds to the key used for every call to HMAC-SHA256, right up
-until final output expansion. In this way the G3P mimicks the construction of
-HKDF, with the seguid corresponding to HKDF's /salt/ parameter. The G3P also
-mimicks PBKDF2 used in an alternate mode of operation.
+There are several themes worked into this design:
 
-The seguid can be trivially replaced with a /precomputed HMAC key/, thus the
-seguid is not a direct tag. However this precomputed key is a cryptographic
-hash of the seguid, and for this reason the seguid is capable of serving as
-an /indirect/ tag, which the Seguid Protocol is designed to utilize via
-Self-Documenting Globally Unique Identifiers (seguids).
+1.  Always Be enCoding: one of the plaintext salts or another should be mixed
+    into the final state as often and frequently as possible. If an attacker
+    chooses to deploy fully homomorphic encryption in a password cracker,
+    let there be no rest for the wicked.
 
-It is strongly recommend a deployment identify itself with a single 64-byte
-(512-bit) seguid, and the deployment's choice of plaintext messages to be
-delivered via tags. These salts can be constants across the entire deployment,
-as the username is intended to be used as the final bit of salt within a
-deployment.
+2.  Always Be Forgetting: it should be possible to transfer the key stretching
+    process to another semi-trusted computing element without providing that
+    element with a password cracking attack that is signficantly less expensive
+    than the work done so far. These opportunities occur at every PHKDF round,
+    and at every bcrypt superround. Furthermore, any device that completes the
+    PHKDF key-stretching computation can outsource some or all of the bcrypt
+    superrounds without losing control of the end result.
 
-In a traditional password hash function, the salt is a random bytestring
-typically between 8 and 32 bytes long. One of its primary purposes is to
-identifiy a unique hash function so that one cannot attempt to crack multiple
-password hashes with a single key-stretching computation. Oftentimes this
-is implemented by storing a salt per user.
+3.  Excess Salt: our philosophy of applying salt is that it's the first thing
+    you do, it's the last thing you do, it's something you do at every
+    opportunity, and sometimes we even create new opportunities to add more
+    salt. We have certainly found new justifications and applications for
+    underappreciated yet pre-existing forms of salt.
 
-However, in the context of a client-side prehash, storing a salt per user has
-the potential to leak whether or not an account exists, or if a password has
-changed. The G3P has the option to eliminate these complications, because
-it is safe to use a plain username as the salt, in addition to the
-deployment-identifying seguid and tags.
+4.  Unlimited Free Salt by Countering Excess Freedom: the G3P starts from
+    conventional keys as it's first and primary layer of security.  Excessively
+    long keys are often considered suspect, but very long keys that likely
+    result in totally unique hash functions is also exactly what is needed
+    in the information theoretic sense in order for there to plausibly be
+    much if any cryptoacoustic advantage. Therefore, we use long
+    plaintext salts with low average entropy, and use short, fixed-length,
+    (ideally) high-entropy HMAC keys as both the starting and ending point.
 
-On the other hand, if one is aware of the potential issues surrounding the
-implementation of a random per-user salt in a client-side hashing context, and
-is willing to mitigate or live with them, then there are potential advantages
-to using a random salt as the input to the G3P's @username@ parameter instead.
+5.  These goals align extremely well, and often lead to similar outcomes as,
+    the advice found in [RFC 5869: HMAC-based Extract-and-Expand Key Derivation Function (HKDF)](https://datatracker.ietf.org/doc/html/rfc5869)
+    and [NIST SP 108r1 Recommendation for Key Derivation Using Pseudorandom Functions](https://csrc.nist.gov/pubs/sp/800/108/r1/upd1/final).
+    Both of these documents have profoundly contributed to the design of the
+    G3P. PHKDF can be thought of as backporting the advice of these newer
+    documents to the older PBKDF2 design, as well as finding new applications
+    and justifications for the use of context parameters in password hash
+    functions and key derivation protocols.
 
-All parameter names are suggestive, not prescriptive. Usage is ultimately
-defined by the deployment.
+6.  From the viewpoint of an implementer, standard PBKDF2, HKDF, and bcrypt
+    interfaces cannot be used to implement this design. HMAC-SHA256 is the
+    only standard library primitive this password hash function relies upon.
+    However, most library implementations of HMAC-SHA256 won't do, as G3Pb2
+    uses bitstring end-of-message padding. Moreover, any reasonably practical
+    implementation of the G3P requires an HMAC implementation that supports
+    precomputed HMAC keys (for PHKDF) and backtracking (for bcrypt).
 
-When somebody is guessing a username, they must also know (or guess) the
-password. However, the username need not be revealed to somebody who is guessing
-the password, as the raw username can always be replaced by a precomputed hash.
-If this intentional feature is not desired, a deployment might choose to swap
-the username and password, as these inputs are otherwise functionally identical.
-
-The usage and interpretation(s) of any given parameter is always defined by the
-deployment, and is never defined by offical G3P documentation or specifications.
-
-The G3P always has room for more salt. It doesn't really make sense to inject
-more than 256 bits of entropy into the username parameter, because when the G3P
-is partially applied to a constant username, the raw input can be replaced with
-a SHA256 state. This is not true of any of the tags: it doesn't matter how long
-it is, the whole tag must be present for the hash computation to be correct.
-
-Every parameter with the word _tag_ in its name exhibits this property.
-Theoretically, one could specify a G3P-based hash function that requires
-terabytes of salt to be hashed billions of times over. However it is unclear
-what purpose such an impractical specification might serve.
-
-This initial variant of the G3P employs a combination of PHKDF and bcrypt.
-PHKDF serves as the primary cryptoacoustic component, and bcrypt serves as the
-primary key-stretching component of the G3P. Both are secondarily used in the
-alternate role as well, with the PHKDF adding a tiny bit of key stretching and
-bcrypt providing significant additional cryptoacoustic plaintext repetitions.
-
-1.  Every bit of every parameter matters. Every boundary between parameters
-    matters. The presence and position of every null byte and every empty
-    string matters. There aren't supposed to be any trivial collisions, the
-    only exception being null-byte extension collisions on the seguid, which
-    serves as an HMAC-SHA256 key.
-
-2.  Except for the tweaks, any change to any parameter requires restarting the
-    PHKDF key-stretching computation from somewhere in the very first call to
-    HMAC.
-
-3.  All input arguments are hardened against length-related timing side
-    channels in various different ways.
-
-    At one extreme, the username, password, and long tag have the most
-    aggressive length hardening in the conventional sense, exhibiting no timing
-    side channels except on multi-kilobyte inputs, after which the timing
-    impacts are minimized.
-
-    At another extreme, the domain tag exhibits severe yet predictable
-    timing side channels transitioning from 19 to 20 bytes and every 64
-    bytes thereafter.  However, the domain tag is otherwise free of
-    timing-based side channels, so it too is hardened in its own way.
-
-The design I converged upon employs fairly complicated data encoding
-procedures. Unfortunately, this provides a fair bit of surface area for subtly
-wrong implementations that work most of the time, but will return garbage on
-certain lengths of inputs. I hope that this will eventually be remediated with
-a more comprehensive suite of test vectors.
-
-Note that the username, password, long-tag, and credentials vector are all
-/horn-loaded inputs/ in the sense that they are consumed a constant number of
-times near the beginning of the hashing protocol, and after each PHKDF
-round, the hash with the least key-stretching applied is discarded.
-
-This implies that particularly paranoid password-handling implementations can
-eliminate the password from memory even before key-stretching is complete.
-Additionally, assuming all the sensitive secrets are contained in horn-loaded
-parameters, this implies the key-stretching computation can be relocated at
-nearly any time with full credit for any key-stretching already performed.
-
-One of the associated costs is that collisions on horn-loaded inputs can be
-found over the entire G3P by "only" colliding the first call to HMAC-SHA256,
-/G3Pb2 alfa/. If it were trivial to produce collisions on HMAC-SHA256, this
-would very likely make collisions on the horn-loaded inputs trivial. However
-such an attack would be unlikely to be able to immediately produce collisions
-that vary any of the other inputs. This is because all the other inputs are
-repeated elsewhere in the protocol, thus colliding /G3Pb2 alfa/ isn't enough
-to collide the final output of the G3P.
-
-This "cost" seems acceptable in the context of password-based authentication
-flows, where collision resistance and second preimage resistance are not
-directly relevant. What is crucially important is preimage resistance and
-maximizing the cost of parallelizing multiple key-stretching computations while
-minimizing the latency of a single key-stretching computation.
+7.  From the viewpoint of an academic cryptographer, morally speaking, this
+    design is literally a PBKDF2, an HKDF, and a bcrypt all at the same time,
+    via a carefully designed pun.
 
 -}
 
@@ -182,10 +117,14 @@ import           Crypto.PHKDF.Primitives.Assert
 import           Crypto.G3P.BCrypt (bcryptXsFree)
 import           Crypto.G3P.V2.Subtle
 
--- | These input parameters are grouped together because the envisioned use
---   for them is that they are constants (or near-constants) specified by
---   a deployment. User-supplied inputs would typically not go here.  In this
---   role, all these parameters function as salt.
+-- | These input parameters are grouped together because they are the
+--   parameters that will have to persist in memory for most or all of
+--   the PHKDF-based key-stretching computation.
+--
+--   It is intended that deployments of an authentication database will
+--   specify these as constants or near-constants. User-supplied inputs
+--   would typically not go here. In this role, all these parameters
+--   function as salt.
 --
 --   The seguid parameter acts as a deployment-wide salt. Cryptographically
 --   speaking, the most important thing a deployment can do is specify a
@@ -208,21 +147,18 @@ import           Crypto.G3P.V2.Subtle
 --
 --   Especially useful messages include URIs, legal names, and domain names.
 
-
-
 data G3PSalt = G3PSalt
   { g3pSalt_seguid :: !HmacKey
-    -- ^ An HMAC-SHA256 key, usable as a high-repetition indirect tag via
-    --   self-documenting globally unique identifiers (seguids).
+    -- ^ usable as a high-repetition indirect tag via
+    --   self-documenting globally unique identifiers (seguids)
   , g3pSalt_domainTag :: !ByteString
     -- ^ plaintext tag with one repetition per PHKDF round. 0-19 bytes are
-    --   free, 20-82 bytes cost a additional sha256 block /per PHKDF round/,
-    --   with 83-146 and every 64 bytes thereafter incurring a similar cost.
+    --   free, 20-83 bytes cost a additional sha256 block /per PHKDF round/,
+    --   with every 64 bytes thereafter incurring a similar cost.
     --
-    --   Tags up to 82 or maybe even 146 bytes long are reasonable in most
-    --   contexts. In the case of long domain tags, it is strategically
-    --   advantageous to ensure that the first 32 bytes are highly actionable,
-    --   as these bytes are commonly used as filler padding.
+    --   In the case of long domain tags, it is strategically advantageous
+    --   to ensure that the first 32 bytes are highly actionable, as these
+    --   bytes are commonly used as filler padding.
     --
     --   This parameter provides [domain separation](https://csrc.nist.gov/glossary/term/domain_separation).
     --   A suggested value is a ICANN domain name controlled by the deployment.
@@ -230,38 +166,61 @@ data G3PSalt = G3PSalt
     --   basic authentication, which in part inspired it.
   , g3pSalt_longTag :: !ByteString
     -- ^ plaintext tag with 1x repetition, then cycled for roughly
-    --   8 kilobytes.  Constant time on inputs up to nearly 5 kilobytes.
+    --   8 kilobytes which is used as filler padding after the password.
     --
-    --   Overages incur one sha256 block per 64 bytes.
+    --   This is typically duplicated as the 'g3pSeedInputs_bcryptLongTag'
+    --   parameter, which provides a very large number of cryptoacoustic
+    --   repetitions. If this step is not taken, most or all of this parameter
+    --   can be discarded after the first call to HMAC is complete, making
+    --   it essentially horn-loaded which would be a bit of an anomaly for
+    --   this input block.
+    --
+    --   The first 0-63 bytes is also used as filler padding after the
+    --   contextTags, possibly making part of this parameter not horn-loaded.
+    --
+    --   Constant time on inputs up to 4 kilobytes.  Overages incur one sha256
+    --   block per 64 bytes.
   , g3pSalt_contextTags :: !(Vector ByteString)
-    -- ^ plaintext tags with 3x repetition. Constant-time on 0-63 encoded bytes,
+    -- ^ plaintext tags with 4x repetition. Constant-time on 0-63 encoded bytes,
     --   which includes the length encoding of each string. Thus 60 of those
     --   free bytes are usable if the tags vector is a single string, or less if
-    --   it contains two or more strings.
+    --   it contains two or more strings. The empty vector is a good default
+    --   choice here.
     --
-    --   Overages incur three sha256 blocks per 64 bytes.
+    --   Overages incur four sha256 blocks per 64 bytes.
     --
     --   This parameter is notable because it is the least expensive purely
     --   auxiliary input that is not horn-loaded. Thus if you want a very long
     --   salt input that provides a bit of extra collision resistance, this
     --   would be a logical candidate input location to consider.
+    --
+    --   If your deployment uses a random salt per account, this is an ideal
+    --   location in which to place a copy of that salt.
   , g3pSalt_phkdfRounds :: !Word32
     -- ^ How expensive will the PHKDF component be? An optimal implementation
-    --   computes exactly three SHA256 blocks per round if the domain tag is
+    --   computes exactly two SHA256 blocks per round if the domain tag is
     --   19 bytes or less, plus a reasonably large but constant number of
-    --   additional blocks. I recommend at least 20,000 rounds, if not 40,000.
-    --   You might consider adjusting that recommendation downward in the
-    --   case of domain tags that exceed 19 bytes in length: 15,000 rounds
-    --   of PHKDF with a domain tag that is 83 bytes long should cost about
+    --   additional blocks. I recommend 20,000 rounds or so. You might
+    --   consider adjusting that recommendation downward in the case of
+    --   domain tags that exceed 19 bytes in length: 13,333 rounds of PHKDF
+    --   with a domain tag that is 83 bytes long should cost about
     --   the same number of SHA256 blocks as 20,000 rounds of PHKDF with a
     --   domain tag that is 19 bytes long.
   } deriving (Eq)
 
--- | The username and password are grouped together because they are normally
---   expected to be supplied by users or other observers of a deployment.
+-- | These parameters are grouped together because they are hashed once
+--   near the beginning of the protocol and then are no longer needed, unless
+--   a deployment specifies duplicating (part of) one of these parameters
+--   into another.  Thus all of these parameters are horn-loaded.
+--
+--   The input string to the "username" parameter could be provided directly
+--   by the user.  Alternatively, it could be a random salt retrieved from
+--   a server or database, typically looked up via a plaintext username.
+--   The password is normally expected to be supplied by the users of a
+--   deployment.
 --
 --   Furthermore, the credentials vector is here because it is an ideal
---   location to include other user input. For example, one could implement
+--   location to include other input. For example, one could implement
 --   a Two-Secret Key Derivation (2SKD) scheme analogous to 1Password's.
 --
 --   A deployment can also specify additional constant tags as part of the
@@ -272,22 +231,95 @@ data G3PSalt = G3PSalt
 --   Note that the username and password are subjected to additional length
 --   hardening. The G3P operates in a constant number of SHA256 blocks so long
 --   as the combined length of the username and password is less than about
---   3 KiB,  or the combined length of the username, password, and long tag is
+--   4 KiB,  or the combined length of the username, password, and long tag is
 --   less than about 8 KiB. The actual numbers are somewhat less in both cases,
---   but this is a reasonable approximation. Note that the bcrypt tag can
---   subtract up to 113 bytes from the 8 KiB total, and don't effect the 3 KiB
---   total.
+--   but this is a reasonable approximation.
 --
 --   In the case of all of the inputs in this record, longer values incur one
 --   SHA256 block per 64 bytes.
 
 data G3PInputs = G3PInputs
   { g3pInputs_username :: !ByteString
-  -- ^ constant time on 0-101 bytes, or if any of the other conditions are met.
+  -- ^ constant time on 0-293 bytes, or if the combined length of the
+  --   username and password is less than about 4 kilobytes, or if the
+  --   combined length of the username, password, and long tag is
+  --   less than about 8 kilobytes.
+  --
+  --   Using a deployment-identifying seguid and domain tags makes
+  --   it perfectly safe to put normalized usernames here, as then
+  --   this salt would then only need to be unique within that deployment.
+  --
+  --   This approach comes with the cost that you will have to reliably
+  --   perform username normalization everywhere this hash function is
+  --   computed. Offering a server-side remote procedure call to perform
+  --   this normalization would be recommended.
+  --
+  --   The G3P is intentionally designed to allow the plaintext of this
+  --   parameter to be hidden from a password cracker, preventing
+  --   the cracker from immediately logging in if successful. However,
+  --   this partial application doesn't apply any key-stretching, meaning
+  --   that guessable login names can be cracked relatively quickly.
+  --
+  --   A deployment could specify that the username be hashed before being
+  --   placed into this parameter, thus providing key-stretching themselves.
+  --
+  --   Thus this approach is less a defensive line than more a "sand in
+  --   the gears" tactic. It might also be useful as a legal damages
+  --   enhancement strategy against unauthorized password crackers who
+  --   fail to take this step to help protect users' privacy.
+  --
+  --   The advantage of this approach is that in a client-side prehashing
+  --   scenario, it is simple and easy to ensure that the salting process
+  --   does not leak anything about the existence or non-existence of
+  --   accounts, does not leak anything about recent account activity, and
+  --   cannot be used as reidentification hooks in deanonymization attacks.
+  --
+  --   On the other hand, using a random per-account salt has the potential
+  --   to be a far more meaningful defensive line. This can serve both the
+  --   interests of legitimate deployments and the password hash thieves
+  --   that attack them. Some thieves will want to be able to outsource
+  --   password cracking work without giving successful crackers an
+  --   opportunity to log in.
+  --
+  --   The cost is that in typical client-side prehashing scenarios, your
+  --   server will have to reveal the actual salt for arbitrary accounts
+  --   to arbitrary members of the public.
+  --
+  --   This has the potential to leak information about the (non-)existence
+  --   of accounts, to leak information about recent account activity, and
+  --   to provide reidentification hooks for deanonymization attacks.
+  --
+  --   It should be possible to largely mitigate these issues; for example,
+  --   one might generate consistent nonsense as the salt for non-existent
+  --   accounts by having the server normalize the username and hash it with
+  --   a secret key. While such a simple approach might not be perfect, it
+  --   would likely go a long way towards mitigation.
+  --
+  --   In a few specialized cases it might be possible to hide a salt
+  --   from members of the general public by requiring pre-authentication
+  --   before the password can even be attempted. However, this cannot
+  --   be a general-purpose solution, as passwords are one of the fundamental
+  --   solutions to the problem of key management, and key management is
+  --   the fundamental problem behind authentication.
+  --
+  --   One can also supplement any salt applied here with an oblivious
+  --   pseudorandom function (OPRF) in your authentication flow, especially if
+  --   password-authenticated key agreement (PAKE) is used. Through the magic
+  --   of multiparty computation, it's possible to apply a salt that only the
+  --   server knows to a password attempt that only the client knowns. However,
+  --   OPRF cannot be directly integrated into the G3P, though the G3P should
+  --   be an excellent choice for a key derivation function to prepare a
+  --   password for OPRF.
+  --
+  --   I see this choice of plain usernames versus random salts as a fairly
+  --   fundamental tradeoff in the design of G3P deployments. I took the time
+  --   to ensure that both are possible. Either can be executed poorly,
+  --   and both can be executed well. This decision has significant strategic
+  --   consequences. Pick your poison carefully.
   , g3pInputs_password :: !ByteString
-  -- ^ constant time on 0-101 bytes, or if any of the other conditions are met.
+  -- ^ constant time on 0-293 bytes, or if any of the other conditions are met.
   , g3pInputs_credentials :: !(Vector ByteString)
-  -- ^ constant time on 0-90 encoded bytes. This includes a variable-length
+  -- ^ constant time on 0-281 encoded bytes. This includes a variable-length
   -- field that encodes the bit length of each string; this field itself
   -- requires two or more bytes per string.
   } deriving (Eq)
@@ -329,10 +361,10 @@ data G3PSeedInputs = G3PSeedInputs
     --       move forward.
     --
     --   4.  Ensure that this input has some kind, any kind, of recognizable
-    --       pattern. If this input is UTF8 encoded, it doesn't matter if the
-    --       textual content is random gibberish, it's extremely doubtful that
-    --       an attacker could achieve any particularly nefarious goal under
-    --       this restriction.
+    --       pattern. If this input is a valid UTF8 encoding, it doesn't matter
+    --       if the textual content is random gibberish. It's extremely
+    --       doubtful that an attacker could achieve any particularly
+    --       nefarious goal under this restriction.
     --
     --   Note that any single one of these conditions should be sufficient
     --   to avoid problems, and that the primary intended use case for this
@@ -349,7 +381,7 @@ data G3PSeedInputs = G3PSeedInputs
     --   careful study, which is likely to suggest further improvements.
     --   Yet this hedge doesn't cost anything with respect to the intended
     --   use case, and seems plausibly strong in situations that fall well
-    --   outside anything intended.
+    --   outside any intended use case.
     --
     --   Regarding condition 2, any of the 'G3PInput' parameters would also
     --   qualify. However, it would be rather silly to repeat the user's
@@ -359,6 +391,10 @@ data G3PSeedInputs = G3PSeedInputs
     --   Regarding condition 3, the actual size of a parameter that is fully
     --   committed to via baked-in hashing is likely a bit more than 8352
     --   bytes, but this would require further verification.
+    --
+    --   The shortest plausible attack string would seem to need to be as long
+    --   as the truncation limit, which is north of 16 megabytes if you specify
+    --   the suggested 4000 rounds.
   , g3pSeedInputs_bcryptDomainTag :: !ByteString
     -- ^ Used to derive the keys for a super round in bcrypt-xs-ctr mode.
     --   Duplicating the 'g3pSalt_domainTag' is a good default choice.
@@ -370,18 +406,23 @@ data G3PSeedInputs = G3PSeedInputs
     --
     --   For example, if your deployment uses a random per-user salt, then
     --   it's a good idea to include that salt in the 'username' and
-    --   'contextTags' parameters, but exclude that salt from the
-    --   'bcryptContextTags'. This means that if some or all of the bcrypt
+    --   'contextTags' parameters, but exclude the plaintext of the salt
+    --   from 'bcryptContextTags'.
+    --
+    --   The use of a random salt implies that if some or all of the bcrypt
     --   computation is outsourced to another device, that device cannot
-    --   break even weak passwords without the salt.
+    --   break even weak passwords without knowing the salt.
     --
     --   Directly including that random per-user salt in the
-    --   'bcryptContextTags' vector would require that this salt be known to
-    --   the device performing the key-stretching computation, thus
-    --   automatically obviating this possible line of defense.
+    --   'bcryptContextTags' vector would require that the plaintext of this
+    --   salt be known to the device performing the key-stretching computation,
+    --   thus automatically obviating this possible line of defense.
     --
-    --   Which things are forgotten and when are important details in
-    --   cryptographic processes, and these choices imply strategic outcomes.
+    --   If one is absolutely set on including that random salt here, one
+    --   could hash the salt first to derive a new salt that cannot itself
+    --   be used to crack the password. What things are forgotten and when
+    --   are important details in cryptographic processes, and these choices
+    --   have strategic implications.
     --
     --   If some unusual deployment of the G3P accepts arbitrary external
     --   inputs into the 'bcryptLongTag', one possible way to handle this
@@ -391,31 +432,36 @@ data G3PSeedInputs = G3PSeedInputs
 
 -- | The Global Password Prehash Protocol (G3P). Note that this function is very
 --   intentionally implemented in such a way that the following idiom is
---   efficient.  It performs the expensive key stretching phase only once.
+--   efficient. It performs the expensive key stretching phase only once,
+--   and results in 3 cryptographically independent output streams, i.e.
+--   statistically independent to any efficient attacker that does not have
+--   access to the underlying password and other secrets.
 --
 -- @
---  let mySprout = g3pHash salt inputs
---      myAuthKey = mySprout ["auth",ec8296b96e939f"] "user salt ec8296b96e939f"
---      myDiskKey = mySprout ["disk",longTag,"key","bf94facc27b76328"] "my.domain storage context"
---   in [ myKeyAuth (word32 "AUTH") "my.domain.example"
---      , myDiskAuth (word32 "DISK") "filename0.txt"
---      , myDiskAuth (word32 "DISK") "quarterly-report.pdf"
+--  let mySprout = g3pHash salt inputs seedInputs seguid
+--      myAuthKey = mySprout ["auth", "user salt: ec8296b96e939f"] "login.my.domain.example" ""
+--      myDiskKey = mySprout ["disk",longTag,"key","bf94facc27b76328"] "cloud.my.domain.example" ""
+--   in [ myAuthKey "" (word32 "AUTH") "my.domain.example"
+--      , myDiskAuth "" (word32 "DISK") "filename0.txt"
+--      , myDiskAuth "" (word32 "DISK") "quarterly-report.pdf"
 --      ]
 -- @
 --
 --   In addition to sharing the main key-stretching computation among
 --   all three independent output streams, this also shares the computation
---   of the 'G3PKey' among the two calls to @myDiskAuth@.  However, the
---   savings in this latter context is relatively miniscule, but might
---   also be relevant in certain contexts.
+--   of the 'G3PKey' among the two calls to @myDiskAuth@.  Although the
+--   savings in this latter context is relatively miniscule, it also can be
+--   relevant in certain contexts.
 --
 --   In the case that you want or need to persist or serialize the intermediate
---   intermediate structures then the plain-old-datatypes 'G3PSeed',
---   'G3PSprout', 'G3PTree', and 'G3PKey' and their associated functions
---   are more relevant.
+--   intermediate structures, then the plain-old-datatypes 'G3PSpark',
+--   'G3PSeed', 'G3PSprout', 'G3PTree','G3PKey', 'PhkdfGen', and their
+--   associated functions are more relevant than unbounded streams and
+--   implicit closures.
 
 -- Oof, I didn't actually succeed in my claim in the first release of G3Pb1.
--- I now have a deeper appreciation for point-less programming.
+-- I now have a deeper appreciation for point-less programming. On the other
+-- hand, I feel like there should be a much more idiomatic solution here.
 g3pHash :: Foldable f
         => G3PSalt -- ^ All the parameters needed throughout the entire key-stretching computation.
         -> G3PInputs -- ^ All the parameters that can be forgotten as soon as they are hashed once.
@@ -427,15 +473,21 @@ g3pHash :: Foldable f
         -> ByteString -- ^ echo header
         -> Word32 -- ^ echo counter
         -> ByteString -- ^ echo tag. A good default is to duplicate the sprout's tag.
-        -> Stream ByteString -- ^ An unbounded stream of 32-byte output blocks.  Use as many or as few as you want. NIST SP 800-108 recommends never looking at more than 137.4 GB of output, though this is an extremely cautious recommendation. On the other hand, if you really want that much CSPRNG data, you are better off using this function to generate keys for another, faster CSPRNG.
-g3pHash salt inputs seedInputs seguid role tag ekey ehdr ectr etag =
-    g3pSpark_init salt inputs &
-    g3pSpark_toSeed seedInputs &
-    g3pSeed_toSprout seguid &
-    g3pSprout_addArgs role &
-    g3pSprout_toTree tag &
-    g3pTree_toKey ekey &
-    g3pKey_toStream ehdr ectr etag
+        -> Stream ByteString -- ^ An unbounded stream of 32-byte output blocks.  Use as many or as few as you want. NIST SP 800-108 recommends never looking at more than 137.4 GB of output, though this is an extremely cautious recommendation. On the other hand, if you really want that much CSPRNG data, you are likelyb etter off using this function to generate keys for another, faster CSPRNG.
+g3pHash salt inputs =
+    let spark = g3pSpark_init salt inputs
+     in \seedInputs ->
+        let seed = g3pSpark_toSeed seedInputs spark
+         in \seguid ->
+            let sprout0 = g3pSeed_toSprout seguid seed
+             in \role ->
+                let sprout' = g3pSprout_addArgs role sprout0
+                 in \tag ->
+                    let tree = g3pSprout_toTree tag sprout'
+                     in \ekey ->
+                        let key = g3pTree_toKey ekey tree
+                         in \ehdr ectr etag ->
+                            g3pKey_toStream ehdr ectr etag key
 
 myDrop' :: Word32 -> Stream a -> Stream a
 myDrop' = go
@@ -452,6 +504,9 @@ xorScan :: Stream ByteString -> Stream PairBS
 xorScan = Stream.tail . Stream.scan' f (PairBS blankChunk blankChunk)
   where f (PairBS acc old) new = PairBS (xorBS acc old) new
         blankChunk = B.replicate 32 0
+
+-- | Uses a PBKDF2-like key-stretching computation to prepare keys for
+--   the bcrypt key-stretching phase.  
 
 g3pSpark_init :: G3PSalt -> G3PInputs -> G3PSpark
 g3pSpark_init salt inputs = spark
