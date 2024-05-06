@@ -66,11 +66,15 @@ There are several themes worked into this design:
     uses bitstring end-of-message padding. Moreover, any reasonably practical
     implementation of the G3P requires an HMAC implementation that supports
     precomputed HMAC keys (for PHKDF) as well as streaming with backtracking
-    (for bcrypt). These latter features aren't strictly required to compute
-    the correct result, meaning that the G3P respects the HMAC's abstract
-    specification.  Precomputed keys, streaming, and backtracking are all
-    strictly required in order to implement the G3P in the most secure way
-    possible.
+    (for bcrypt).
+
+    These latter features aren't strictly required to compute the correct
+    result, meaning that the G3P respects the HMAC's abstract specification.
+    However, precomputed keys, streaming, and backtracking are all strictly
+    required in order to implement the G3P in the most secure way possible,
+    as otherwise an implementation cannot possibly Always Be Forgetting.
+    Not to mention that such a demonstration implementation would be
+    horrendously clumsy relative to a practical implementation.
 
 7.  From the viewpoint of an academic cryptographer, morally speaking, this
     design is literally a PBKDF2, an HKDF, and a bcrypt all at the same time,
@@ -84,19 +88,66 @@ module Crypto.G3P.V2
   , G3PSeedInputs(..)
   , g3pHash
   , G3PSpark()
-  , g3pSpark_init
+  , g3pSpark
   , g3pSpark_toSeed
+  , g3pSpark_toSprout
+  , g3pSpark_toTree
+  , g3pSpark_toKey
+  , g3pSpark_toSource
+  , g3pSpark_toStream
   , G3PSeed()
+  , g3pSeed
+  , g3pSeed_fromSpark
   , g3pSeed_toSprout
+  , g3pSeed_toTree
+  , g3pSeed_toKey
+  , g3pSeed_toSource
+  , g3pSeed_toStream
   , G3PSprout()
+  , g3pSprout
   , g3pSprout_addArg
   , g3pSprout_addArgs
+  , g3pSprout_args
+  , g3pSprout_fromSpark
+  , g3pSprout_fromSeed
   , g3pSprout_toTree
+  , g3pSprout_toKey
+  , g3pSprout_toSource
+  , g3pSprout_toStream
   , G3PTree()
+  , g3pTree
+  , g3pTree_fromSpark
+  , g3pTree_fromSeed
+  , g3pTree_fromSprout
   , g3pTree_toKey
+  , g3pTree_toSource
+  , g3pTree_toStream
   , G3PKey()
-  , g3pKey_toGen
+  , g3pKey
+  , g3pKey_fromSpark
+  , g3pKey_fromSeed
+  , g3pKey_fromSprout
+  , g3pKey_fromTree
+  , g3pKey_toSource
   , g3pKey_toStream
+  , G3PSource
+  , g3pSource
+  , g3pSource_peek
+  , g3pSource_read
+  , g3pSource_fromSpark
+  , g3pSource_fromSeed
+  , g3pSource_fromSprout
+  , g3pSource_fromTree
+  , g3pSource_fromKey
+  , g3pSource_toStream
+  , Stream(..)
+  , g3pStream
+  , g3pStream_fromSpark
+  , g3pStream_fromSeed
+  , g3pStream_fromSprout
+  , g3pStream_fromTree
+  , g3pStream_fromKey
+  , g3pStream_fromSource
   ) where
 
 import           Data.Bits (xor)
@@ -273,18 +324,23 @@ data G3PInputs = G3PInputs
   --   enhancement strategy against unauthorized password crackers who
   --   fail to take this step to help protect users' privacy.
   --
-  --   The advantage of this approach is that in a client-side prehashing
-  --   scenario, it is simple and easy to ensure that the salting process
-  --   does not leak anything about the existence or non-existence of
-  --   accounts, does not leak anything about recent account activity, and
-  --   cannot be used as reidentification hooks in deanonymization attacks.
+  --   A simple mitigation on this count is to disconnect login names from
+  --   publicly-facing screen names, something that can benefit nearly any
+  --   approach.  Also, one might add key-stretching to the username itself
+  --   by hashing the username first with a slow hash function.
+  --
+  --   In a client-side prehashing scenario, the advantage is that it is
+  --   simple and easy to ensure that the salting process does not leak
+  --   anything about the existence or non-existence of accounts, does not
+  --   leak anything about recent account activity, and cannot be used as
+  --   reidentification hooks in deanonymization attacks.
   --
   --   On the other hand, using a random per-account salt has the potential
   --   to be a far more meaningful defensive line. This can serve both the
   --   interests of legitimate deployments and the password hash thieves
   --   that attack them. Some thieves will want to be able to outsource
   --   password cracking work without giving successful crackers an
-  --   opportunity to log in.
+  --   opportunity to log in, a rare alignment of interests.
   --
   --   The cost is that in typical client-side prehashing scenarios, your
   --   server will have to reveal the actual salt for arbitrary accounts
@@ -319,8 +375,11 @@ data G3PInputs = G3PInputs
   --   I see this choice of plain usernames versus random salts as a fairly
   --   fundamental tradeoff in the design of G3P deployments. I took the time
   --   to ensure that both are possible. Either can be executed poorly,
-  --   and both can be executed well. This decision has significant strategic
-  --   consequences. Pick your poison carefully.
+  --   and either can be executed well.
+  --
+  --   This decision has significant strategic consequences. I don't think
+  --   there's a one-size-fit-all solution, and there are quite a few ways
+  --   to sensibly customize each approach. Pick your poison well.
   , g3pInputs_password :: !ByteString
   -- ^ constant time on 0-293 bytes, or if any of the other conditions are met.
   , g3pInputs_credentials :: !(Vector ByteString)
@@ -465,56 +524,41 @@ data G3PSeedInputs = G3PSeedInputs
 --   implicit closures.
 
 -- Oof, I didn't actually succeed in my claim in the first release of G3Pb1.
--- I now have a deeper appreciation for point-less programming. On the other
--- hand, I feel like there should be a much more idiomatic solution here.
-g3pHash :: Foldable f
-        => G3PSalt -- ^ All the parameters needed throughout the entire key-stretching computation.
-        -> G3PInputs -- ^ All the parameters that can be forgotten as soon as they are hashed once.
-        -> G3PSeedInputs -- ^ All the parameters needed for bcrypt-based key stretching
-        -> HmacKey -- ^ Sprout Seguid. A good default is to duplicate 'g3pSalt_seguid'.
-        -> f ByteString -- ^ Sprout Role, an arbitrary number of bytestring parameters.
-        -> ByteString -- ^ Sprout Tag. A good default is to duplicate 'g3pSalt_domainTag'.
-        -> ByteString -- ^ echo key right
-        -> ByteString -- ^ echo header
-        -> Word32 -- ^ echo counter
-        -> ByteString -- ^ echo tag. A good default is to duplicate the sprout's tag.
-        -> Stream ByteString -- ^ An unbounded stream of 32-byte output blocks.  Use as many or as few as you want. NIST SP 800-108 recommends never looking at more than 137.4 GB of output, though this is an extremely cautious recommendation. On the other hand, if you really want that much CSPRNG data, you are likelyb etter off using this function to generate keys for another, faster CSPRNG.
-g3pHash salt inputs =
-    let spark = g3pSpark_init salt inputs
-     in \seedInputs ->
-        let seed = g3pSpark_toSeed seedInputs spark
-         in \seguid ->
-            let sprout0 = g3pSeed_toSprout seguid seed
-             in \role ->
-                let sprout' = g3pSprout_addArgs role sprout0
-                 in \tag ->
-                    let tree = g3pSprout_toTree tag sprout'
-                     in \ekey ->
-                        let key = g3pTree_toKey ekey tree
-                         in \ehdr ectr etag ->
-                            g3pKey_toStream ehdr ectr etag key
+-- I now have a deeper appreciation for point-less programming.
+g3pHash
+  :: Foldable f
+  => G3PSalt -- ^ All the parameters needed throughout the entire key-stretching computation.
+  -> G3PInputs -- ^ All the parameters that can be forgotten as soon as they are hashed once.
+  -> G3PSeedInputs -- ^ All the parameters needed for bcrypt-based key stretching
+  -> HmacKey -- ^ Sprout Seguid. A good default is to duplicate 'g3pSalt_seguid'.
+  -> f ByteString -- ^ Sprout Role, an arbitrary number of bytestring parameters.
+  -> ByteString -- ^ Sprout Tag. A good default is to duplicate 'g3pSalt_domainTag'.
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag. A good default is to duplicate the sprout's tag.
+  -> ByteString -- ^ a 32-byte output hash.  You can use the stream variant if you want more blocks
+g3pHash = ( fmap . fmap . fmap . fmap . fmap
+          . fmap . fmap . fmap . fmap . fmap $ g3pSource_head) g3pSource
 
-myDrop' :: Word32 -> Stream a -> Stream a
-myDrop' = go
-  where
-    go 0 s = s
-    go n (Cons x s) = x `seq` go (n-1) s
+-- | All 8 parameters get unambiguously encoded into the initial call to HMAC.
+--   7 of them can be unambiguously parsed out of the input message, thus
+--   proving that all collisions over them are cryptographically non-trivial.
+--   The eighth is used as the HMAC key.
+--
+--   The resulting hash as well as the 'G3PSalt' parameters determine the
+--   exact size, shape, and content of the Merkle tree that describes the
+--   resulting spark. At this point in time every computation is fully
+--   determined all the way to the end of the PHKDF key-stretching phase,
+--   which results in two cryptographically independent keys: keyB which
+--   begins bcrypt, and keyC which is the continuation control key.
+--
+--   The continuation control key allows some or all of the bcrypt computation
+--   to be outsourced to another semi-trusted device, without giving that
+--   device the ability to compute the final seed.
 
-xorBS :: ByteString -> ByteString -> ByteString
-xorBS = B.packZipWith xor
-
-data PairBS = PairBS !ByteString !ByteString
-
-xorScan :: Stream ByteString -> Stream PairBS
-xorScan = Stream.tail . Stream.scan' f (PairBS blankChunk blankChunk)
-  where f (PairBS acc old) new = PairBS (xorBS acc old) new
-        blankChunk = B.replicate 32 0
-
--- | Uses a PBKDF2-like key-stretching computation to prepare keys for
---   the bcrypt key-stretching phase.  
-
-g3pSpark_init :: G3PSalt -> G3PInputs -> G3PSpark
-g3pSpark_init salt inputs = spark
+g3pSpark :: G3PSalt -> G3PInputs -> G3PSpark
+g3pSpark salt inputs = spark
   where
     -- Explicitly unpack everything for the unused variable warnings.
     -- i.e. It's relatively easy to check that we've unpacked every
@@ -638,6 +682,29 @@ g3pSpark_init salt inputs = spark
            phkdfCtx_addArgs contextTags &
            phkdfCtx_finalize endPadding (word32 "KEYC") domainTag
 
+    -- Note that the two keys above are derived to be independent of
+    -- each other regardless of whether the seguid and domain tag are
+    -- public or private knowledge.  Once you get the final output
+    -- stream, there's no need to do this yourself, as the hmac key
+    -- powering the stream generator can be assumed to be secret.
+
+    -- Thus, if you want to use the G3P to loft something bigger than
+    -- bcrypt, you could just put (word32 "KEYB") in as the echo counter
+    -- and take the first key of the stream to be the beginning key
+    -- take the second key of the stream to be the continuation key.
+    -- However we avoid doing this here because of the issue above.
+
+    -- There is of course no harm in a deployment choosing to emulate
+    -- the construction used above. One could use the echo header,
+    -- echo counter, echo tag, or even move this particular form of
+    -- domain separation earlier in the derivation chain.
+    -- (i.e. deeper in the Merkle tree)
+
+    -- It's just that using the PHKDF output stream is an option then,
+    -- and it isn't now. A deployment just has to commit to one mode of
+    -- operation or the other, and I don't understand why it might matter
+    -- too much one way or the other.
+
     spark = G3PSpark
        { g3pSpark_beginKey = keyB
        , g3pSpark_contKey  = keyC
@@ -645,8 +712,26 @@ g3pSpark_init salt inputs = spark
        , g3pSpark_domainTag   = domainTag
        }
 
-g3pSpark_toSeed :: G3PSeedInputs -> G3PSpark -> G3PSeed
-g3pSpark_toSeed inputs spark = G3PSeed seed
+myDrop' :: Word32 -> Stream a -> Stream a
+myDrop' = go
+  where
+    go 0 s = s
+    go n (Cons x s) = x `seq` go (n-1) s
+
+xorBS :: ByteString -> ByteString -> ByteString
+xorBS = B.packZipWith xor
+
+data PairBS = PairBS !ByteString !ByteString
+
+xorScan :: Stream ByteString -> Stream PairBS
+xorScan = Stream.tail . Stream.scan' f (PairBS blankChunk blankChunk)
+  where f (PairBS acc old) new = PairBS (xorBS acc old) new
+        blankChunk = B.replicate 32 0
+
+-- | The bcrypt key-stretching phase.
+
+g3pSpark_toSeed :: G3PSpark -> G3PSeedInputs -> G3PSeed
+g3pSpark_toSeed spark inputs = G3PSeed seed
   where
     beginKey = g3pSpark_beginKey spark
     contKey = g3pSpark_contKey spark
@@ -686,8 +771,8 @@ g3pSpark_toSeed inputs spark = G3PSeed seed
 
     endPadding = B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral
 
-g3pSeed_toSprout :: HmacKey -> G3PSeed -> G3PSprout
-g3pSeed_toSprout key (G3PSeed seed) = G3PSprout ctx
+g3pSeed_toSprout :: G3PSeed -> HmacKey -> G3PSprout
+g3pSeed_toSprout (G3PSeed seed) key = G3PSprout ctx
   where
     delta = "G3Pb2 delta"
     ctx = phkdfCtx_init key &
@@ -699,15 +784,20 @@ g3pSprout_addArg x = G3PSprout . phkdfCtx_addArg x . g3pSprout_phkdfCtx
 g3pSprout_addArgs :: Foldable f => f ByteString -> G3PSprout -> G3PSprout
 g3pSprout_addArgs xs = G3PSprout . phkdfCtx_addArgs xs . g3pSprout_phkdfCtx
 
-g3pSprout_toTree :: ByteString -> G3PSprout -> G3PTree
-g3pSprout_toTree domainTag (G3PSprout ctx) = G3PTree key
+g3pSprout_args :: Foldable f => G3PSprout -> f ByteString -> G3PSprout
+g3pSprout_args = flip g3pSprout_addArgs
+
+g3pSprout_toTree :: G3PSprout -> ByteString -> G3PTree
+g3pSprout_toTree (G3PSprout ctx) domainTag = G3PTree key
   where
     key = phkdfCtx_finalize endPadding (word32 "KEYZ") domainTag ctx
     endPadding = B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral
 
-g3pTree_toKey :: ByteString -- ^ This @echo key@ is the right half of the output key.  It is truncated to 32 bytes.
-              -> G3PTree -> G3PKey
-g3pTree_toKey echoKeyR (G3PTree echoKeyL) = G3PKey (hmacKeyHashed key)
+g3pTree_toKey
+  :: G3PTree
+  -> ByteString -- ^ This @echo key@ is the right half of the output key.  It is truncated to 32 bytes.
+  -> G3PKey
+g3pTree_toKey (G3PTree echoKeyL) echoKeyR = G3PKey (hmacKeyHashed key)
   where
     keyR = takeBs 32 [echoKeyR, "\x00", "G3Pb2 echo key right padding", nullBuffer]
     -- Note that echoKeyL should already be 32 bytes, so this should be id:
@@ -716,22 +806,38 @@ g3pTree_toKey echoKeyR (G3PTree echoKeyL) = G3PKey (hmacKeyHashed key)
 
 -- | Variant of 'g3pKey_toStream' that returns plain old data.
 
-g3pKey_toGen
-  :: ByteString -- ^ echo header
+g3pKey_toSource
+  :: G3PKey
+  -> ByteString -- ^ echo header
   -> Word32 -- ^ echo counter
   -> ByteString -- ^ echo tag
-  -> G3PKey -> PhkdfGen
-g3pKey_toGen echoHeader echoCtr echoTag (G3PKey key) = gen
+  -> G3PSource
+g3pKey_toSource (G3PKey key) echoHeader echoCtr echoTag = gen
   where
     hdr = B.concat $
       takeBs 32 [echoHeader, "\x00", "G3Pb2 echo header padding", nullBuffer]
     gen = phkdfGen_initHashed key hdr echoCtr echoTag
 
+g3pSource_head :: G3PSource -> ByteString
+g3pSource_head = fst . phkdfGen_read
+
+g3pSource_read :: G3PSource -> (ByteString, G3PSource)
+g3pSource_read = phkdfGen_read
+
+g3pSource_peek :: G3PSource -> Maybe ByteString
+g3pSource_peek = phkdfGen_peek
+
+g3pSource_toStream :: G3PSource -> Stream ByteString
+g3pSource_toStream = phkdfGen_toStream
+
+type G3PSource = PhkdfGen
+
 -- | Turn a secret, derived 'HmacKeyHashed' into an unbounded
 --   stream of 32-byte output blocks.
 
 g3pKey_toStream
-  :: ByteString
+  :: G3PKey
+  -> ByteString
   -- ^ The @echo header@ is truncated to 32 bytes.
   --
   -- As the initial state of the output stream generator, if more than one
@@ -742,19 +848,430 @@ g3pKey_toStream
   --
   -- This problem can be avoided by ensuring at least one of these are true:
   --
-  --     1.  sticking to anodyne messages that aren't too specific to
-  --         this specific password attempt, like a company name
+  --     1.  sticking to anodyne messages that aren't too specifically
+  --         related to this password attempt, like a company name
   --
   --     2.  including data that's already been included elsewhere in the
   --         derivation of the Merkle tree.
   --
   --     3.  duplicating the content of this parameter in the @echo key@
   --         and/or @echo tag@ parameters.
+  --
+  --     4.  never examine more than one output block.
   -> Word32
   -- ^ The @echo counter@, functionally a bonus HKDF info parameter.
   -> ByteString
   -- ^ The @echo tag@, functionally identical to HKDF's info parameter.
-  -> G3PKey -> Stream ByteString
-g3pKey_toStream hdr ctr tag key =
-  phkdfGen_toStream (g3pKey_toGen hdr ctr tag key)
+  -> Stream ByteString
+g3pKey_toStream key hdr ctr tag =
+  phkdfGen_toStream (g3pKey_toSource key hdr ctr tag)
 
+g3pTree_toStream
+  :: G3PTree
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> Stream ByteString
+g3pTree_toStream = fmap g3pKey_toStream . g3pTree_toKey
+
+g3pSprout_toStream
+  :: Foldable f
+  => G3PSprout
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> Stream ByteString
+g3pSprout_toStream =
+  fmap (fmap g3pTree_toStream . g3pSprout_toTree) . g3pSprout_args
+
+g3pSeed_toStream
+  :: Foldable f
+  => G3PSeed
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> Stream ByteString
+g3pSeed_toStream = fmap g3pSprout_toStream . g3pSeed_toSprout
+
+g3pSpark_toStream
+  :: Foldable f
+  => G3PSpark
+  -> G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> Stream ByteString
+g3pSpark_toStream = fmap g3pSeed_toStream . g3pSpark_toSeed
+
+
+g3pSpark_toSprout
+  :: G3PSpark
+  -> G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> G3PSprout
+g3pSpark_toSprout = fmap g3pSeed_toSprout . g3pSpark_toSeed
+
+g3pSpark_toTree
+  :: Foldable f
+  => G3PSpark
+  -> G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> G3PTree
+g3pSpark_toTree = fmap g3pSeed_toTree . g3pSpark_toSeed
+
+g3pSpark_toKey
+  :: Foldable f
+  => G3PSpark
+  -> G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> G3PKey
+g3pSpark_toKey = fmap g3pSeed_toKey . g3pSpark_toSeed
+
+g3pSpark_toSource
+  :: Foldable f
+  => G3PSpark
+  -> G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PSource
+g3pSpark_toSource = fmap g3pSeed_toSource . g3pSpark_toSeed
+
+g3pSeed :: G3PSalt -> G3PInputs -> G3PSeedInputs -> G3PSeed
+g3pSeed = (fmap . fmap $ g3pSpark_toSeed) g3pSpark
+
+g3pSeed_fromSpark :: G3PSeedInputs -> G3PSpark -> G3PSeed
+g3pSeed_fromSpark = flip g3pSpark_toSeed
+
+g3pSeed_toTree
+  :: Foldable f
+  => G3PSeed
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> G3PTree
+g3pSeed_toTree = fmap (fmap g3pSprout_toTree . g3pSprout_args) . g3pSeed_toSprout
+
+g3pSeed_toKey
+  :: Foldable f
+  => G3PSeed
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> G3PKey
+g3pSeed_toKey = fmap g3pSprout_toKey . g3pSeed_toSprout
+
+g3pSeed_toSource
+  :: Foldable f
+  => G3PSeed
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PSource
+g3pSeed_toSource = fmap g3pSprout_toSource . g3pSeed_toSprout
+
+g3pSprout
+  :: G3PSalt
+  -> G3PInputs
+  -> G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> G3PSprout
+g3pSprout = fmap g3pSpark_toSprout . g3pSpark
+
+-- There is no need to use the point-free style on the "from" variants, as the
+-- order of arguments obviates the useful and interesting partial applications
+g3pSprout_fromSpark
+  :: G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> G3PSpark -> G3PSprout
+g3pSprout_fromSpark inputs key spark =
+  g3pSpark_toSprout spark inputs key
+
+g3pSprout_fromSeed
+  :: HmacKey -- ^ sprout seguid
+  -> G3PSeed -> G3PSprout
+g3pSprout_fromSeed = flip g3pSeed_toSprout
+
+g3pSprout_toKey
+  :: Foldable f
+  => G3PSprout
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> G3PKey
+g3pSprout_toKey = fmap (fmap g3pTree_toKey . g3pSprout_toTree) . g3pSprout_args
+
+g3pSprout_toSource
+  :: Foldable f
+  => G3PSprout
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PSource
+g3pSprout_toSource =
+  fmap (fmap g3pTree_toSource . g3pSprout_toTree) . g3pSprout_args
+
+g3pTree
+  :: Foldable f
+  => G3PSalt
+  -> G3PInputs
+  -> G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> G3PTree
+g3pTree = fmap g3pSpark_toTree . g3pSpark
+
+g3pTree_fromSpark
+  :: Foldable f
+  => G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> G3PSpark -> G3PTree
+g3pTree_fromSpark inputs key role tag spark =
+  g3pSpark_toTree spark inputs key role tag
+
+g3pTree_fromSeed
+  :: Foldable f
+  => HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> G3PSeed -> G3PTree
+g3pTree_fromSeed key role tag seed =
+  g3pSeed_toTree seed key role tag
+
+g3pTree_fromSprout
+  :: ByteString -- ^ sprout tag
+  -> G3PSprout -> G3PTree
+g3pTree_fromSprout = flip g3pSprout_toTree
+
+g3pTree_toSource
+  :: G3PTree
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PSource
+g3pTree_toSource = fmap g3pKey_toSource . g3pTree_toKey
+
+g3pKey
+  :: Foldable f
+  => G3PSalt
+  -> G3PInputs
+  -> G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> G3PKey
+g3pKey = fmap g3pSpark_toKey . g3pSpark
+
+g3pKey_fromSpark
+  :: Foldable f
+  => G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> G3PSpark -> G3PKey
+g3pKey_fromSpark inputs key role tag ekey spark =
+  g3pSpark_toKey spark inputs key role tag ekey
+
+g3pKey_fromSeed
+  :: Foldable f
+  => HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> G3PSeed -> G3PKey
+g3pKey_fromSeed key role tag ekey seed =
+  g3pSeed_toKey seed key role tag ekey
+
+g3pKey_fromSprout
+  :: Foldable f
+  => f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> G3PSprout -> G3PKey
+g3pKey_fromSprout role tag key sprout =
+  g3pSprout_toKey sprout role tag key
+
+g3pKey_fromTree
+  :: ByteString -- ^ echo key right
+  -> G3PTree -> G3PKey
+g3pKey_fromTree = flip g3pTree_toKey
+
+g3pSource
+  :: Foldable f
+  => G3PSalt
+  -> G3PInputs
+  -> G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PSource -- ^ A plain-old-data representation of a G3P output stream
+g3pSource = fmap g3pSpark_toSource . g3pSpark
+
+g3pSource_fromSpark
+  :: Foldable f
+  => G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PSpark -> G3PSource
+g3pSource_fromSpark inputs key role tag ekey ehdr ectr etag spark =
+  g3pSpark_toSource spark inputs key role tag ekey ehdr ectr etag
+
+g3pSource_fromSeed
+  :: Foldable f
+  => HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PSeed -> G3PSource
+g3pSource_fromSeed key role tag ekey ehdr ectr etag seed =
+  g3pSeed_toSource seed key role tag ekey ehdr ectr etag
+
+g3pSource_fromSprout
+  :: Foldable f
+  => f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PSprout -> G3PSource
+g3pSource_fromSprout role tag ekey ehdr ectr etag sprout =
+  g3pSprout_toSource sprout role tag ekey ehdr ectr etag
+
+g3pSource_fromTree
+  :: ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PTree -> G3PSource
+g3pSource_fromTree ekey ehdr ectr etag tree =
+  g3pTree_toSource tree ekey ehdr ectr etag
+
+g3pSource_fromKey
+  :: ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PKey -> G3PSource
+g3pSource_fromKey ehdr ectr etag key =
+  g3pKey_toSource key ehdr ectr etag
+
+g3pStream
+  :: Foldable f
+  => G3PSalt
+  -> G3PInputs
+  -> G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> Stream ByteString -- ^ An unbounded stream of 32-byte output blocks.  Use as many or as few as you want. NIST SP 800-108 recommends never looking at more than 137.4 GB of output, though this is an extremely cautious recommendation. On the other hand, if you really want that much CSPRNG data, you are likely better off using this function to generate keys for another, faster CSPRNG.
+g3pStream = fmap g3pSpark_toStream . g3pSpark
+
+g3pStream_fromSpark
+  :: Foldable f
+  => G3PSeedInputs
+  -> HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PSpark -> Stream ByteString
+g3pStream_fromSpark inputs key role tag ekey ehdr ectr etag spark =
+  g3pSpark_toStream spark inputs key role tag ekey ehdr ectr etag
+
+g3pStream_fromSeed
+  :: Foldable f
+  => HmacKey -- ^ sprout seguid
+  -> f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PSeed -> Stream ByteString
+g3pStream_fromSeed key role tag ekey ehdr ectr etag seed =
+  g3pSeed_toStream seed key role tag ekey ehdr ectr etag
+
+g3pStream_fromSprout
+  :: Foldable f
+  => f ByteString -- ^ sprout role
+  -> ByteString -- ^ sprout tag
+  -> ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PSprout -> Stream ByteString
+g3pStream_fromSprout role tag ekey ehdr ectr etag sprout =
+  g3pSprout_toStream sprout role tag ekey ehdr ectr etag
+
+g3pStream_fromTree
+  :: ByteString -- ^ echo key right
+  -> ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PTree -> Stream ByteString
+g3pStream_fromTree key hdr ctr tag tree =
+  g3pTree_toStream tree key hdr ctr tag
+
+g3pStream_fromKey
+  :: ByteString -- ^ echo header
+  -> Word32 -- ^ echo counter
+  -> ByteString -- ^ echo tag
+  -> G3PKey -> Stream ByteString
+g3pStream_fromKey hdr ctr tag key =
+  g3pKey_toStream key hdr ctr tag
+
+g3pStream_fromSource :: G3PSource -> Stream ByteString
+g3pStream_fromSource = g3pSource_toStream

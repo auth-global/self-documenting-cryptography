@@ -1,5 +1,29 @@
 # Revision history for g3p-hash
 
+## Version 2.0.0.0 "The War Tuba" (2024-04-20)
+
+I was incredibly over the moon happy with Version 1. Then it provided me with
+the spark of insight that lead to Version 2, which is 100x better. I am still
+amazed by Version 1, although I'm no longer interested in deploying it myself.
+
+At that point in time, I had put on hold a full cryptoacoustic reconstruction
+of bcrypt, as I figured it was long past overdue to get Version 1 into this
+fight. But then a last minute low-risk, plausibly high-reward guess to hedge
+my bets lead to a sequence of revelations that gave me the understanding of
+bcrypt that I needed to confidently make the changes I originally wanted.
+(See commit a0d89af)
+
+Now I wish I was lofting something bigger than bcrypt, but to paraphrase
+Donald Rumsfeld, you go to war with the password hash functions you have,
+not the password hash functions you want. And on that count, bcrypt has
+become a mighty cryptoacoustic horn indeed! I have great confidence these
+modifications will keep those fully homomorphic cancel-culture crackers
+away for a long time to come.
+
+(Not actually released on 4-20, but I did start having the mental breakthroughs
+a few days earlier, spent 4-20 hacking away, and then spent the next two weeks
+slowly making it a reality. It isn't even released yet, but hopefully soon.)
+
 ## Version 1.0.0.1 "Fight like a Pacifist" (2024-03-21)
 
 Developing this project has been a long, strange trip. I've taken clues and
