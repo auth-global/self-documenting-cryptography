@@ -333,10 +333,11 @@ data G3PInputs = G3PInputs
   --   this normalization is recommended.
   --
   --   The G3P is intentionally designed to allow the plaintext of this
-  --   parameter to be hidden from a password cracker, preventing
-  --   the cracker from immediately logging in if successful. However,
-  --   this partial application doesn't apply any key-stretching, meaning
-  --   that guessable login names can be cracked relatively quickly.
+  --   parameter to be hidden from a password cracker via a simple partial
+  --   evaluation, preventing the cracker from immediately logging in if
+  --   successful. However, this partial application doesn't apply any
+  --   key-stretching, meaning that guessable login names can be cracked
+  --   relatively quickly.
   --
   --   Thus this approach is less a defensive line than more a "sand in
   --   the gears" tactic. It might also be useful as a legal damages
@@ -810,7 +811,7 @@ g3pSprout_args = flip g3pSprout_addArgs
 g3pSprout_toTree :: G3PSprout -> ByteString -> G3PTree
 g3pSprout_toTree (G3PSprout ctx) domainTag = G3PTree key
   where
-    key = phkdfCtx_finalize endPadding (word32 "TREE") domainTag ctx
+    key = phkdfCtx_finalize endPadding (word32 "KEYL") domainTag ctx
     endPadding = B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral
 
 g3pTree_toKey
