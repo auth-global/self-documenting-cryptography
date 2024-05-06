@@ -811,7 +811,7 @@ g3pSprout_args = flip g3pSprout_addArgs
 g3pSprout_toTree :: G3PSprout -> ByteString -> G3PTree
 g3pSprout_toTree (G3PSprout ctx) domainTag = G3PTree key
   where
-    key = phkdfCtx_finalize endPadding (word32 "KEYZ") domainTag ctx
+    key = phkdfCtx_finalize endPadding (word32 "TREE") domainTag ctx
     endPadding = B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral
 
 g3pTree_toKey
