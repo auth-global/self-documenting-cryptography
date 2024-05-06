@@ -38,17 +38,17 @@ There are several themes worked into this design:
 3.  Excess Salt: our philosophy of applying salt is that it's the first thing
     you do, it's the last thing you do, it's something you do at every
     opportunity, and sometimes we even create new opportunities to add more
-    salt. We have certainly found new justifications and applications for
-    underappreciated yet pre-existing forms of salt.
+    salt.
 
 4.  Unlimited Free Salt by Countering Excess Freedom: the G3P starts from
     conventional keys as it's first and primary layer of security.  Excessively
-    long keys are often considered suspect, but very long keys that likely
-    result in totally unique hash functions is also exactly what is needed
-    in the information theoretic sense in order for there to plausibly be
-    much if any cryptoacoustic advantage. Therefore, we use long
-    plaintext salts with low average entropy, and use short, fixed-length,
-    (ideally) high-entropy HMAC keys as both the starting and ending point.
+    long keys are often considered cryptographically suspect, but very long
+    keys that likely result in totally unique hash functions is also exactly
+    what is needed in the information theoretic sense in order for there to
+    plausibly be much if any cryptoacoustic advantage. Therefore, we use long
+    plaintext salts with low entropy density throughout our hashing process,
+    and use short, fixed-length, (ideally) entropy-dense HMAC keys as both the
+    starting and ending point of our hashing process.
 
 5.  These goals align extremely well, and often lead to similar outcomes as,
     the advice found in [RFC 5869: HMAC-based Extract-and-Expand Key Derivation Function (HKDF)](https://datatracker.ietf.org/doc/html/rfc5869)
@@ -252,16 +252,38 @@ data G3PSalt = G3PSalt
     --
     --   If your deployment uses a random salt per account, this is an ideal
     --   location in which to place a copy of that salt.
+    --
+    --   If your deployment uses a login name as the username salt, by
+    --   including it here your deployment would then require that anybody
+    --   who can crack the password must know the login name.
+    --
+    --   This would be a highly atypical deployment design decision. In most
+    --   contexts, it would seem to be better to omit plaintext login names
+    --   from this parameter.
   , g3pSalt_phkdfRounds :: !Word32
     -- ^ How expensive will the PHKDF component be? An optimal implementation
     --   computes exactly two SHA256 blocks per round if the domain tag is
-    --   19 bytes or less, plus a reasonably large but constant number of
-    --   additional blocks. I recommend 20,000 rounds or so. You might
-    --   consider adjusting that recommendation downward in the case of
-    --   domain tags that exceed 19 bytes in length: 13,333 rounds of PHKDF
-    --   with a domain tag that is 83 bytes long should cost about
-    --   the same number of SHA256 blocks as 20,000 rounds of PHKDF with a
-    --   domain tag that is 19 bytes long.
+    --   19 bytes or less, plus one block per round for every 64 characters
+    --   over 19.
+    --
+    --   I recommend 20,000 rounds or so. You might consider adjusting that
+    --   recommendation downward in the case of domain tags that exceed 19
+    --   bytes in length: 13,333 rounds of PHKDF with a domain tag that is
+    --   83 bytes long will cost exactly one SHA256 block less than 20,000
+    --   rounds of PHKDF with a domain tag that is 19 bytes long.
+    --
+    --   Note that this cost comparison is exact only when looking at only the
+    --   PHKDF key stretching phase. The G3P also computes a reasonably large
+    --   but constant number of additional SHA256 blocks as part of it's
+    --   initial HMAC-Extract operation, /G3Pb2 alfa/, and a much smaller
+    --   number (but weakly non-constant) number of SHA256 blocks to set up
+    --   and finalize the key-stretching phase, which include repetitions
+    --   of the domain tag.
+    --
+    --   Thus if you are tuning this parameter via empirical timing tests,
+    --  the direct
+    --   linear relationship between this parameter and time is approximate,
+    --   not exact, due to a this reasonably large offset.
   } deriving (Eq)
 
 -- | These parameters are grouped together because they are hashed once
@@ -308,16 +330,13 @@ data G3PInputs = G3PInputs
   --   This approach comes with the cost that you will have to reliably
   --   perform username normalization everywhere this hash function is
   --   computed. Offering a server-side remote procedure call to perform
-  --   this normalization would be recommended.
+  --   this normalization is recommended.
   --
   --   The G3P is intentionally designed to allow the plaintext of this
   --   parameter to be hidden from a password cracker, preventing
   --   the cracker from immediately logging in if successful. However,
   --   this partial application doesn't apply any key-stretching, meaning
   --   that guessable login names can be cracked relatively quickly.
-  --
-  --   A deployment could specify that the username be hashed before being
-  --   placed into this parameter, thus providing key-stretching themselves.
   --
   --   Thus this approach is less a defensive line than more a "sand in
   --   the gears" tactic. It might also be useful as a legal damages
@@ -326,14 +345,13 @@ data G3PInputs = G3PInputs
   --
   --   A simple mitigation on this count is to disconnect login names from
   --   publicly-facing screen names, something that can benefit nearly any
-  --   approach.  Also, one might add key-stretching to the username itself
+  --   approach. Also, one might add key-stretching to the username itself
   --   by hashing the username first with a slow hash function.
   --
-  --   In a client-side prehashing scenario, the advantage is that it is
-  --   simple and easy to ensure that the salting process does not leak
-  --   anything about the existence or non-existence of accounts, does not
-  --   leak anything about recent account activity, and cannot be used as
-  --   reidentification hooks in deanonymization attacks.
+  --   The advantage to using plain login names is that in a client-side
+  --   prehashing scenario, it is simple and easy to ensure that the salting
+  --   process does not leak anything about the existence or non-existence
+  --   of accounts, and does not leak anything about recent account activity.
   --
   --   On the other hand, using a random per-account salt has the potential
   --   to be a far more meaningful defensive line. This can serve both the
@@ -347,8 +365,11 @@ data G3PInputs = G3PInputs
   --   to arbitrary members of the public.
   --
   --   This has the potential to leak information about the (non-)existence
-  --   of accounts, to leak information about recent account activity, and
-  --   to provide reidentification hooks for deanonymization attacks.
+  --   of accounts and to leak information about recent account activity.
+  --   Though I don't exactly understand how a public-facing service handing
+  --   out random salts for a given username could become a reidentifcation
+  --   hook for deanonymization attacks, it's also something that seems
+  --   possible.
   --
   --   It should be possible to largely mitigate these issues; for example,
   --   one might generate consistent nonsense as the salt for non-existent
@@ -356,7 +377,7 @@ data G3PInputs = G3PInputs
   --   a secret key. While such a simple approach might not be perfect, it
   --   would likely go a long way towards mitigation.
   --
-  --   In a few specialized cases it might be possible to hide a salt
+  --   In a few specialized cases it might be possible to hide a random salt
   --   from members of the general public by requiring pre-authentication
   --   before the password can even be attempted. However, this cannot
   --   be a general-purpose solution, as passwords are one of the fundamental
@@ -379,7 +400,7 @@ data G3PInputs = G3PInputs
   --
   --   This decision has significant strategic consequences. I don't think
   --   there's a one-size-fit-all solution, and there are quite a few ways
-  --   to sensibly customize each approach. Pick your poison well.
+  --   to sensibly customize each approach. Pick your poison wisely.
   , g3pInputs_password :: !ByteString
   -- ^ constant time on 0-293 bytes, or if any of the other conditions are met.
   , g3pInputs_credentials :: !(Vector ByteString)
@@ -537,7 +558,7 @@ g3pHash
   -> ByteString -- ^ echo header
   -> Word32 -- ^ echo counter
   -> ByteString -- ^ echo tag. A good default is to duplicate the sprout's tag.
-  -> ByteString -- ^ a 32-byte output hash.  You can use the stream variant if you want more blocks
+  -> ByteString -- ^ a 32-byte output hash.  You can use the stream variant if you want more blocks. This is the first output block of that stream.
 g3pHash = ( fmap . fmap . fmap . fmap . fmap
           . fmap . fmap . fmap . fmap . fmap $ g3pSource_head) g3pSource
 
