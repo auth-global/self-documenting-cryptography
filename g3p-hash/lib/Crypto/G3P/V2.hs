@@ -83,10 +83,11 @@ There are several themes worked into this design:
 -}
 
 module Crypto.G3P.V2
-  ( G3PSalt(..)
+  ( g3pHash
+  , g3pStream
+  , G3PSalt(..)
   , G3PInputs(..)
   , G3PSeedInputs(..)
-  , g3pHash
   , G3PSpark()
   , g3pSpark
   , g3pSpark_toSeed
@@ -141,7 +142,6 @@ module Crypto.G3P.V2
   , g3pSource_fromKey
   , g3pSource_toStream
   , Stream(..)
-  , g3pStream
   , g3pStream_fromSpark
   , g3pStream_fromSeed
   , g3pStream_fromSprout
@@ -518,7 +518,7 @@ data G3PSeedInputs = G3PSeedInputs
 -- | The Global Password Prehash Protocol (G3P). Note that this function is very
 --   intentionally implemented in such a way that the following idiom is
 --   efficient. It performs the expensive key stretching phase only once,
---   and results in 3 cryptographically independent output streams, i.e.
+--   and results in 3 cryptographically independent output hashes, i.e.
 --   statistically independent to any efficient attacker that does not have
 --   access to the underlying password and other secrets.
 --
@@ -538,11 +538,10 @@ data G3PSeedInputs = G3PSeedInputs
 --   savings in this latter context is relatively miniscule, it also can be
 --   relevant in certain contexts.
 --
---   In the case that you want or need to persist or serialize the intermediate
+--   In the case that you want or need to persist or serialize the
 --   intermediate structures, then the plain-old-datatypes 'G3PSpark',
---   'G3PSeed', 'G3PSprout', 'G3PTree','G3PKey', 'PhkdfGen', and their
---   associated functions are more relevant than unbounded streams and
---   implicit closures.
+--   'G3PSeed', 'G3PSprout', 'G3PTree','G3PKey', 'G3PSource', and their
+--   associated functions are more relevant than implicit closures.
 
 -- Oof, I didn't actually succeed in my claim in the first release of G3Pb1.
 -- I now have a deeper appreciation for point-less programming.
@@ -552,7 +551,7 @@ g3pHash
   -> G3PInputs -- ^ All the parameters that can be forgotten as soon as they are hashed once.
   -> G3PSeedInputs -- ^ All the parameters needed for bcrypt-based key stretching
   -> HmacKey -- ^ Sprout Seguid. A good default is to duplicate 'g3pSalt_seguid'.
-  -> f ByteString -- ^ Sprout Role, an arbitrary number of bytestring parameters.
+  -> f ByteString -- ^ Sprout Role, an arbitrary number of bytestring parameters for late domain separation occuring after key-stretching is complete.  Meaning is deployment defined.
   -> ByteString -- ^ Sprout Tag. A good default is to duplicate 'g3pSalt_domainTag'.
   -> ByteString -- ^ echo key right
   -> ByteString -- ^ echo header
@@ -1223,6 +1222,22 @@ g3pSource_fromKey
 g3pSource_fromKey ehdr ectr etag key =
   g3pKey_toSource key ehdr ectr etag
 
+
+-- | This variant of 'g3pHash' returns an unbounded stream of 32-byte output
+--   blocks.  Use as many or as few as you want. Assuming the non-echo-header
+--   inputs contain at least one strong cryptographic secret, the output is
+--   fully independent. Thus  you can partition the output into non-overlapping
+--   chunks and use those chunks however you see fit.
+--
+--   NIST SP 800-108 recommendations imply that you shouldn't look at more
+--   than 137.4 GB of output. This recommendation is extremely cautious, and
+--   it's probably okay-ish in most circumstances to exceed that limit by a
+--   considerable margin.
+--
+--   On the other hand, if you really want that much CSPRNG data, you may
+--   well be better off using this function to generate keys for another,
+--   faster CSPRNG.
+
 g3pStream
   :: Foldable f
   => G3PSalt
@@ -1235,7 +1250,7 @@ g3pStream
   -> ByteString -- ^ echo header
   -> Word32 -- ^ echo counter
   -> ByteString -- ^ echo tag
-  -> Stream ByteString -- ^ An unbounded stream of 32-byte output blocks.  Use as many or as few as you want. NIST SP 800-108 recommends never looking at more than 137.4 GB of output, though this is an extremely cautious recommendation. On the other hand, if you really want that much CSPRNG data, you are likely better off using this function to generate keys for another, faster CSPRNG.
+  -> Stream ByteString
 g3pStream = fmap g3pSpark_toStream . g3pSpark
 
 g3pStream_fromSpark
