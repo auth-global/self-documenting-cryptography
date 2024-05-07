@@ -148,6 +148,7 @@ module Crypto.G3P.V2
   , g3pStream_fromTree
   , g3pStream_fromKey
   , g3pStream_fromSource
+  , word32
   ) where
 
 import           Data.Bits (xor)
@@ -415,11 +416,6 @@ data G3PSeedInputs = G3PSeedInputs
     -- ^ Key to used to generate keys for bcrypt superrounds and to soak up
     --   the entropy from bcrypt's state at the end of each superround.
     --   Duplicating the 'g3pSalt_seguid' is a good default choice.
-  , g3pSeedInputs_bcryptRounds :: !Word32
-    -- ^ How expensive will the bcrypt component be? 4000 rounds recommended,
-    --   give or take a factor of 2 or so. Each bcrypt round is approximately
-    --   as time consuming as 60 PHKDF rounds. Using the recommended cost,
-    --   parameters, the cost should be dominated by bcrypt.
   , g3pSeedInputs_bcryptLongTag :: !ByteString
     -- ^ Be aware this is truncated to (rounds + 1) * 4176 bytes, but
     --   length still matters after that. The primary intended use is to
@@ -427,13 +423,13 @@ data G3PSeedInputs = G3PSeedInputs
     --
     --   Also be aware that nobody should trust this parameter with arbitrary,
     --   potentially hostile input that is selected after all of the other
-    --   inputs to the bcrypt comptuation are known. There are, however,
+    --   inputs to the bcrypt computation are known. There are, however,
     --   a large number of ways to avoid any potential issues, including:
     --
     --   1.  Ensuring that this input is fully commited to before looking
     --       at all of the other input parameters /by convention/, which is
-    --       true in the primary intended use case as an extended salt for
-    --       password hashing.
+    --       true in the primary intended use case as an extended plaintext
+    --       salt for password hashing.
     --
     --   2.  Ensure that this input has been committed to by including the
     --       entirety of its contents in the derivation of at least one other
@@ -481,9 +477,6 @@ data G3PSeedInputs = G3PSeedInputs
     --   The shortest plausible attack string would seem to need to be as long
     --   as the truncation limit, which is north of 16 megabytes if you specify
     --   the suggested 4000 rounds.
-  , g3pSeedInputs_bcryptDomainTag :: !ByteString
-    -- ^ Used to derive the keys for a super round in bcrypt-xs-ctr mode.
-    --   Duplicating the 'g3pSalt_domainTag' is a good default choice.
   , g3pSeedInputs_bcryptContextTags :: !(Vector ByteString)
     -- ^ Also used to derive super round keys for bcrypt. Leaving this
     --   empty is a good default choice. In particular, one /should not/
@@ -495,7 +488,7 @@ data G3PSeedInputs = G3PSeedInputs
     --   'contextTags' parameters, but exclude the plaintext of the salt
     --   from 'bcryptContextTags'.
     --
-    --   The use of a random salt implies that if some or all of the bcrypt
+    --   This use of random salt implies that if some or all of the bcrypt
     --   computation is outsourced to another device, that device cannot
     --   break even weak passwords without knowing the salt.
     --
@@ -514,6 +507,14 @@ data G3PSeedInputs = G3PSeedInputs
     --   inputs into the 'bcryptLongTag', one possible way to handle this
     --   situation efficiently and safely would be to hash the entire input,
     --   and include that hash in this parameter.
+  , g3pSeedInputs_bcryptDomainTag :: !ByteString
+    -- ^ Used to derive the keys for a super round in bcrypt-xs-ctr mode.
+    --   Duplicating the 'g3pSalt_domainTag' is a good default choice.
+  , g3pSeedInputs_bcryptRounds :: !Word32
+    -- ^ How expensive will the bcrypt component be? 4000 rounds recommended,
+    --   give or take a factor of 2 or so. Each bcrypt round is approximately
+    --   as time consuming as 60 PHKDF rounds. Using the recommended cost,
+    --   parameters, the cost should be dominated by bcrypt.
   }
 
 -- | The Global Password Prehash Protocol (G3P). Note that this function is very
@@ -524,12 +525,40 @@ data G3PSeedInputs = G3PSeedInputs
 --   access to the underlying password and other secrets.
 --
 -- @
---  let mySprout = g3pHash salt inputs seedInputs seguid
---      myAuthKey = mySprout ["auth", "user salt: ec8296b96e939f"] "login.my.domain.example" ""
---      myDiskKey = mySprout ["disk",longTag,"key","bf94facc27b76328"] "cloud.my.domain.example" ""
---   in [ myAuthKey "" (word32 "AUTH") "my.domain.example"
---      , myDiskAuth "" (word32 "DISK") "filename0.txt"
---      , myDiskAuth "" (word32 "DISK") "quarterly-report.pdf"
+--  let myDomain = "my.domain.example"
+--      myLoginDomain = "login.my.domain.example"
+--      myStorageDomain = "cloud.my.domain.example"
+--      myLongTag = "My Corporation, Inc. https://my.domain.example/.well-known/security.txt"
+--      mySeguid = "60473b8010e16d"
+--      userRandomSalt = "ec8296b96e939f"
+--      userSecondSecretHash = "9c08053b7e507a"
+--      mySalt = G3PSalt {
+--                g3pSalt_seguid = mySeguid,
+--                g3pSalt_longTag = myLongTag,
+--                g3pSalt_contextTags = [userRandomSalt],
+--                g3pSalt_phkdfRounds = 20240,
+--                g3pSalt_domainTag = myDomain
+--               }
+--      myInputs = G3PInputs {
+--                  g3pInputs_username = userRandomSalt
+--                  g3pInputs_password = "correct horse battery staple"
+--                  g3pInputs_credentials = [userSecondSecretHash]
+--                }
+--      mySeedInputs = G3PSeedInputs {
+--                       g3pSeedInputs_bcryptKey = mySeguid,
+--                       g3pSeedInputs_bcryptLongTag = myLongTag,
+--                       g3pSeedInputs_bcryptContextTags = [],
+--                       g3pSeedInputs_bcryptDomainTag = myDomain,
+--                       g3pSeedInputs_bcryptRounds = 4202
+--                     }
+--      mySprout = g3pHash mySalt myInputs mySeedInputs mySeguid
+--      myAuthKey = mySprout ["auth",userRandomSalt]
+--                           myLoginDomain myDomain myDomain
+--      myDiskKey = mySprout ["disk",myLongTag,"key","bf94facc27b76328"]
+--                           myStorageDomain myDomain myDomain
+--   in [ myAuthKey (word32 "AUTH") myLoginDomain
+--      , myDiskKey (word32 "DISK") "filename0.txt"
+--      , myDiskKey (word32 "DISK") "quarterly-report.pdf"
 --      ]
 -- @
 --
