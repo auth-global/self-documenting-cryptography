@@ -208,19 +208,6 @@ data G3PSalt = G3PSalt
   { g3pSalt_seguid :: !HmacKey
     -- ^ usable as a high-repetition indirect tag via
     --   self-documenting globally unique identifiers (seguids)
-  , g3pSalt_domainTag :: !ByteString
-    -- ^ plaintext tag with one repetition per PHKDF round. 0-19 bytes are
-    --   free, 20-83 bytes cost a additional sha256 block /per PHKDF round/,
-    --   with every 64 bytes thereafter incurring a similar cost.
-    --
-    --   In the case of long domain tags, it is strategically advantageous
-    --   to ensure that the first 32 bytes are highly actionable, as these
-    --   bytes are commonly used as filler padding.
-    --
-    --   This parameter provides [domain separation](https://csrc.nist.gov/glossary/term/domain_separation).
-    --   A suggested value is a ICANN domain name controlled by the deployment.
-    --   The name is also a bit of an homage to the "realm" parameter of HTTP
-    --   basic authentication, which in part inspired it.
   , g3pSalt_longTag :: !ByteString
     -- ^ plaintext tag with 1x repetition, then cycled for roughly
     --   8 kilobytes which is used as filler padding after the password.
@@ -261,6 +248,19 @@ data G3PSalt = G3PSalt
     --   This would be a highly atypical deployment design decision. In most
     --   contexts, it would seem to be better to omit plaintext login names
     --   from this parameter.
+  , g3pSalt_domainTag :: !ByteString
+    -- ^ plaintext tag with one repetition per PHKDF round. 0-19 bytes are
+    --   free, 20-83 bytes cost a additional sha256 block /per PHKDF round/,
+    --   with every 64 bytes thereafter incurring a similar cost.
+    --
+    --   In the case of long domain tags, it is strategically advantageous
+    --   to ensure that the first 32 bytes are highly actionable, as these
+    --   bytes are commonly used as filler padding.
+    --
+    --   This parameter provides [domain separation](https://csrc.nist.gov/glossary/term/domain_separation).
+    --   A suggested value is a ICANN domain name controlled by the deployment.
+    --   The name is also a bit of an homage to the "realm" parameter of HTTP
+    --   basic authentication, which in part inspired it.
   , g3pSalt_phkdfRounds :: !Word32
     -- ^ How expensive will the PHKDF component be? An optimal implementation
     --   computes exactly two SHA256 blocks per round if the domain tag is
@@ -532,28 +532,31 @@ data G3PSeedInputs = G3PSeedInputs
 --      mySeguid = "60473b8010e16d"
 --      userRandomSalt = "ec8296b96e939f"
 --      userSecondSecretHash = "9c08053b7e507a"
---      mySalt = G3PSalt {
---                g3pSalt_seguid = mySeguid,
---                g3pSalt_longTag = myLongTag,
---                g3pSalt_contextTags = [userRandomSalt],
---                g3pSalt_phkdfRounds = 20240,
---                g3pSalt_domainTag = myDomain
---               }
---      myInputs = G3PInputs {
---                  g3pInputs_username = userRandomSalt
---                  g3pInputs_password = "correct horse battery staple"
---                  g3pInputs_credentials = [userSecondSecretHash]
---                }
---      mySeedInputs = G3PSeedInputs {
---                       g3pSeedInputs_bcryptKey = mySeguid,
---                       g3pSeedInputs_bcryptLongTag = myLongTag,
---                       g3pSeedInputs_bcryptContextTags = [],
---                       g3pSeedInputs_bcryptDomainTag = myDomain,
---                       g3pSeedInputs_bcryptRounds = 4202
---                     }
+--      mySalt =
+--        G3PSalt {
+--          g3pSalt_seguid = mySeguid,
+--          g3pSalt_longTag = myLongTag,
+--          g3pSalt_contextTags = [userRandomSalt],
+--          g3pSalt_domainTag = myDomain,
+--          g3pSalt_phkdfRounds = 20240
+--        }
+--      myInputs =
+--        G3PInputs {
+--          g3pInputs_username = userRandomSalt,
+--          g3pInputs_password = "correct horse battery staple",
+--          g3pInputs_credentials = [userSecondSecretHash]
+--        }
+--      mySeedInputs =
+--        G3PSeedInputs {
+--          g3pSeedInputs_bcryptKey = mySeguid,
+--          g3pSeedInputs_bcryptLongTag = myLongTag,
+--          g3pSeedInputs_bcryptContextTags = [],
+--          g3pSeedInputs_bcryptDomainTag = myDomain,
+--          g3pSeedInputs_bcryptRounds = 4202
+--        }
 --      mySprout = g3pHash mySalt myInputs mySeedInputs mySeguid
 --      myAuthKey = mySprout ["auth",userRandomSalt]
---                           myLoginDomain myDomain myDomain
+--                           myLoginDomain userRandomSalt myDomain
 --      myDiskKey = mySprout ["disk",myLongTag,"key","bf94facc27b76328"]
 --                           myStorageDomain myDomain myDomain
 --   in [ myAuthKey (word32 "AUTH") myLoginDomain
@@ -563,18 +566,28 @@ data G3PSeedInputs = G3PSeedInputs
 -- @
 --
 --   In addition to sharing the main key-stretching computation among
---   all three independent output streams, this also shares the computation
+--   all three independent output hashes, this also shares the computation
 --   of the 'G3PKey' among the two calls to @myDiskAuth@.  Although the
 --   savings in this latter context is relatively miniscule, it also can be
 --   relevant in certain contexts.
+--
+--   In the example above, the extended interface this module provides
+--   can be used to partially evaluate the sprout on the storage domain,
+--   allowing the 'G3PSeed' to be immediately forgotten. Later, the
+--   continuation of that partially evaluated sprout can be finalized
+--   once the storage key is provided by the authentication server upon
+--   a successful authentication.
 --
 --   In the case that you want or need to persist or serialize the
 --   intermediate structures, then the plain-old-datatypes 'G3PSpark',
 --   'G3PSeed', 'G3PSprout', 'G3PTree','G3PKey', 'G3PSource', and their
 --   associated functions are more relevant than implicit closures.
 
--- Oof, I didn't actually succeed in my claim in the first release of G3Pb1.
+-- Oof, I didn't actually succeed in my claim about the g3pHash supporting
+-- efficient partial application in the first release of G3Pb1.
+--
 -- I now have a deeper appreciation for point-less programming.
+
 g3pHash
   :: Foldable f
   => G3PSalt -- ^ All the parameters needed throughout the entire key-stretching computation.
@@ -583,8 +596,28 @@ g3pHash
   -> HmacKey -- ^ Sprout Seguid. A good default is to duplicate 'g3pSalt_seguid'.
   -> f ByteString -- ^ Sprout Role, an arbitrary number of bytestring parameters for late domain separation occuring after key-stretching is complete.  Meaning is deployment defined.
   -> ByteString -- ^ Sprout Tag. A good default is to duplicate 'g3pSalt_domainTag'.
-  -> ByteString -- ^ echo key right
-  -> ByteString -- ^ echo header
+  -> ByteString -- ^ This @echo key@ is the right half of the output key.  It is truncated to 32 bytes.
+  -> ByteString
+  -- ^ The @echo header@ is truncated to 32 bytes.
+  --
+  -- As the initial state of the output stream generator, if more than one
+  -- block of the resulting output stream is ever examined, then this
+  -- parameter must not include any new secrets. Otherwise the old secrets
+  -- are potentially still crackable from the relationship between output
+  -- stream blocks.
+  --
+  -- This problem can be avoided by ensuring at least one of these are true:
+  --
+  --     1.  Sticking to anodyne messages that aren't too specifically
+  --         related to this password attempt, like a company name.
+  --
+  --     2.  including data that's already been included earlier in the
+  --         derivation chain, i.e. deeper in the Merkle tree
+  --
+  --     3.  duplicating the content of this parameter in the @echo key@
+  --         and/or @echo tag@ parameters.
+  --
+  --     4.  never examine more than one output block.
   -> Word32 -- ^ echo counter
   -> ByteString -- ^ echo tag. A good default is to duplicate the sprout's tag.
   -> ByteString -- ^ a 32-byte output hash.  You can use the stream variant if you want more blocks. This is the first output block of that stream.
@@ -845,7 +878,7 @@ g3pSprout_toTree (G3PSprout ctx) domainTag = G3PTree key
 
 g3pTree_toKey
   :: G3PTree
-  -> ByteString -- ^ This @echo key@ is the right half of the output key.  It is truncated to 32 bytes.
+  -> ByteString -- ^ echo key right
   -> G3PKey
 g3pTree_toKey (G3PTree echoKeyL) echoKeyR = G3PKey (hmacKeyHashed key)
   where
@@ -888,28 +921,8 @@ type G3PSource = PhkdfGen
 g3pKey_toStream
   :: G3PKey
   -> ByteString
-  -- ^ The @echo header@ is truncated to 32 bytes.
-  --
-  -- As the initial state of the output stream generator, if more than one
-  -- block of the resulting output stream is ever examined, then this
-  -- parameter must not include any new secrets. Otherwise the old secrets
-  -- are potentially still crackable from the relationship between output
-  -- stream blocks.
-  --
-  -- This problem can be avoided by ensuring at least one of these are true:
-  --
-  --     1.  sticking to anodyne messages that aren't too specifically
-  --         related to this password attempt, like a company name
-  --
-  --     2.  including data that's already been included elsewhere in the
-  --         derivation of the Merkle tree.
-  --
-  --     3.  duplicating the content of this parameter in the @echo key@
-  --         and/or @echo tag@ parameters.
-  --
-  --     4.  never examine more than one output block.
   -> Word32
-  -- ^ The @echo counter@, functionally a bonus HKDF info parameter.
+  -- ^ The @echo counter@, functionally a bonus HKDF info parameter.  The test suite defaults to (word32 "OUT\x00")
   -> ByteString
   -- ^ The @echo tag@, functionally identical to HKDF's info parameter.
   -> Stream ByteString
