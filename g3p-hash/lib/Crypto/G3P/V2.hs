@@ -71,15 +71,27 @@ There are several themes worked into this design:
     These latter features aren't strictly required to compute the correct
     result, meaning that the G3P respects the HMAC's abstract specification.
     However, precomputed keys, streaming, and backtracking are all strictly
-    required in order to implement the G3P in the most secure way possible,
-    as otherwise an implementation cannot possibly Always Be Forgetting.
-    Not to mention that such a demonstration implementation would be
-    horrendously clumsy relative to a practical implementation.
+    required in order to implement the G3P in the most secure way possible.
+
+    A function that does not support precomputed HMAC keys will take twice
+    as many SHA256 blocks to compute the PHKDF key-stretching phase, if the
+    domain tag is 19 bytes or less. If the domain tag is 20-83 bytes long,
+    it would take 1.66x as many blocks, asymptotically very slowly decaying
+    to 1x every 64 bytes of domain tag thereafter.
+
+    A function that does not support streaming and backtracking cannot
+    possibly be always forgetting during the bcrypt phase, and would require
+    the generation and storage of nearly 400 kilobytes of data assuming
+    the recommended 4000 rounds. With streaming and backtracking, the
+    entire bcrypt key-stretching computation can be carried out in just over
+    4 kilobytes of memory. Not to mention that if your implementaion supports
+    streaming and backtracking, you aren't that far away from also supporting
+    precomputed HMAC keys.
 
 7.  From the viewpoint of an academic cryptographer, morally speaking, this
     design is literally a PBKDF2, an HKDF, and a bcrypt all at the same time,
-    via a carefully designed pun.
-
+    via a carefully designed pun. Preserving useful opportunities for employing
+    partial evaluation and continuations is a particularly notable design theme.
 -}
 
 module Crypto.G3P.V2
@@ -555,21 +567,34 @@ data G3PSeedInputs = G3PSeedInputs
 --          g3pSeedInputs_bcryptRounds = 4202
 --        }
 --      mySprout = g3pHash mySalt myInputs mySeedInputs mySeguid
---      myAuthKey = mySprout ["auth",userRandomSalt]
---                           myLoginDomain userRandomSalt myDomain
+--      myHeader = userRandomSalt <> myDomain
+--      myAuthKey = mySprout ["auth",userRandomSalt] myLoginDomain
+--                      myLoginDomain myHeader myHeader (word32 "AUTH")
 --      myDiskKey = mySprout ["disk",myLongTag,"key","bf94facc27b76328"]
---                           myStorageDomain myDomain myDomain
---   in [ myAuthKey (word32 "AUTH") myLoginDomain
---      , myDiskKey (word32 "DISK") "filename0.txt"
---      , myDiskKey (word32 "DISK") "quarterly-report.pdf"
+--                     myStorageDomain myHeader myHeader (word32 "DISK")
+--   in [ myAuthKey myLongTag
+--      , myDiskKey "filename0.txt"
+--      , myDiskKey "quarterly-report.pdf"
 --      ]
 -- @
 --
 --   In addition to sharing the main key-stretching computation among
---   all three independent output hashes, this also shares the computation
---   of the 'G3PKey' among the two calls to @myDiskAuth@.  Although the
---   savings in this latter context is relatively miniscule, it also can be
+--   all three independent output hashes, @myDiskAuth@ also shares the
+--   'G3PSprout' to 'G3PKey' computation among two different calls.
+--   Although this savings is relatively miniscule, it can also be
 --   relevant in certain contexts.
+--
+--   Note that this example is intended to be an extremely accurate sketch
+--   of what a good authentication deployment that uses random salts and not
+--   plaintext usernames would look like. Other details are more to stimulate
+--   ideas about how one might use these things: for example I'd highly
+--   recommend using actual binary encoding for @mySeguid@ etc, and I'd
+--   probably not use @myDiskKey@ in exactly that way.
+--
+--   This example is to emphasize that the G3P is designed to preserve endless
+--   possibilites for keying end-to-end encryption off of the user's password,
+--   though deploying the G3P as a client-side prehash is absolutely required
+--   for this to be a possibility.
 --
 --   In the example above, the extended interface this module provides
 --   can be used to partially evaluate the sprout on the storage domain,
@@ -581,7 +606,9 @@ data G3PSeedInputs = G3PSeedInputs
 --   In the case that you want or need to persist or serialize the
 --   intermediate structures, then the plain-old-datatypes 'G3PSpark',
 --   'G3PSeed', 'G3PSprout', 'G3PTree','G3PKey', 'G3PSource', and their
---   associated functions are more relevant than implicit closures.
+--   associated functions are more relevant than implicit closures. These
+--   data structures explicitly represent the result of a partial evaluation,
+--   and provide a continuation onward to any one of innumerable final results.
 
 -- Oof, I didn't actually succeed in my claim about the g3pHash supporting
 -- efficient partial application in the first release of G3Pb1.
