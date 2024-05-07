@@ -567,7 +567,7 @@ data G3PSeedInputs = G3PSeedInputs
 --        }
 --      mySprout = g3pHash mySalt myInputs mySeedInputs mySeguid
 --      myHeader = userRandomSalt <> myDomain
---      myAuthKey = mySprout ["auth",userRandomSalt] myLoginDomain
+--      myAuthKey = mySprout ["auth",userRandomSalt]
 --                      myLoginDomain myHeader myHeader (word32 "AUTH")
 --      myDiskKey = mySprout ["disk",myLongTag,"key","bf94facc27b76328"]
 --                     myStorageDomain myHeader myHeader (word32 "DISK")
@@ -648,7 +648,9 @@ g3pHash
   --     4.  never examine more than one output block.
   -> Word32 -- ^ echo counter
   -> ByteString -- ^ echo tag. A good default is to duplicate the sprout's tag.
-  -> ByteString -- ^ a 32-byte output hash.  You can use the stream variant if you want more blocks. This is the first output block of that stream.
+  -> ByteString
+  -- ^ a 32-byte output hash. You can use the stream variant if you want more
+  --   blocks. This is the first output block of that stream.
 g3pHash = ( fmap . fmap . fmap . fmap . fmap
           . fmap . fmap . fmap . fmap . fmap $ g3pSource_head) g3pSource
 
@@ -657,14 +659,15 @@ g3pHash = ( fmap . fmap . fmap . fmap . fmap
 --   proving that all collisions over them are cryptographically non-trivial.
 --   The eighth is used as the HMAC key.
 --
---   The resulting hash as well as the 'G3PSalt' parameters determine the
---   exact size, shape, and content of the Merkle tree that describes the
---   resulting spark. At this point in time every computation is fully
---   determined all the way to the end of the PHKDF key-stretching phase,
---   which results in two cryptographically independent keys: keyB which
---   begins bcrypt, and keyC which is the continuation control key.
+--   The hash resulting from this initial HMAC-Extract, in addition to the
+--   'G3PSalt' parameters, determine the exact size, shape, and content of the
+--   Merkle tree that describes the resulting spark. At this point in time
+--   every computation is fully determined all the way to the end of the
+--   PHKDF key-stretching phase.
 --
---   The continuation control key allows some or all of the bcrypt computation
+--   This results in two cryptographically independent keys: keyB which
+--   begins bcrypt, and keyC which is the continuation control key. The
+--   continuation control key allows some or all of the bcrypt computation
 --   to be outsourced to another semi-trusted device, without giving that
 --   device the ability to compute the final seed.
 
@@ -1292,7 +1295,6 @@ g3pSource_fromKey
   -> G3PKey -> G3PSource
 g3pSource_fromKey ehdr ectr etag key =
   g3pKey_toSource key ehdr ectr etag
-
 
 -- | This variant of 'g3pHash' returns an unbounded stream of 32-byte output
 --   blocks.  Use as many or as few as you want. Assuming the non-echo-header
