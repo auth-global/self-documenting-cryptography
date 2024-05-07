@@ -294,9 +294,8 @@ data G3PSalt = G3PSalt
     --   of the domain tag.
     --
     --   Thus if you are tuning this parameter via empirical timing tests,
-    --  the direct
-    --   linear relationship between this parameter and time is approximate,
-    --   not exact, due to a this reasonably large offset.
+    --   the direct linear relationship between this parameter and time is
+    --   approximate, not exact, due to a this reasonably large offset.
   } deriving (Eq)
 
 -- | These parameters are grouped together because they are hashed once
@@ -367,7 +366,7 @@ data G3PInputs = G3PInputs
   --   process does not leak anything about the existence or non-existence
   --   of accounts, and does not leak anything about recent account activity.
   --
-  --   On the other hand, using a random per-account salt has the potential
+  --   On the other hand, using a random salt per acccount has the potential
   --   to be a far more meaningful defensive line. This can serve both the
   --   interests of legitimate deployments and the password hash thieves
   --   that attack them. Some thieves will want to be able to outsource
@@ -413,8 +412,8 @@ data G3PInputs = G3PInputs
   --   and either can be executed well.
   --
   --   This decision has significant strategic consequences. I don't think
-  --   there's a one-size-fit-all solution, and there are quite a few ways
-  --   to sensibly customize each approach. Pick your poison wisely.
+  --   there exists a one-size-fits-all solution, and there are quite a few
+  --   ways to sensibly customize each approach. Pick your poison wisely.
   , g3pInputs_password :: !ByteString
   -- ^ constant time on 0-293 bytes, or if any of the other conditions are met.
   , g3pInputs_credentials :: !(Vector ByteString)
@@ -592,9 +591,9 @@ data G3PSeedInputs = G3PSeedInputs
 --   probably not use @myDiskKey@ in exactly that way.
 --
 --   This example is to emphasize that the G3P is designed to preserve endless
---   possibilites for keying end-to-end encryption off of the user's password,
---   though deploying the G3P as a client-side prehash is absolutely required
---   for this to be a possibility.
+--   possibilites for keying end-to-end encryption (E2EE) off of the user's
+--   password, though deploying a client-side prehash function such as the G3P
+--   is absolutely required for this to be a possibility.
 --
 --   In the example above, the extended interface this module provides
 --   can be used to partially evaluate the sprout on the storage domain,
@@ -606,9 +605,11 @@ data G3PSeedInputs = G3PSeedInputs
 --   In the case that you want or need to persist or serialize the
 --   intermediate structures, then the plain-old-datatypes 'G3PSpark',
 --   'G3PSeed', 'G3PSprout', 'G3PTree','G3PKey', 'G3PSource', and their
---   associated functions are more relevant than implicit closures. These
---   data structures explicitly represent the result of a partial evaluation,
---   and provide a continuation onward to any one of innumerable final results.
+--   associated functions are more relevant than implicit closures.
+--
+--   These data structures explicitly represent the result of a partial
+--   evaluation, and provide a continuation onward to any one of innumerable
+--   final results.
 
 -- Oof, I didn't actually succeed in my claim about the g3pHash supporting
 -- efficient partial application in the first release of G3Pb1.
