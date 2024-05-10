@@ -2,9 +2,8 @@
 
 {- |
 
-This module provides an interface to the following function.  This simplified
-presentation elides the fact that the variable-length padding between the
-@args@ parameter and the initial counter depends on the tag itself.
+This module provides an interface to Version 1 of PHKDF, especially the
+following function:
 
 @
 phkdfStream :: BitString -> [BitString] -> Word32 -> BitString -> Stream ByteString
@@ -262,7 +261,7 @@ import qualified Crypto.Hash.SHA256 as SHA256
 import           Crypto.PHKDF.HMAC
 import           Crypto.PHKDF.HMAC.Subtle
 import           Crypto.PHKDF.Primitives.Subtle
-import           Crypto.Encoding.PHKDF
+import           Crypto.Encoding.PHKDF.V1
 import           Crypto.Encoding.SHA3.TupleHash
 
 import           Control.Exception(assert)

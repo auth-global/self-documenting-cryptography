@@ -29,7 +29,7 @@ import qualified Data.Vector as V
 
 import Debug.Trace
 
-import Crypto.PHKDF
+import Crypto.PHKDF.V1.Cookbook
 import Test.Tasty
 import Test.Tasty.HUnit
 

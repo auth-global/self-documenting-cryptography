@@ -150,9 +150,9 @@ import           Data.Vector (Vector)
 import qualified Data.Vector as V
 import           Network.ByteOrder (word32)
 
-import           Crypto.Encoding.PHKDF
-                    ( add64WhileLt
-                    , cycleByteString
+import           Crypto.Encoding.PHKDF(add64WhileLt)
+import           Crypto.Encoding.PHKDF.V1
+                    ( cycleByteString
                     , cycleByteStringWithNull
                     , usernamePadding
                     , passwordPaddingBytes

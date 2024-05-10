@@ -48,6 +48,7 @@ module Crypto.PHKDF.HMAC
   , hmacCtx_update,  hmacCtx_feed
   , hmacCtx_updates, hmacCtx_feeds
   , hmacCtx_finalize
+  , hmacCtx_finalizeBits
   ) where
 
 import qualified Crypto.Hash.SHA256 as SHA256
@@ -253,4 +254,10 @@ hmacCtx_finalize :: HmacCtx -> ByteString
 hmacCtx_finalize (HmacCtx ic oc) = outer
   where
     inner = SHA256.finalize ic
+    outer = SHA256.finalize (SHA256.update (hmacKeyPadding_runWith 1 oc) inner)
+
+hmacCtx_finalizeBits :: ByteString -> Int -> HmacCtx -> ByteString
+hmacCtx_finalizeBits bits bitlen (HmacCtx ic oc) = outer
+  where
+    inner = SHA256.finalizeBits ic bits bitlen
     outer = SHA256.finalize (SHA256.update (hmacKeyPadding_runWith 1 oc) inner)

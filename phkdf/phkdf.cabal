@@ -26,16 +26,20 @@ cabal-version:       >=1.10
 library
   exposed-modules:
                      Crypto.PHKDF
+                     Crypto.PHKDF.Assert
+                     Crypto.PHKDF.Subtle
                      Crypto.Encoding.PHKDF
+                     Crypto.Encoding.PHKDF.V1
                      Crypto.PHKDF.Primitives
                      Crypto.PHKDF.Primitives.Assert
                      Crypto.PHKDF.Primitives.Subtle
+                     Crypto.PHKDF.V1.Cookbook
                      Crypto.PHKDF.HMAC
                      Crypto.PHKDF.HMAC.Subtle
 
   build-depends:     base < 5
-                   , bytestring > 0.11.1.0
-                   , cryptohash-sha256
+                   , bytestring >= 0.11.1.0
+                   , cryptohash-sha256 > 0.11.102
                    , network-byte-order
                    , Stream
                    , tuplehash-utils

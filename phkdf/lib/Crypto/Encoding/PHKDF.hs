@@ -2,62 +2,69 @@
 
 module Crypto.Encoding.PHKDF where
 
-import Data.Monoid((<>))
-import Data.Bits(Bits, (.&.))
+import Data.Bits(Bits, (.&.), shift)
 import Data.ByteString(ByteString)
-import Data.Foldable(Foldable)
 import Data.Int(Int64)
 import Data.List(scanl')
 import qualified Data.ByteString as B
-import Crypto.Encoding.SHA3.TupleHash
 
 import Debug.Trace
-
--- FIXME: most of the older parts of this module should be deleted, but
---        need to move to something better first.
-
-cycleByteStringToList :: ByteString -> Int -> [ByteString]
-cycleByteStringToList str outBytes =
-    if outBytes <= 0
-    then []
-    else if n == 0
-         then [ B.replicate outBytes 0 ]
-         else replicate q str ++ [B.take r str]
-  where
-    n = B.length str
-    (q,r) = outBytes `quotRem` n
-
-cycleByteStringWithNullToList :: ByteString -> Int -> [ByteString]
-cycleByteStringWithNullToList str outBytes = out
-  where
-    out = cycleByteStringToList (str <> "\x00") outBytes
-
-cycleByteString :: ByteString -> Int -> ByteString
-cycleByteString str outBytes = B.concat (cycleByteStringToList str outBytes)
-
-cycleByteStringWithNull :: ByteString -> Int -> ByteString
-cycleByteStringWithNull str outBytes =
-    B.concat (cycleByteStringWithNullToList str outBytes)
 
 extendTagToList :: ByteString -> [ByteString]
 extendTagToList tag = if n <= 19 then [tag] else tag'
   where
     n = B.length tag
-    x = (18 - n) `mod` 64
-    tag' = cycleByteStringWithNullToList tag (n+x)
-         ++ [B.singleton (fromIntegral x)]
+    x = (19 - n) `mod` 64
+    tag' = takeBs (fromIntegral (n+x)) (cycle [tag, "\x00"])
+         ++ [B.singleton (fromIntegral x `shift` 2)]
+
+-- | Extends a PHKDF end-of-message tag in order to ensure the last SHA-256
+--   block contains something interesting.
+--
+--   Tags less than 160 bits (20 bytes) long are appended directly, without
+--   extension, as the final portion of the message. Thus this function
+--   is the identity on short inputs.
+--
+--   Extended tags that are at least 20 bytes long should be thought of as
+--   a bitstring with a single null bit appended at the end to make it a
+--   full bytestring.
+--
+--   Tags 160 bits or longer are first extended, if necessary, to a full
+--   bytestring by adding a single "1" bit followed by zero to six "0" bits.
+--
+--   The bytestring is then extended by 0-63 bytes as needed to make the
+--   overall length equivalent to 19 (mod 64). The first byte of the extension
+--   is a null byte, then followed by the bytestring, then starting again
+--   at the null byte as needed.
+--
+--   The length of this extension takes up the first 6 bits of the last byte,
+--   followed by a "0" or "1" bit denoting whether the tag is a bytestring,
+--   or a proper bitstring whose length is an inexact multiple of 8.
+--
+--   The final bit is reserved for SHA-256's end-of-message padding, which
+--   will set it to 1.
 
 extendTag :: ByteString -> ByteString
 extendTag = B.concat <$> extendTagToList
 
-trimExtTag :: ByteString -> Maybe ByteString
-trimExtTag extTag
+-- | This function robustly undoes 'extendTag', thus "proving" that all
+--   collisions on PHKDF's tag are cryptographically non-trivial, even after
+--   extension.
+--
+--   This is a "proof" in the sense that if
+--   @trimExtendedTag (extendTag x) == Just x@ is true for all bytestrings
+--   @x@, then all collisions are non-trivial, but we haven't presented a
+--   full deductive proof of this property.  (It will eventually be part of
+--   the test suite.)
+
+trimExtendedTag :: ByteString -> Maybe ByteString
+trimExtendedTag extTag
   | n <= 19 = Just extTag
   | extTag /= extendTag tag = Nothing
   | otherwise = Just tag
   where
     n = B.length extTag
-    x = B.last extTag
+    x = B.last extTag `shift` (-2)
     tag = B.take (n - fromIntegral x - 1) extTag
 
 {--
@@ -85,37 +92,6 @@ add64WhileLt' b c
    | b >= c = b
    | otherwise = let d = c + ((b - c) .&. 63)
                   in trace (show b ++ " -> " ++ show d) d
-
-usernamePadding :: Foldable f => f ByteString -> ByteString -> ByteString -> ByteString
-usernamePadding headerExtract fillerTag domainTag
-  =  cycleByteStringWithNull fillerTag (a-32)
-  <> cycleByteStringWithNull domainTag    32
-  where
-    al = encodedVectorByteLength headerExtract
-    a  = add64WhileLt (157 - al) 32
-
-passwordPaddingBytes :: Foldable f => Int -> f ByteString -> f ByteString -> ByteString -> ByteString -> ByteString -> ByteString
-passwordPaddingBytes bytes headerUsername headerLongTag fillerTag domainTag password
-  =  cycleByteStringWithNull fillerTag (c-32)
-  <> cycleByteStringWithNull domainTag    32
-  where
-    al = encodedVectorByteLength headerLongTag
-    a  = add64WhileLt (bytes - al) 3240
-    bl = encodedVectorByteLength headerUsername
-    b  = add64WhileLt (a - bl) 136
-    cl = encodedByteLength password
-    c  = add64WhileLt (b - cl) 32
-
-passwordPadding :: Foldable f => f ByteString -> f ByteString -> ByteString -> ByteString -> ByteString -> ByteString
-passwordPadding = passwordPaddingBytes 8413
-
-credentialsPadding :: Foldable f => f ByteString -> ByteString -> ByteString -> ByteString
-credentialsPadding credentials fillerTag domainTag
-  =  cycleByteStringWithNull fillerTag (a-29)
-  <> cycleByteStringWithNull domainTag    29
-  where
-    al = encodedVectorByteLength credentials
-    a  = add64WhileLt (122 - al) 32
 
 dropBs :: Int64 -> [ ByteString ] -> [ ByteString ]
 dropBs = go
@@ -157,6 +133,8 @@ assertTakeB' = (maybe (error "not enough bytes") id <$>) . takeB'
 nullBuffer :: ByteString
 nullBuffer = B.replicate 64 0
 
+-- | Partition a bytestring into chunks of up to a given size
+
 chunkify :: Int -> ByteString -> [ ByteString ]
 chunkify n = go
   where
@@ -165,7 +143,17 @@ chunkify n = go
       | otherwise = bs0 : go bs1
         where (bs0, bs1) = B.splitAt n bs
 
-chunkifyCycle :: Int64 -> ByteString -> Int64 -> [ ByteString ]
+-- | Partition a cyclically extended bytestring into chunks of
+--   a given size, starting at a given offset.
+--
+--   Note that repetitions of the original string get a single
+--   null byte placed between them.
+
+chunkifyCycle
+  :: Int64 -- ^ Desired chunk size
+  -> ByteString -- ^ String to be cyclically extended.
+  -> Int64 -- ^ Starting offset
+  -> [ ByteString ] -- ^ Infinite stream of chunks
 chunkifyCycle len bs = go
   where
     modN pos = pos `mod` (fromIntegral (B.length bs) + 1)

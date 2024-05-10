@@ -42,7 +42,7 @@
 --   return garbage on certain lengths of inputs. I hope that this will
 --   eventually be remediated with a more comprehensive suite of test vectors.
 
-module Crypto.PHKDF where
+module Crypto.PHKDF.V1.Cookbook where
 
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
@@ -53,7 +53,8 @@ import           Data.Vector (Vector)
 import qualified Data.Vector as V
 import           Network.ByteOrder (word32)
 
-import           Crypto.Encoding.PHKDF
+--import           Crypto.Encoding.PHKDF
+import           Crypto.Encoding.PHKDF.V1
 import           Crypto.Encoding.SHA3.TupleHash
 import           Crypto.PHKDF.Primitives
 import           Crypto.PHKDF.Primitives.Assert
