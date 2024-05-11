@@ -31,10 +31,8 @@ library
                    , vector
   hs-source-dirs:    lib
   include-dirs:      csrc
-  c-sources:         csrc/bcrypt_xs.c
-                     csrc/blowfish.c
-  install-includes:  csrc/bcrypt_xs.h
-                     csrc/g3p_blf.h
+  c-sources:         csrc/g3p_bcrypt.c
+  install-includes:  csrc/g3p_bcrypt.h
   ghc-options:       -Wall
   cc-options:        -fsanitize=undefined
   ld-options:        -fsanitize=undefined
