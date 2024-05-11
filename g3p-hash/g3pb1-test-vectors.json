@@ -9,9 +9,9 @@
         "bcrypt-rounds":7
     },
     "results":[
-        {"G3Pb2":"0f3cd128bdda83b096d6fbdd0ab6c021a293d9a0e61dd69fa4420666726ea3cb0c53ae94c054efdc6cd15a3c3e13d7e198e3b71d54fabbceebdd821ea9f16a2f"},
-        {"args":{"seguid":{"hex":"89835b6072538e89e08085e29027ea19427e102ba528963916f5feb065d38ac06571c508292ef6d9b4d3203c0ff9900fbba82f571f51738e90b85ccfb84428dc"}},
-         "G3Pb2":"2e9c42cc9f38cb54f9c784b78cb480faf997fbf5c1d3a313a7f04026f2b78928b20b31e22c4ccbae883ea321986b5ce32ababfb722407195a987126b77c782c8"}
+        {"G3Pb1":"d6ad3dd2b82b8f279b39a1c667ed247701a2a93702a37f00e867cc3bb7a3c21123b5545d90ee2e4f196fcc81b74dd8c8ad8ae867c8140b3a90ca34dd7eca01f1"},
+        {"args":{"seguid":{"hex":"60473b8010e16d464314a11c2620a8ad99af49ae25474f877e57f6c27c58ca7a3538b58385eabbbbb540a350491291c870a4f12c8569485100da96f4202c3630"}},
+         "G3Pb1":"c721fd9ec639fdb104afbd371d80e5253e330c4a66583dff11aef19d02fb84ec6386e5ea2a5899c9155a5dbe59cf21eda2db8a29d79a2199a287436d3c458f64"}
     ]
 },{
     "name":"prehash first light, elaborated",
@@ -21,35 +21,33 @@
         "credentials":["The Indiana Academy for Science, Mathematics, and Humanities"],
         "long-tag":"Please leave the location of America's nuclear wessels after the beep.",
         "domain-tag":"1-800-CALL-SPY",
-        "tags":["United States Army Counterintelligence Tip Line"],
+        "seed-tags":["United States Army Counterintelligence Tip Line"],
         "role":["prankster"],
         "echo-tag":"Star Trek IV: The Voyage Home https://www.youtube.com/watch?v=MdSJFrhb-HM",
         "phkdf-rounds":1998,
         "bcrypt-rounds":7
     },
     "results":[
-        {"G3Pb2":"89835b6072538e89e08085e29027ea19427e102ba528963916f5feb065d38ac06571c508292ef6d9b4d3203c0ff9900fbba82f571f51738e90b85ccfb84428dc"}
+        {"G3Pb1":"60473b8010e16d464314a11c2620a8ad99af49ae25474f877e57f6c27c58ca7a3538b58385eabbbbb540a350491291c870a4f12c8569485100da96f4202c3630"}
     ]
 },{
     "name":"prehash unicode test, inset naval story with a reference",
     "args": {
         "username":"Р-360 «Нептун»",
         "password":"Русский военный корабль, иди нахуй",
-        "context-tags":["Державне Київське конструкторське бюро «Луч»"],
+        "seed-tags":["Державне Київське конструкторське бюро «Луч»"],
         "echo-tag":"Збройні Cили України «ЗСУ»",
         "domain-tag":"Україна",
         "phkdf-rounds":2022,
         "bcrypt-rounds":8
     },
     "results":[
-        {"G3Pb2":"ddedffb7837917d4046e52c92155bd8e9f8e36ef091508d723c1a27a3b9a6fe91c5fdd80d6604b4945975e46d35b984bfb0e551fd7bb1c62ec7ce48b2670cef6"},
-        {"args":{"bcrypt-domain-tag":"Державне Київське конструкторське бюро «Луч»"},
-         "G3Pb2":"9d890727c4c6b9d0fb7972890b0a22772d65d88b3bc30bc82f30c82eee5399f5ce8c8df650376fe76bcfb4f154f26b66bf2598617b0389dfb46a36180e287cf8"
+        {"G3Pb1":"0c06f683f093cb899b4a1e9836fc72812d22941716c05368097b912a328deec579fa21edf7aef04ec808a50bd8757cb734734cc96b00c224abe8642ce94088b3"},
+        {"args":{"bcrypt-tag":"Державне Київське конструкторське бюро «Луч»"},
+         "G3Pb1":"8660937862a0644410b7dd1a495ddd3dbdd05b3b43669ae2ec8dfe863f8e99d673f61c89486b7855a62936ea8684bb82e429f681abaaf571193dd1275e21481e"
         },
-        {"args":{
-            "bcrypt-seguid":{"hex":"89835b6072538e89e08085e29027ea19427e102ba528963916f5feb065d38ac06571c508292ef6d9b4d3203c0ff9900fbba82f571f51738e90b85ccfb84428dc"},
-            "bcrypt-context-tags":["«ЗСУ» Збройні Cили України","«Луч» Державне Київське конструкторське бюро"]},
-         "G3Pb2":"5229e13b74f87713403d257af74ea8c131587b6f6d639d3fb23c05f510a23fc06246489484965e2a9ce269e8ab15ae93379c0a1796ffb9b12dc73555e63068ba"}
+        {"args":{"bcrypt-tag":"«ЗСУ» Збройні Cили України «Луч» Державне Київське конструкторське бюро"},
+         "G3Pb1":"d59452447147d268a81249304430d7859e8b5c135b260f9b366db37c38c10aa9c6ab83f05bc529607023a3cae5248e7e6a825e69fa4a62f4a1fede386195cb33"}
     ]
 },{
     "name":"prehash unicode test, lightly extended on top",
@@ -63,11 +61,11 @@
         "bcrypt-rounds":66
     },
     "results":[
-        {"G3Pb2":"667ddd3e42bfdda290f45309493de98a1c7c87a970a506a7a7fe85f575e53b92ba722b900b8b331e79ab7832f78c394e7bf418968650c39b0e97e0eab0cd8fa9"},
+        {"G3Pb1":"9c08053b7e507a78b571b5b93e1326674540d7106da6408fcafeddcfcdf1ed76177ae099e711fd570d484af8e9fc548ba03d8bb545f449fdf6e86a9243d8c0f7"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40"}},
-         "G3Pb2":"0467f9f9dbda6b8cb49bbc83f994e2da16e394392c14237243666138587579ba951fc7b31bcccfc320a091244f8bbb11cb1faa66e87d87cb97efcaee72851103"},
+         "G3Pb1":"7db250698fe555f6832f33189f97e14ef3c1c2dcada5807119aa7676c24f3fac8d37ecf118059f51614f4d2c7ceecb3224047abec84e0d009f43fbfe984abd28"},
         {"args":{"seguid":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f4041"}},
-         "G3Pb2":"db35f066492107885e75e7bd764713bf4de4660b25cefa16877f623ba501c1940829227c4aac21b33f667929c56065bbe184c06956206b7bd87a67a0d04318ed"}
+         "G3Pb1":"4efe93dc422d0b67e9ad5d6d4743bc3f475d805e17f2657d57d57505969d3de56622054aedf3b8fec79e2aa48a2228530b7a11c23a520cc67d70d90721f4fc83"}
     ]
 },{
     "name":"xkcd account problems",
@@ -80,7 +78,7 @@
         "bcrypt-rounds":16
     },
     "results":{
-        "G3Pb2":"cc16cb29b8bfb57f00e4cf8c8096ed072afc0e2a2273e382a9446c930d9934c36b2691b1307e43b58812ac11d3152471c3a3a9aa4db12b2a4fb04851e2afc3b6"
+        "G3Pb1":"c09df48d21af7c83fe124e518ec40e84abada6b176b3ee99b35701fa2c0af99053ea538a8498d30e19837e7f5b4e200d08e11995d58f1c3d5a003b4bf1bc3089"
     }
 },{
     "name":"xkcd password strength #1",
@@ -92,14 +90,13 @@
         "bcrypt-rounds":5
     },
     "results":{
-        "G3Pb2":"9a1b54d3aac39e0ae2df8966db2647be06a37d856d5d57b1a70ef8c0c9b9b78875c60495de2522eb5b0d3912a006cac49c9cf9ac74743ced6f68355286dd2338"
+        "G3Pb1":"fb404c0874e90da9c9bd56e77000c6717482869c942fbac8feee4cb46c3d7e65371bf00071fd0f4a5707d3e3690acd534614a34176fcff704093a350975fa9ed"
     }
 },{
     "name":"xkcd password strength #2",
     "args":{
         "username":"Randall Munroe",
         "password":"correct horse battery staple",
-        "long-tag":"Please prehash passwords before they reach your servers. Please include plaintext salts in your prehash deployments. Please encourage your users to use random passphrases. See https://xkcd.com/936",
         "tags":[
             "Diceware","https://theworld.com/~reinhold/diceware.html","Arnold Reinhold",
             "https://www.eff.org/dice","Electronic Frontier Foundation"
@@ -109,22 +106,25 @@
         "bcrypt-rounds":5
     },
     "results":[
-        {"G3Pb2":"8f1830cf0cd666bf8ad9c583f3316c7973f3b85dc852b8987afe31fe323f05b7ff68b17abbcf84752a97863eec497242e8748f5695aedeb0ff38e0c611578bfe"},
+        {"G3Pb1":"290cf026e6860f78b558cd7deb3d01442f58d3fd90742bc4759407d975b0220fb9ab36dd7f8ec48705c3f55017d5ea2ad69dbf018e25243f7787ee8ba5578c55"},
         {"args":{"phkdf-rounds":65536,
                  "bcrypt-rounds":256},
-         "G3Pb2":"31ab909e7d96718e0878efbbb0e7de260339de410719c2876c979288fea33f7bba93a8810b24f84102a299ff78cb088768aa69652291f321bc84497f4be891ab"},
+         "G3Pb1":"200210b6ad928c550b842adb12b2b621dba60f7465e456ac0440da9d8fb539e39811ad3a84d010a08cdb3d8d640da5f67f82fb78715cc6beacc149963df5ead3"},
         {"args":{"phkdf-rounds":65535,
                  "bcrypt-rounds":255},
-         "G3Pb2":"6ddc9036146f1f86b3d55f2fcffe06953ec179f166981c3c94c46c941182f40adf12e86b26349077ac3c2de276bf9da4378f42647fb07e3dff08c556f3c06092"},
+         "G3Pb1":"872420a152eaedbd035e5aa488fa089c5ad59de5d5013dbf045dc72d9c3668e6e354b1dcbcbd6a9521fd9cf071724fabafbf914ed170c9e04becab9b823fd9a7"},
         {"args":{"phkdf-rounds":20240,
+                 "bcrypt-rounds":4095},
+         "G3Pb1":"650c06d2baa0a6a0e326b02328cf2ef0183cc5ad9211c56f4726e8a43d6f7c692fb1814ca57bf29bcbabc46a4c11d5b1b2af15b8631bfcd2a9bda6b71b540c8d"},
+        {"args":{"phkdf-rounds":42024,
                  "bcrypt-rounds":4202},
-         "G3Pb2":"080da120da30f48ff5b8bdff1f439f08f700dda98d6c2337bbea5e82df1d918bd4a85b97c269fcb0ffc868b9313028903698e3920a95b16a2d09fe0816974bf0"},
+         "G3Pb1":"7014dad47f0e7f7157d99b39a06553ce392884314bac76929f3f055bb0350b8f1920972aa1b5a2ea200d19f5d08b594cc9d891dd6913764f0bc080e332ac05e7"},
         {"args":{"phkdf-rounds":0,
                  "bcrypt-rounds":4202},
-         "G3Pb2":"39f81c4e1b56d739e8347f47bf16ab0ebf64ec9fc6058ad22e1eba375d3df56e4bb45d7c789575b2463c74b50f9b0fdad0808d0582fa8832ff4e008eb82552c2"},
-        {"args":{"phkdf-rounds":20240,
+         "G3Pb1":"fdb25ce5a9a782ce6dbdf3c6e00f02c4710b1b11388eff350a4ad032a66e38c64e80fa038cb6f9db3e29f49b169f846a3ea3a9bed3f7ca4ef264403a3f4b0f35"},
+        {"args":{"phkdf-rounds":42024,
                  "bcrypt-rounds":0},
-         "G3Pb2":"a8929a1e22424f80e0edc647bbfc88945390f42ced3ed5fc17026cf476c6bbe772f5f6271c570bc393a06c894ceb73af02dad73319a51ce4c18c2e661dcb5f4d"}
+         "G3Pb1":"34c1b5a3009161dabb4ef2a526dab2ed9154866b46251cae266e77c8125373af88cbb4afd03a11b526859feff12d3a4d43a375a7962011cc136d9c709c8db3fa"}
     ]
 },{
     "name":"xkcd password reuse #1",
@@ -136,7 +136,7 @@
         "bcrypt-rounds":4
     },
     "results":{
-        "G3Pb2":"49af90a3cd17559ba18a29f7007048ba6aae8d908e7a636ada1582ec1897df87e2b2224ab1229961f0054579d6cc70da983a7cbaf704d0c5a2b4016e52a378d7"
+        "G3Pb1":"f2efe2dd90f30d7509f427cbb06759e0ceaf08e51e0a33c325263a861b81c803f59374fa151c0af5904700adecf392c3bffb921d0a2b7d7c1052ef27ba9fcacc"
     }
 },{
     "name":"xkcd password reuse #2",
@@ -148,7 +148,7 @@
         "bcrypt-rounds":4
     },
     "results":{
-        "G3Pb2":"f8e08408387c32b8376431750fc47ddbec7535a1da6bb499990fd566c5f91462146aac4492250fb570c813d9b22eafd705f86888ccb6d98511a29ac0de52d94b"
+        "G3Pb1":"19367746312da7c3c938fc4e5264368e206f89812b84d4fa479cc7e7f66f07882d5788c1d309af46b95aa2c433186808b21fee501aa14b35ab2a9c9f5ccb0ed7"
     }
 },{
     "name":"trivial inputs",
@@ -157,30 +157,19 @@
         "password":"",
         "credentials":[],
         "seguid":"",
-        "context-tags":[],
         "domain-tag":"",
         "long-tag":"",
+        "echo-tag":"",
         "phkdf-rounds":0,
-        "bcrypt-seguid":"",
-        "bcrypt-context-tags":[],
-        "bcrypt-domain-tag":"",
-        "bcrypt-long-tag":"",
         "bcrypt-rounds":0,
-        "sprout-seguid":"",
+        "bcrypt-tag":"",
+        "bcrypt-salt-tag":"",
         "role":[],
-        "sprout-tag":"",
-        "echo-key":"",
-        "echo-header":"",
-        "echo-counter":0,
-        "echo-tag":""
+        "seed-tags":[]
     },
-    "results":[
-        {"G3Pb2":"2d0fb502c5e036112ca922e6bb5bd3e41acbd79a3223a42c3a1f08fd92398dfb",
-         "G3PSpark":"ec9b2346204faf6a70c6db51ad13257168917c3f767cd601233e74328dcea81dc84d4797bad4b3f4572d63dc4ce93e4d50f14bdebd45e72a062b0a87321eaf20",
-         "G3PSeed":"5cc3f754da7fdfebda13a28b80c9a9d2d456a14d31427b3d3f3c77a78a6e3eac"
-        }
-
-    ]
+    "results":{
+        "G3Pb1":"2d0fb502c5e036112ca922e6bb5bd3e41acbd79a3223a42c3a1f08fd92398dfb"
+    }
 },{
     "name":"password padding",
     "args":{
@@ -193,24 +182,24 @@
         "bcrypt-tag":""
     },
     "results":[
-        {"G3Pb2":"1e55f1cb8f9ef582beaa176608ad33e65d56fe56898efe648a0b6993a50f4281"
+        {"G3Pb1":"1e55f1cb8f9ef582beaa176608ad33e65d56fe56898efe648a0b6993a50f4281"
         },
         {"args":{"long-tag":{"ref":"prehash first light, elaborated","len":5113}},
-         "G3Pb2":"1ed3ddaea18428b04ac9b8028e6cae82ef08bdd1fa7c71337aa67e7bcd0a1c5d"
+         "G3Pb1":"1ed3ddaea18428b04ac9b8028e6cae82ef08bdd1fa7c71337aa67e7bcd0a1c5d"
         },
         {"args":{
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
                 "len":3045
             }},
-         "G3Pb2":"f79d27d104ce609e18609fffd72ca3b15d4b4a354dc6d2c686e6a92079654d59"
+         "G3Pb1":"f79d27d104ce609e18609fffd72ca3b15d4b4a354dc6d2c686e6a92079654d59"
         },
         {"args":{
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
                 "len":3046
             }},
-         "G3Pb2":"92dcd256761116151048601e171a3f9ae9da41d59fd754ee05043f139e0916b0"
+         "G3Pb1":"92dcd256761116151048601e171a3f9ae9da41d59fd754ee05043f139e0916b0"
         },
         {"args":{
             "username":{
@@ -223,7 +212,7 @@
                 "len":101,
                 "index":1
             }},
-         "G3Pb2":"2b71c3780105cc1379642f6ceb3e2d788ca96d7d514d8befc79c1bc403b14991"
+         "G3Pb1":"2b71c3780105cc1379642f6ceb3e2d788ca96d7d514d8befc79c1bc403b14991"
         },
         {"args":{
             "username":{
@@ -236,7 +225,7 @@
                 "len":102,
                 "index":1
             }},
-         "G3Pb2":"a8b6f029b25f1f57e3dac00b1f20bac6f1078230dbf0dfc59c4ae2c480965c73"
+         "G3Pb1":"a8b6f029b25f1f57e3dac00b1f20bac6f1078230dbf0dfc59c4ae2c480965c73"
         },
         {"args":{
             "long-tag":{"ref":"prehash first light","len":5049,"index":1},
@@ -249,7 +238,7 @@
                 "ref":"prehash unicode test, inset naval story with a reference",
                 "len":164
             }},
-         "G3Pb2":"12a5118df13e45434b61d168c3c46947bb00c8f97f14675691eb97c25630c7b5"
+         "G3Pb1":"12a5118df13e45434b61d168c3c46947bb00c8f97f14675691eb97c25630c7b5"
         },
         {"args":{
             "long-tag":{"ref":"prehash first light","len":5049,"index":1},
@@ -262,13 +251,13 @@
                 "ref":"prehash unicode test, inset naval story with a reference",
                 "len":165
             }},
-         "G3Pb2":"d833526e21357efc9cdb0fc9a650d7289ae946b5290381aecdda9bd1bdf140ea"
+         "G3Pb1":"d833526e21357efc9cdb0fc9a650d7289ae946b5290381aecdda9bd1bdf140ea"
         },
         {"args":{"long-tag":"","bcrypt-tag":{"ref":"xkcd password strength #2","len":112}},
-         "G3Pb2":"d31fa18b6bd099775b21efd7ae0f8c9d4090195be2d932ec1c462e996dfc1812"
+         "G3Pb1":"d31fa18b6bd099775b21efd7ae0f8c9d4090195be2d932ec1c462e996dfc1812"
         },
         {"args":{"long-tag":"","bcrypt-tag":{"ref":"xkcd password strength #2","len":113}},
-         "G3Pb2":"7a2e399582edaad660124e2513e3b21a9096e6ec81d920e75a7f40d796fa1c5e"
+         "G3Pb1":"7a2e399582edaad660124e2513e3b21a9096e6ec81d920e75a7f40d796fa1c5e"
         }
     ]
 },{
@@ -281,256 +270,253 @@
     },
     "results":[
         {"args":{"domain-tag":""},
-         "G3Pb2":"7f51672b6ab8462ae77569a0d794cfa4d4310167bbcf2daba0c282ca70626e71"
+         "G3Pb1":"76488206562b5b42828ab34e4300701a1c9719dbb886b494f940de50dd9008fc"
         },
         {"args":{"domain-tag":{"hex":"01"}},
-         "G3Pb2":"bb38ac17b121c966120b53d73b5c1cf08cf4201697cc7d97f9ea635f07d44581"
+         "G3Pb1":"2eed4085cf87decd6dcec271bab1252a3a1688f5e4f1e01a5f51c3a527176745"
         },
         {"args":{"domain-tag":{"hex":"0102"}},
-         "G3Pb2":"067ddf22b200e3d68e1c2dbf1630d8a6bd79273212815e373e7303fde009071a"
+         "G3Pb1":"9ad2af4b7e5ae0d0b672927069fc03384da7c8982f17ec6fdfeccdf11df96f69"
         },
         {"args":{"domain-tag":{"hex":"010203"}},
-         "G3Pb2":"cc35f5b467523ff14f2f4f46ae52f5e0a8134181ff7647c8f18596e9319a3544"
+         "G3Pb1":"c62a1ef5be515385bb7d87cbf6da08685857827e1e4133dd31892d7c987e8c7e"
         },
         {"args":{"domain-tag":{"hex":"01020304"}},
-         "G3Pb2":"9288613d82b138019ee8cbb3e53e9f983255fa601f6db5467a6a89cd203da081"
+         "G3Pb1":"c5d87a518feb9ae1c30bf39317e98c4ccc9f8c07d3cc78f4328648ec08a2afc3"
         },
         {"args":{"domain-tag":{"hex":"0102030405"}},
-         "G3Pb2":"2161f06a534495bdc56dd7ecada5c718f8ab4ee2063193e286b3135e8f927a8c"
+         "G3Pb1":"e4b59846812f693d4692e5d28f70fbe2e5b16bc5b44565904f377a8b8b3e1b3c"
         },
         {"args":{"domain-tag":{"hex":"010203040506"}},
-         "G3Pb2":"8de7e156af8e0997d33eaa241a8ada320bcc3397c4f082d546ab437bfa66d557"
+         "G3Pb1":"153642e8c40383c92b534e9bf8c2c81da55aef5c22781b97d4ffeb7c90ac8574"
         },
         {"args":{"domain-tag":{"hex":"01020304050607"}},
-         "G3Pb2":"e7045179323637ed3c0063623cb20f1b1fe14ee66876ef6f04d3e90a85790b74"
+         "G3Pb1":"1e3f7a8203531082c0b993c957d0c989f457775f8d38007bafbcc2b2607fb49b"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708"}},
-         "G3Pb2":"cc43477a3fe3a6f90040f0f37a79767bb313a4768735ceb7f0831bc9b910c7ac"
+         "G3Pb1":"9e7d22be88fdc4c6d6b19668bbb4640f1b2ad783e8f2b2ab8bcc8686dec097ab"
         },
         {"args":{"domain-tag":{"hex":"010203040506070809"}},
-         "G3Pb2":"c51f1ba1a99ffa93f118a603f3e75f9b18e071ad920cf8b2a9be5dc81f5ddd9b"
+         "G3Pb1":"926ea057bf81916ce3b9094df12c76b6e51770c2969f5af15775474c05f674e1"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a"}},
-         "G3Pb2":"19cc5624f69550e20aeca159dd4db77908e8b843e25e79b903d8ef1362bb7993"
+         "G3Pb1":"58aa2ca337800412b99ecd98e4ebbb465a7f28b648ceb06ccca62b37d695833d"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b"}},
-         "G3Pb2":"488f7e82a71483435b6baf1d34f2cc6677f8afc0f4dd14caaed30fae666046fb"
+         "G3Pb1":"da7a85e33611e860defd768666f4f3798b5fb32ccbcf76847cd9bd0765c74a61"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c"}},
-         "G3Pb2":"d418c0734577c3364931229481c9daf364345ddb1250cafc1be65994aa6fce58"
+         "G3Pb1":"c23f47fedefdedb0dd68773d4ea08eb12ef1b569c9c115e135a817deb0be67b1"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d"}},
-         "G3Pb2":"2eef76d729ee166b6e74917352f76dcc25da68bbf77e40555a768c9c41b0c4d2"
+         "G3Pb1":"35a1c4f934d7d74c7747f42212d3905a6e762e8793caef26bf850815a778c224"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e"}},
-         "G3Pb2":"c364453335bf0a760e764cb00d3716ee87e98ee9b8b7e52ac6baa07ed6fa58f5"
+         "G3Pb1":"7c2a21846426f71eecf4ef86c9dcf7cd4abadb3ba8dd507e271b8936b9946e3a"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f"}},
-         "G3Pb2":"38a82ba3690f516be1758a86566f0aee2fcf7cc1f5fdd32206272d571c9de008"
+         "G3Pb1":"fbd455257919f6ce7f375318b2a1acc2cd0277765e79095aefa8752ade1c6fe8"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f10"}},
-         "G3Pb2":"5d1924cf1de7ce1e6cd0b88a06fe5c6884f179406f22bfe0e1a5ba50507219f7"
+         "G3Pb1":"d178a9407df73a182091e48d3454d3bba28a923b19f1811f977fb488cca7306e"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f1011"}},
-         "G3Pb2":"2bff1608a92335795fda264efd0af912a79d8f4fb9fbd5e8130305d5d3e6e28d"
+         "G3Pb1":"7ebb194e3b2503c5af7348cdc91209a977cb0fe1082a4a6840af192d5b4a85a9"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112"}},
-         "G3Pb2":"7452f0bad7a6ea50830bb4add8cab87fc90f70987a834c20d8605e25cd66626e"
+         "G3Pb1":"8e9926ed8b0220303bba8fa76434477322602de88076349bf903295e27a83eda"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f10111213"}},
-         "G3Pb2":"46f0ef06db0b4ccbff89b8ab5ea734b75625e25acf7c13e7647a26043bab3aec"
+         "G3Pb1":"6f7dead0b80281ad271c56f36cde0c16030d46b9c66ab5426a7b4e304f177787"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f1011121314"}},
-         "G3Pb2":"955a0ac2d01767f612c3e2892abe7ead10903ccc2a1ba9ef63fb91b6837b85fa"
+         "G3Pb1":"95819a7a4aafa7ac45c701edceb7748059d044c069ed165bd5afd4b5287f3f30"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415"}},
-         "G3Pb2":"7f5f76bd4f4be984db446beb0269f69cf55a471e6b67dc3d2ba2087fc4a8d05d"
+         "G3Pb1":"ac6a51331ec00dfb7d33a5e5c28642204b2e752bb26f67b67c6c733c344b1f52"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f10111213141516"}},
-         "G3Pb2":"a34a4677dc3253ccecfc5c9be17db60ad05076e10ada15d3e6efccd5c56884a6"
+         "G3Pb1":"e58c9f5032941e77d843adf3eacc1efcefd9ee02aea0389d4bc06e15c9d0357a"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f1011121314151617"}},
-         "G3Pb2":"d22cf44094ff1f9df84f7cec1da12867540487201a35b69bafa23c9025b50374"
+         "G3Pb1":"4a1c4bbcc544a0304d0a160624c2c22498cc249792f398221cf8eb1683f8c616"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718"}},
-         "G3Pb2":"3f1119436127cf4ccd691c47ea03bff9485c37c99214cc4196eed13aa59d8486"
+         "G3Pb1":"99bab93d19ca43963061bf9a90eb13a64728cbd69053ce3d2f3725ff4fc7305a"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f10111213141516171819"}},
-         "G3Pb2":"91aac054452a80c147e98bfc32903ef3f872da2e5ee66b3ba532138e094d94e8"
+         "G3Pb1":"ebc5e55955d0ca977ba081c868316f5dfe6c7659cc352a05024d1911995d248f"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a"}},
-         "G3Pb2":"e0add05879fba0231848a9d3832a05afc7acae5f3c13762fe959ec46a7ec0b36"
+         "G3Pb1":"7be0875e6acb133a2a4ff27aacee8ffb8bd57c21c48e711d2ee8e97c35c754e3"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b"}},
-         "G3Pb2":"b02eedef8521a67cedef3dc49f0e623aa8e0e1eeed7d254b9b42e99d882b3d27"
+         "G3Pb1":"b155e942c56449ae076110008c244b9f6a10deddd70bfa265af7a6e12284da61"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c"}},
-         "G3Pb2":"64cbe94c3cf82f7a222e1c7937babfbde95959979533169a59c2c230a1d2b6a6"
+         "G3Pb1":"27f3ae6a201d5dbc2a0d9335e424d611b360de377e6a421822f7eae381b0e6ab"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d"}},
-         "G3Pb2":"391f8670af6e1f06abf2996c436c11c5a64a3d90901cd3eb489f9d4c56185fac"
+         "G3Pb1":"7a5a0c50c494ba373c449c023b6a543e42dfed6473ec65c1d070e89e78f85583"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e"}},
-         "G3Pb2":"50b4db9c3cfb0953dd8703aefe37a12eab31e2355e100b5c0355b29e6135dbd3"
+         "G3Pb1":"7200e3f36082f5389e919bf8148ba0e98cdecd1b4eb14a71a9067e583b037bdf"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"}},
-         "G3Pb2":"8ccdc59820b532a1e8ce0563bcae2bb44faa479fd5b07b499ad1e51f3d24ba43"
+         "G3Pb1":"6341748a06146f47c6bd759b615ba84d14b93de448bd773ade4e8f20ebdf6c03"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"}},
-         "G3Pb2":"2812d3632ee88d1475b97f61a52e7410fe223fddc45e989e9406bf226bf6e1b2"
+         "G3Pb1":"e8ffcab67ede795d547ffa2356daae472d6b266b520531d8d78cacff197e6db4"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021"}},
-         "G3Pb2":"daee25c88cf0330900ba506b2f8d518a945d370c7dc64968ad595140ae456a91"
+         "G3Pb1":"3c8268530283984b858331b9ecc3b54985f4760ab2b369ffa1c27924937e168e"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122"}},
-         "G3Pb2":"e87184807e80557bcea7ef7525d2f9e96c2968fc11c5c09e27e1c40eec00d11f"
+         "G3Pb1":"2d0d893ddd1903dc7373206e1475d293d997dd38a9ba946283a4f206ea36d7f8"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223"}},
-         "G3Pb2":"855232c0dcbfb510b65650ab1c68f542088bb3af64548565c4d25de774c63815"
+         "G3Pb1":"651da440e3425f1f2d69f91d5b150c572800b6613734311ea695116209455d1b"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021222324"}},
-         "G3Pb2":"ba17ae5ebdc590ed61452447b9c782c65fcdc1f0684c3c9d89614d3dec57a5de"
+         "G3Pb1":"a951bb1592568a0c05bd41d4d0a9712e9f83829d3f800f1ed6bf5d567cc6ce15"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425"}},
-         "G3Pb2":"910aa99a8f6c96d87be9cc87ab00306407d78ecba7d292a746dbb3523c418c57"
+         "G3Pb1":"0b4e8f76159bedf3b67541c08c3e11fedaed796d2e6ec3f97b1fc339e727edff"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223242526"}},
-         "G3Pb2":"b0235c3fc3afc6684f4ef9d4a3a69475071be1b2058949bbace7d393ac685f27"
+         "G3Pb1":"ff9b9a96cefcb04d42af036984daf11b0bb1d519027b32fd92c58a6a8fda2744"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021222324252627"}},
-         "G3Pb2":"c8e2c1072e4036ab117322ee02916778c722e51e196f297ec7f4544d5fefc8a7"
+         "G3Pb1":"21112353bce77f3f1781b1ecde88cd205d2871ecbe86a80d8706ed327c0f7c67"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728"}},
-         "G3Pb2":"b3bb0794cd24677359f5dcd7a1e20fca1f3e2a44b3f7c083b2e9db0e912865ab"
+         "G3Pb1":"17a536829a3c623697c003701cdf0ae16c1faaeec27c095a5edf93f576e37d2a"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223242526272829"}},
-         "G3Pb2":"eb0f8093fe4b9f0f22031defa695f4f1c85ccaa34404fc135f7eb500d5b3e238"
+         "G3Pb1":"85c5fd1dfecb6e40f81c8066f984135dfd1def147e37a895ee585fff582a479f"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a"}},
-         "G3Pb2":"3034b7bd594f4081b35d725a44f6b47bf5a8bd66f5aef29c83a9bcbfec9accf6"
+         "G3Pb1":"6213f75b424b446a3b367c3400e1dcbd2050e2cdf8eac33745266737a1bae9ef"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b"}},
-         "G3Pb2":"fc467105ae9ff0e66ecb5e9fbd87d11221d4ee54e746dd4b0db582c072b53e85"
+         "G3Pb1":"8998e460a5c834f5dd76cdcc18e7862d4ba7c06df9602f3066fe75c39e087fe2"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c"}},
-         "G3Pb2":"af03c834d3a576cb86a74a2aaa638db545a1122353bd7ed71e1c627b910b23ef"
+         "G3Pb1":"4e0b9607bbdc9c82b1df64c8842d412e82bf4da73e53530d1f8bcadb402d3f8c"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d"}},
-         "G3Pb2":"08fb308c7604d680042388d46f0c39f4a83dde57169147add856d3235c57dd1b"
+         "G3Pb1":"3111d270403f023c0342bcdc77c18eb430f27ccf6fbb3edc34845659534a6296"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e"}},
-         "G3Pb2":"c6d4d48f809c6b0d3e45126d33ed27e903f32fa8b6df81570c0fb4dbc14e922b"
+         "G3Pb1":"0c3270549af4cc19b5ee6ac4f669893c9a7b90f12dde29ba1e696813eedb8d98"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f"}},
-         "G3Pb2":"3f6ceacc5ed291bda6cb4053cf8b6169c466cb90bb4ae9479fed5adb0c06d14f"
+         "G3Pb1":"45eceeae98b934fc01e064b8829b153951b53e3c094d3ece3a7e61c91df3e5f3"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30"}},
-         "G3Pb2":"4882bf1e1e1f6ada3375e5185cb252b5d71daf9a24e60644ce2346c5f24501eb"
+         "G3Pb1":"e65fea4a66668a6ee7a62f0a589615893eb4d6b202b27259bb107be1c31a7e1a"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031"}},
-         "G3Pb2":"0b2acb06da2c4f62a27b424d194e04304d89e2433aff20f4eb5e4c4593e9f631"
+         "G3Pb1":"5045dd5daacd156ce916394f92b275039bc5ee084a495c006c783030bd860bd4"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132"}},
-         "G3Pb2":"8fdcb0a1d4ec1d79f15af95ad5077d6ac7fe80d2fcf7032b52515139d9d07799"
+         "G3Pb1":"944e6ca6dbe90636f57612709d620bcea4f6670c25f329cf859a78a2a3403d63"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30313233"}},
-         "G3Pb2":"97154ee1dfcc10dc55e36853e53dd964137c851be5916121fd04f787f66ece20"
+         "G3Pb1":"27238f189fb2af713a17f85c8db9af5bbc650e19331cfa5851bcbe8a2dc6f94a"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031323334"}},
-         "G3Pb2":"a88fef8a8a67e01f124e38800f7c17bab62bba223001216f4c7baefeb3583689"
+         "G3Pb1":"16661a1a66c625310478edea975716c1788a84861d5c3da4b7e5fd5f26b99fbf"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435"}},
-         "G3Pb2":"d4d2f699e3cf328a9fa5fe2c5a03d951ea9214f52f6d3c6a8917df5cbe295a8f"
+         "G3Pb1":"d64e32c42b6bd819ba785e223a9ec2fa7fa564cbcd5831fc462cfe55849a8665"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30313233343536"}},
-         "G3Pb2":"f064d6441e0dda8385fe8364ff3eb0d7cc69d5742a74d5af888128b370dfc6ea"
+         "G3Pb1":"22279ed0604d0bb24584f26b255e50aad4e0fd3d4a9a62943d756fbef07f95ed"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031323334353637"}},
-         "G3Pb2":"3a26cf73489e37072351bda3fbfc329beea74eb8c0ffbe4abb2d581a65a55c04"
+         "G3Pb1":"eb92f4bd207342ff2d2b277889e60bd45403ce158abe3c1c15d76c774c8fb267"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738"}},
-         "G3Pb2":"9abe539851293ddea5b836aeaf2183c7c94a9058d314b28cdffa9f514a05940c"
+         "G3Pb1":"aeb1db443177577b9e5b0e32824b21c84b848a21b77821f987b51d49a771a243"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f30313233343536373839"}},
-         "G3Pb2":"bb8ed34977ee47552776566649cf1506478aed2c66b468a13a0a06d054364064"
+         "G3Pb1":"24d09f57f7d8e4186bd00a7fcd6b7c89ac631997175edc0289f641c2c84507ea"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a"}},
-         "G3Pb2":"1c8db41195d164ed186d0690b71efa657f3ef49e4d846411cbf9477220998342"
+         "G3Pb1":"dc9ae1c446c1a196ca7829f635f3fa9537268f379cbd5eebbc2b723e4793c032"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b"}},
-         "G3Pb2":"e9b0fbd51ce125ce3871cdf59e576396b00022fe98c60fc43b4581016fee7e87"
+         "G3Pb1":"e37175ff13749abcc954da3a3001c2f93bee48da55e871e93fbc2bdab9de033a"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c"}},
-         "G3Pb2":"6ff45c175d416cadaab067336ea602449430c0b3b35828777d918537fc8ce28d"
+         "G3Pb1":"ee37dcaf0be9e105569b328d6d0f55ba47a169c484be16c3583ca7a0cfc974b7"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d"}},
-         "G3Pb2":"5d36441c45e0391223e84c7b3a0200cc173b3dc33110ad11610a1cf0659024c7"
+         "G3Pb1":"55babd9ed724cb1d5587aa7ec0414be1daa10b02625f07cc432d4285954a11b3"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e"}},
-         "G3Pb2":"ef245611ffe7c42f4dcc851762fa046885f960c5be949df6a22e45fea26e1f30"
+         "G3Pb1":"27095bf252c4692d99ee7e6057c2b0f8486c1b6a49eed72ece33477b18b04b63"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e40"}},
-         "G3Pb2":"aea1ec003129e7495d0a1f51b6c597bb4e87fa33e87cc9db15946e8542bf8714"
+         "G3Pb1":"6645b3d1781caebbe51d472f56bc2269d04a234c51f191ffab03df09b57516a5"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e4041"}},
-         "G3Pb2":"6f90fcd4a83808797f46f4445fe92a943be1bb5e423b48c71364a4fd833177dc"
+         "G3Pb1":"eb4d51310ba5e1eb684515f6a2b1478517b2ce96f3964dc4dc2c7ed905730135"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142"}},
-         "G3Pb2":"663d82636c08aae94891f82b32ff12903e7e141cccbbc678cbcf5a9b64f45d22"
+         "G3Pb1":"e276e59c52481296a0c94bac8a278d216b21795066d2e196cd211c17497df7c3"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e40414243"}},
-         "G3Pb2":"26cf45a04c33d85bc4d6487a58ff3d555e6aa37c1a375f41027f5ebf6f0a0119"
+         "G3Pb1":"4604f2bbbb246fba73a5a59b7241cb55ed96375c59be780b1cb8b28fb2c92751"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e4041424344"}},
-         "G3Pb2":"7c95a827b47564e60221793b1dd2261e03a7a7e912a4ab5c6bbb6418dbcdde64"
+         "G3Pb1":"fbb15f395fdb8bcc9c041c56240b5ff4c309976ef40bb5561c8d7ab00b8072ef"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445"}},
-         "G3Pb2":"d3b13d83d1fb406ec8e9290107c39a6c5bfe562d44bb23b522995a8578266b52"
+         "G3Pb1":"e5fd309b5ab3e5549e8ca27a78746d5961f549afa2881e23bbf9eb5a6ad1089c"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e40414243444546"}},
-         "G3Pb2":"a6f34277f1f0136b99d1372c2682a78fc51b5f5601e03dbc097a58bac86c4c62"
+         "G3Pb1":"1d82491a515e2b48272dac77434d01c645b769955e3756f0ad20e630317e2b03"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e4041424344454647"}},
-         "G3Pb2":"8894c9e3c47d60d55fdc55f50c94017baf1dede853ffe8ddc4e998f52c35eccc"
+         "G3Pb1":"14eb800f06fa890aa3bbd73a7a90c5cc6f04b7e49390ffafa1267982c9cf7f01"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445464748"}},
-         "G3Pb2":"da5fc4d5b99c939b86dd5fd967e414af35508b97da7b442abbf31ca8384c95a4"
+         "G3Pb1":"a90437e272efb9e725e6bee828fbcf549f5cb3e6721b23fae273d1a82721fda9"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e40414243444546474849"}},
-         "G3Pb2":"de21ae95002d50c4518113875bb26242ef29ab94554ced71fcc38eb59e91c522"
+         "G3Pb1":"e3d4058aee112881d4d421fdc7ea61228431ddf8b81470903fb6d60833c78078"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445464748494a"}},
-         "G3Pb2":"961c4b87277157a3aa3212a45f5e2cb4f58cf89cbc8e862668b06e14d09ac5cb"
+         "G3Pb1":"bb7db09b2fe46d9ba61fb0cca6bec2a99130e24dfaddf04c2af7142c86b080e3"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445464748494a4b"}},
-         "G3Pb2":"a2cfce4cac3fb3b9d6d292515479a1933e29c9a13bf8a7dc438967d2cb0ac8ed"
+         "G3Pb1":"92ce36869af780f1540bad4b878d4ee3274172431e18a7a8e0a154673e7c132d"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445464748494a4b4c"}},
-         "G3Pb2":"6cedb241b7771c708cec7fa19bb16b74cc1a912528aa0687f1a71c01dca8856e"
+         "G3Pb1":"fb96277684531ea48fa7fd04ca1a1a5dcb16b93afd9b96b12665cbb60373d4ac"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445464748494a4b4c4d"}},
-         "G3Pb2":"32d99fe89c6f06f6f313a9c166e13083850ba4e15b37aefe21a5ade51e0db874"
+         "G3Pb1":"7854170c740d1d6878c81284104c40249ea9559403aaea3e33ba4a72c0ee1994"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445464748494a4b4c4d4e"}},
-         "G3Pb2":"5096640995b774700ddc8a4257ce9e79b5a1890989f6bf58fbc8372a7c0ca438"
+         "G3Pb1":"748f50f1d7834f9d6d604c8c155c5530b019b66f532039788cc06383fa5ae743"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445464748494a4b4c4d4e4f"}},
-         "G3Pb2":"5cd2d0cbb9262ec41cc2aab9dec7d6e44eeaaefdf4c11556b9007a7bbcd56977"
+         "G3Pb1":"19eaf5992eb7d6a40cc7d1a9e7599257b65606570f43f83a3ea7ecffb53f371c"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445464748494a4b4c4d4e4f50"}},
-         "G3Pb2":"1fc45f4ce0ad41d1c34cdbd6218128fd6bd9de835ac82de6405cc1e7f0508bf2"
+         "G3Pb1":"8af1badbb6cfe8b76f9ab6fcfd66705cd0f8d0c4d59d4af30968b6c51d7b469a"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445464748494a4b4c4d4e4f5051"}},
-         "G3Pb2":"1913dfb5d5b9fdbc163505f9b0ef8bbaa78e33f78ff5c80daf3466f215d3fa93"
+         "G3Pb1":"7bfc6f034ba1ce335c4ac37646d03ded6af5c3959df59de0aed58777341783d9"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445464748494a4b4c4d4e4f505152"}},
-         "G3Pb2":"650bc177ce7af8e871780f93330601cd7361941aecb9e4fa6efe1da03bd2e0a7"
+         "G3Pb1":"db9b7aebe2a690bd64bbd14324f344918d5f6749f2bebac60d07a4540c320fda"
         },
         {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445464748494a4b4c4d4e4f50515253"}},
-         "G3Pb2":"8b1261bd3dbdf9630b9db6ff2bd17bfda3de59b782f37ba01db1acd9950d8ea5"
-        },
-        {"args":{"domain-tag":{"hex":"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e404142434445464748494a4b4c4d4e4f5051525354"}},
-         "G3Pb2":"e1cd88addb726900dad5acd491dab751982b1307eb28687f879ab4df7e5dfb65"
+         "G3Pb1":"568fb7b27fea31538e5a77d95adc58fe085e6e21f878958e040fe11358805fd2"
         }
     ]
 }]

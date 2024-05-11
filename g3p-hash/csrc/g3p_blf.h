@@ -81,3 +81,5 @@ uint32_t
 G3P_thenCycle(uint32_t *np,
               const uint8_t *a, uint32_t al, uint32_t *ap,
               const uint8_t *b, uint32_t bl, uint32_t *bp);
+
+extern const G3P_blf_ctx g3p_blf_init;

@@ -118,13 +118,18 @@ module Crypto.G3P.BCrypt.Subtle
 
 #include "bcrypt_xs.h"
 
+import           Control.Exception(throwIO, AssertionFailed(..))
+import           Control.Monad(when)
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
+import qualified Data.ByteString.Internal as B
 import           Data.Word
 import           Data.Int
 
+import           Foreign.Ptr
 import           Foreign.C.String
+import           Foreign.Marshal.Utils(fillBytes)
 import           System.IO.Unsafe
 
 data BCryptXs = BCryptXs
@@ -149,7 +154,7 @@ foreign import capi "bcrypt_xs.h bcrypt_xs" c_bcrypt_xs
     :: CString -> Word16 -> CString -> Word16
     -> CString -> Word16 -> CString -> Word16
     -> CString -> Word16 -> CString -> Word16
-    -> CString -> Word32 -> Word32 -> CString -> IO ()
+    -> CString -> Word32 -> Word32 -> Ptr Word8 -> IO ()
 
 foreign import capi "bcrypt_xs.h bcrypt_xs_ctr_superround" c_bcrypt_xs_ctr_superround
     :: CString
@@ -187,17 +192,12 @@ bcryptXs x = if B.null sZ then "" else unsafePerformIO $ do
           B.unsafeUseAsCString kR $ \kR' -> do
             B.unsafeUseAsCString sR $ \sR' -> do
               B.unsafeUseAsCString sZ $ \sZ' -> do
-                -- using a superfluous `seq` to try to ensure that this
-                -- allocates a new unique bytestring. FIXME: there's almost
-                -- certainly a better, more proper, more idiomatic solution
-                let out = B.replicate (sZ' `seq` B.length sZ) 0
-                B.unsafeUseAsCString out $ \out' -> do
+                B.create (B.length sZ) $ \out' -> do
                     (c_bcrypt_xs
                         k0' (len16 k0) s0' (len16 s0)
                         kL' (len16 kL) sL' (len16 sL)
                         kR' (len16 kR) sR' (len16 sR)
                         sZ' (len32 sZ) rounds out')
-                    return out
   where
     k0 = bcryptXs_key0 x
     s0 = bcryptXs_salt0 x
@@ -217,16 +217,17 @@ bcryptXsCtrSuperRound x tagPos rounds ctr mst = unsafePerformIO $ do
       B.unsafeUseAsCString tt $ \tt' -> do
         B.unsafeUseAsCString nn $ \nn' -> do
           B.unsafeUseAsCString st $ \st' -> do
-            -- using a superfluous `seq` to try to ensure that this
-            -- allocates a new unique bytestring. FIXME: there's almost
-            -- certainly a better, more proper, more idiomatic solution
-            let out = B.replicate bcryptXsCtr_outputLength (nn' `seq` 0)
+            outPtr <- B.mallocByteString bcryptXsCtr_outputLength
+            let out = B.BS outPtr bcryptXsCtr_outputLength
             B.unsafeUseAsCString out $ \out' -> do
+                fillBytes out' 0 bcryptXsCtr_outputLength
                 tagPos' <- c_bcrypt_xs_ctr_superround
                               st'
                               k0' (len32 k0) k1' (len32 k1)
                               nn' (len32 nn) tt' (len32 tt)
                               tagPos rounds ctr out'
+                when (bcryptXsCtr_outputLength /= 4168) $ do
+                  throwIO (AssertionFailed "foobar")
                 return (tagPos',BCryptState out)
   where
     k0 = bcryptXsCtr_key0 x

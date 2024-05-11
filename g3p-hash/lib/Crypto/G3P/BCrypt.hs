@@ -52,7 +52,7 @@ module Crypto.G3P.BCrypt
 
 import           Control.Exception(assert)
 
-import           Data.Bits((.&.), complement)
+import           Data.Bits((.&.))
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString as B
 import           Data.Function((&))
@@ -133,7 +133,8 @@ bcryptXsFree toString fnName longTag contextTags domainTag ctr0 = initRound
     -- Do 1-128 minirounds in the first superround, so that we end on an
     -- exact multiple of 128
     miniRoundBytes :: Int64 = fromIntegral bcryptXsFree_tagBytesPerRound
-    miniRounds0 = 128 - ((- rounds) .&. (complement 127))
+    miniRounds0 = let x = rounds .&. 127
+                   in if x == 0 then 128 else x
     -- The number of superrounds after the first
     superRounds0 = (rounds - miniRounds0) `div` 128
     tagBytesFrom = chunkifyCycle 32 longTag
@@ -192,44 +193,49 @@ bcryptXsFree toString fnName longTag contextTags domainTag ctr0 = initRound
 
         (tagPos', bcrypt1) = bcryptXsCtrSuperRound args
                                 tagPos (fromIntegral miniRounds) ctr mBcrypt0
-        -- Now we need to do the local commitment for the *next* superround,
-        -- or end-of-key-stretching finalization.
-
-        -- Here's the next local commitment:
-        -- offset of the tag used for the last miniround:
-
-        lastOffset = fromIntegral tagPos' + 127 * miniRoundBytes
-
-        (ltA : ltAs) = take halfBlocks (tagBytesFrom (fromIntegral tagPos'))
-        ltZ = take (halfBlocks + 3) (tagBytesFrom lastOffset)
 
         (pBit, pBox) = B.splitAt 8 (bcryptState_toByteString bcrypt1)
 
-        chunksR = key0 : key1 : orpheanBeholderScryDoubt <> pBit :
-                      chunkify 32 pBox ++ [ltA]
-
         list2 x y = [x,y]
+      in
+        if superRounds > 0
+        then let
 
-        nextChunks = assert (length ltZ == length chunksR) $
-                        concat (zipWith list2 ltZ chunksR) ++ ltAs
+            -- Now we need to do the local commitment for the *next* superround,
+            -- or end-of-key-stretching finalization.
 
-        ("",nextSha) = hmacKeyPrefixed_feeds nextChunks sha0
+            -- Here's the next local commitment:
+            -- offset of the tag used for the last miniround:
 
-        -- If we are finishing up, we just repeat the most recent tag:
+            lastOffset = fromIntegral tagPos' + 127 * miniRoundBytes
 
-        endOffset = fromIntegral tagPos' - 32 * (fromIntegral halfBlocks + 2)
+            (ltA : ltAs) = take halfBlocks (tagBytesFrom (fromIntegral tagPos'))
+            ltZ = take (halfBlocks + 3) (tagBytesFrom lastOffset)
 
-        endChunksL = take (halfBlocks + 2) (tagBytesFrom endOffset)
+            chunksR = key0 : key1 : orpheanBeholderScryDoubt <> pBit :
+                          chunkify 32 pBox ++ [ltA]
 
-        endChunksR = key0 : key1 : orpheanBeholderScryDoubt <> pBit :
-                        chunkify 32 pBox
 
-        endChunks = assert (length endChunksL == length endChunksR) $
-                       concat (zipWith list2 endChunksL endChunksR)
+            nextChunks = assert (length ltZ == length chunksR) $
+                            concat (zipWith list2 ltZ chunksR) ++ ltAs
 
-        ("",endSha) = hmacKeyPrefixed_feeds endChunks sha0
+            ("",nextSha) = hmacKeyPrefixed_feeds nextChunks sha0
+          in
+            superRound tagPos' nextSha (Just bcrypt1)
+                       (ctr - miniRounds) 128 (superRounds - 1)
+        else let
+            -- If we are finishing up, we just repeat the most recent tag:
 
-       in if superRounds == 0
-          then ((,) $! fromIntegral tagPos') $! endSha
-          else superRound tagPos' nextSha (Just bcrypt1)
-                          (ctr - miniRounds) 128 (superRounds - 1)
+            endOffset = fromIntegral tagPos' - 32*(fromIntegral halfBlocks + 2)
+
+            endChunksL = take (halfBlocks + 2) (tagBytesFrom endOffset)
+
+            endChunksR = key0 : key1 : orpheanBeholderScryDoubt <> pBit :
+                            chunkify 32 pBox
+
+            endChunks = assert (length endChunksL == length endChunksR) $
+                           concat (zipWith list2 endChunksL endChunksR)
+
+            ("",endSha) = hmacKeyPrefixed_feeds endChunks sha0
+          in
+            ((,) $! fromIntegral tagPos') $! endSha

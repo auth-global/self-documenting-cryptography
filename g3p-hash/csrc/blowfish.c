@@ -38,6 +38,7 @@
  * Bruce Schneier.
  */
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include "g3p_blf.h"
@@ -101,12 +102,8 @@ G3P_Blowfish_decipher(const G3P_blf_ctx *c, uint32_t *xl, uint32_t *xr)
   *xr = Xl;
 };
 
-void
-G3P_Blowfish_initstate(G3P_blf_ctx *c)
-{
-  /* P-box and S-box tables initialized with digits of Pi */
-
-  static const G3P_blf_ctx initstate =
+/* P-box and S-box tables initialized with digits of Pi */
+const G3P_blf_ctx g3p_blf_init =
   { {
     {
       0xd1310ba6, 0x98dfb5ac, 0x2ffd72db, 0xd01adfb7,
@@ -377,9 +374,6 @@ G3P_Blowfish_initstate(G3P_blf_ctx *c)
     0x9216d5d9, 0x8979fb1b
   } };
 
-  *c = initstate;
-};
-
 uint32_t G3P_Blowfish_readP(const G3P_blf_ctx *c, uint8_t i) {
   return c->P[i];
 }
@@ -404,6 +398,7 @@ void G3P_Blowfish_encodestate(const G3P_blf_ctx *c, uint8_t out[G3P_BLF_CTX_LENG
       out[p++] =  x        & 0xff;
     }
   }
+  assert (p == G3P_BLF_CTX_LENGTH);
 }
 
 void G3P_Blowfish_decodestate(const uint8_t in[G3P_BLF_CTX_LENGTH],
@@ -411,22 +406,23 @@ void G3P_Blowfish_decodestate(const uint8_t in[G3P_BLF_CTX_LENGTH],
   uint32_t p = 0;
   for (int i = 0; i < G3P_BLF_N + 2; i++) {
     uint32_t x = 0;
-    x |= in[p++] << 24;
-    x |= in[p++] << 16;
-    x |= in[p++] <<  8;
-    x |= in[p++];
+    x |= ((uint32_t)in[p++]) << 24;
+    x |= ((uint32_t)in[p++]) << 16;
+    x |= ((uint32_t)in[p++]) <<  8;
+    x |= ((uint32_t)in[p++]);
     c->P[i] = x;
   }
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 256; j++) {
       uint32_t x = 0;
-      x |= in[p++] << 24;
-      x |= in[p++] << 16;
-      x |= in[p++] <<  8;
-      x |= in[p++];
+      x |= ((uint32_t)in[p++]) << 24;
+      x |= ((uint32_t)in[p++]) << 16;
+      x |= ((uint32_t)in[p++]) <<  8;
+      x |= ((uint32_t)in[p++]);
       c->S[i][j] = x;
     }
   }
+  assert (p == G3P_BLF_CTX_LENGTH);
 }
 
 uint32_t
@@ -438,10 +434,10 @@ G3P_cycle(const uint8_t *data, uint32_t len, uint32_t *current)
   x = 0x00000000;
   j = *current;
 
-  for (int i = 0; i < 4; i++, j++) {
-    if (j >= len)
-      j = 0;
+  for (int i = 0; i < 4; i++) {
     x = (x << 8) | data[j];
+    j++;
+    if (j >= len) j = 0;
   }
 
   *current = j;
@@ -584,9 +580,6 @@ G3P_Blowfish_expandCtr
 {
   if (c == NULL) return tagPos;
 
-	uint32_t datal;
-	uint32_t datar;
-
   uint32_t pos = 0;
 
   uint32_t n;
@@ -609,8 +602,8 @@ G3P_Blowfish_expandCtr
   n = nameLen;
   pos = 0;
 
-  datal = G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, &tagPos) ^ ctr;
-  datar = G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, &tagPos);
+  uint32_t datal = G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, &tagPos) ^ ctr;
+  uint32_t datar = G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, &tagPos);
   G3P_Blowfish_encipher(c, &datal, &datar);
   c->P[0] = datal;
   c->P[1] = datar;

@@ -14,7 +14,7 @@ bcrypt_xs
 {
   G3P_blf_ctx state;
 
-  G3P_Blowfish_initstate(&state);
+  memcpy(&state, &g3p_blf_init, sizeof(state));
 
   bcrypt_xs_expand
     (&state,
@@ -37,8 +37,10 @@ bcrypt_xs_ctr_superround
 {
   G3P_blf_ctx state;
 
+  memset(&state, 0, sizeof(state));
+
   if (input == NULL)
-    G3P_Blowfish_initstate(&state);
+    memcpy(&state, &g3p_blf_init, sizeof(state));
   else
     G3P_Blowfish_decodestate(input, &state);
 

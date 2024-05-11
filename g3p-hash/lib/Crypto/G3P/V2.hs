@@ -726,7 +726,7 @@ g3pSpark salt inputs = spark
     credsPadLen = a
       where
         al = encodedVectorByteLength credentials
-        a  = add64WhileLt (318 - al) 32
+        a  = add64WhileLt (314 - al) 32
 
     credsPadding =
       takeBs (fromIntegral (credsPadLen - 29)) (cycle [longTag, "\x00"]) ++

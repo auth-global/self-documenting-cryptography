@@ -231,7 +231,7 @@ readTestVectorsFromFile fileName =
         Right result -> return (fileName, result)
 
 testVectorDefaultFileName :: String
-testVectorDefaultFileName = "g3p-test-vectors.json"
+testVectorDefaultFileName = "g3pb1-test-vectors.json"
 
 testFile :: (String, Either String TestVectors) -> TestTree
 testFile (fileName, mTestVectors) =
