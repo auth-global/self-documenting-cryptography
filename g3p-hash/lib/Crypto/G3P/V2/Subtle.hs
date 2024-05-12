@@ -6,7 +6,7 @@ module Crypto.G3P.V2.Subtle where
 import Data.ByteString(ByteString)
 import Data.Vector(Vector)
 import Crypto.PHKDF.HMAC(HmacKeyHashed)
-import Crypto.PHKDF.Primitives(PhkdfCtx)
+import Crypto.PHKDF(PhkdfCtx)
 
 -- | Represents the completion of the PBKDF2-like key stretching computation,
 --   and ready for bcrypt.

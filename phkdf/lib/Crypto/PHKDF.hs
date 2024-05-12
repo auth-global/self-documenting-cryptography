@@ -2,7 +2,7 @@
 
 {- |
 
-This module provides an interface to Version 1 of PHKDF, especially the
+This module provides an interface to Version 2 of PHKDF, especially the
 following function:
 
 @
@@ -254,7 +254,6 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.Function((&))
 import           Data.Foldable(Foldable, foldl')
-import           Data.Int
 import           Data.Word
 import           Data.Stream (Stream(..))
 import qualified Data.Stream as Stream
@@ -263,7 +262,7 @@ import           Network.ByteOrder (bytestring32)
 import qualified Crypto.Hash.SHA256 as SHA256
 import           Crypto.PHKDF.HMAC
 import           Crypto.PHKDF.HMAC.Subtle
-import           Crypto.PHKDF.Primitives.Subtle
+import           Crypto.PHKDF.Subtle
 import           Crypto.Encoding.PHKDF
 import           Crypto.Encoding.SHA3.TupleHash
 

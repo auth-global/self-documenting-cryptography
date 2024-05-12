@@ -181,8 +181,8 @@ import           Crypto.Encoding.PHKDF
                     )
 import           Crypto.Encoding.SHA3.TupleHash
 import           Crypto.PHKDF.HMAC
-import           Crypto.PHKDF.Primitives
-import           Crypto.PHKDF.Primitives.Assert
+import           Crypto.PHKDF
+import           Crypto.PHKDF.Assert
 import           Crypto.G3P.BCrypt (bcryptXsFree)
 import           Crypto.G3P.V2.Subtle
 
