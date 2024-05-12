@@ -116,10 +116,8 @@ module Crypto.G3P.BCrypt.Subtle
   , BCryptState(..)
   ) where
 
-#include "bcrypt_xs.h"
+#include "g3p_bcrypt.h"
 
-import           Control.Exception(throwIO, AssertionFailed(..))
-import           Control.Monad(when)
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
@@ -129,8 +127,14 @@ import           Data.Int
 
 import           Foreign.Ptr
 import           Foreign.C.String
-import           Foreign.Marshal.Utils(fillBytes)
 import           System.IO.Unsafe
+
+
+-- uhh, whut? Am I looking at the wrong version of some documentation? Figuring
+-- out why this is at least sometimes necessary is a good puzzle for later:
+
+myUseAsCString :: ByteString -> (CString -> IO a) -> IO a
+myUseAsCString x f = if B.null x then f nullPtr else B.unsafeUseAsCString x f
 
 data BCryptXs = BCryptXs
   { bcryptXs_key0 :: !ByteString
@@ -150,13 +154,13 @@ data BCryptXsCtr = BCryptXsCtr
   , bcryptXsCtr_name :: !ByteString
   }
 
-foreign import capi "bcrypt_xs.h bcrypt_xs" c_bcrypt_xs
+foreign import capi "g3p_bcrypt.h bcrypt_xs" c_bcrypt_xs
     :: CString -> Word16 -> CString -> Word16
     -> CString -> Word16 -> CString -> Word16
     -> CString -> Word16 -> CString -> Word16
     -> CString -> Word32 -> Word32 -> Ptr Word8 -> IO ()
 
-foreign import capi "bcrypt_xs.h bcrypt_xs_ctr_superround" c_bcrypt_xs_ctr_superround
+foreign import capi "g3p_bcrypt.h bcrypt_xs_ctr_superround" c_bcrypt_xs_ctr_superround
     :: CString
     -> CString -> Word32 -> CString -> Word32
     -> CString -> Word32 -> CString -> Word32
@@ -185,13 +189,13 @@ bcryptXsCtr_outputLength = (#const G3P_BLF_CTX_LENGTH)
 
 bcryptXs :: BCryptXs -> ByteString
 bcryptXs x = if B.null sZ then "" else unsafePerformIO $ do
-  B.unsafeUseAsCString k0 $ \k0' -> do
-    B.unsafeUseAsCString s0 $ \s0' -> do
-      B.unsafeUseAsCString kL $ \kL' -> do
-        B.unsafeUseAsCString sL $ \sL' -> do
-          B.unsafeUseAsCString kR $ \kR' -> do
-            B.unsafeUseAsCString sR $ \sR' -> do
-              B.unsafeUseAsCString sZ $ \sZ' -> do
+  myUseAsCString k0 $ \k0' -> do
+    myUseAsCString s0 $ \s0' -> do
+      myUseAsCString kL $ \kL' -> do
+        myUseAsCString sL $ \sL' -> do
+          myUseAsCString kR $ \kR' -> do
+            myUseAsCString sR $ \sR' -> do
+              myUseAsCString sZ $ \sZ' -> do
                 B.create (B.length sZ) $ \out' -> do
                     (c_bcrypt_xs
                         k0' (len16 k0) s0' (len16 s0)
@@ -212,22 +216,19 @@ bcryptXs x = if B.null sZ then "" else unsafePerformIO $ do
 
 bcryptXsCtrSuperRound :: BCryptXsCtr -> Word32 -> Word32 -> Word32 -> Maybe BCryptState -> (Word32, BCryptState)
 bcryptXsCtrSuperRound x tagPos rounds ctr mst = unsafePerformIO $ do
-  B.unsafeUseAsCString k0 $ \k0' -> do
-    B.unsafeUseAsCString k1 $ \k1' -> do
-      B.unsafeUseAsCString tt $ \tt' -> do
-        B.unsafeUseAsCString nn $ \nn' -> do
-          B.unsafeUseAsCString st $ \st' -> do
+  myUseAsCString k0 $ \k0' -> do
+    myUseAsCString k1 $ \k1' -> do
+      myUseAsCString tt $ \tt' -> do
+        myUseAsCString nn $ \nn' -> do
+          myUseAsCString st $ \st' -> do
             outPtr <- B.mallocByteString bcryptXsCtr_outputLength
             let out = B.BS outPtr bcryptXsCtr_outputLength
-            B.unsafeUseAsCString out $ \out' -> do
-                fillBytes out' 0 bcryptXsCtr_outputLength
+            myUseAsCString out $ \out' -> do
                 tagPos' <- c_bcrypt_xs_ctr_superround
                               st'
                               k0' (len32 k0) k1' (len32 k1)
                               nn' (len32 nn) tt' (len32 tt)
                               tagPos rounds ctr out'
-                when (bcryptXsCtr_outputLength /= 4168) $ do
-                  throwIO (AssertionFailed "foobar")
                 return (tagPos',BCryptState out)
   where
     k0 = bcryptXsCtr_key0 x

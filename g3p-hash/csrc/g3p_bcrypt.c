@@ -376,12 +376,6 @@ const G3P_blf_ctx g3p_blf_init =
     0x9216d5d9, 0x8979fb1b
   } };
 
-uint32_t G3P_Blowfish_readP(const G3P_blf_ctx *c, uint8_t i) {
-  return c->P[i];
-}
-uint32_t G3P_Blowfish_readS(const G3P_blf_ctx *c, uint8_t i, uint8_t j) {
-  return c->S[i][j];
-}
 void G3P_Blowfish_encodestate(const G3P_blf_ctx *c, uint8_t out[G3P_BLF_CTX_LENGTH]) {
   uint32_t p = 0;
   for (int i = 0; i < G3P_BLF_N + 2; i++) {
@@ -663,8 +657,6 @@ bcrypt_xs_ctr_superround
   uint32_t tagPos, uint32_t rounds, uint32_t ctr, char output[G3P_BLF_CTX_LENGTH] )
 {
   G3P_blf_ctx state;
-
-  memset(&state, 0, sizeof(state));
 
   if (input == NULL)
     memcpy(&state, &g3p_blf_init, sizeof(state));
