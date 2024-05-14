@@ -65,11 +65,11 @@ void G3P_Blowfish_expand(G3P_blf_ctx *c,
                          uint32_t ctr);
 uint32_t
 G3P_Blowfish_expandCtr
-( G3P_blf_ctx *c,
-  const uint8_t *key, uint32_t keyLen,
-  const uint8_t *name, uint32_t nameLen,
-  const uint8_t *tag, uint32_t tagLen, uint32_t tagPos,
-  uint32_t ctr, bool keyIsFirst );
+( G3P_blf_ctx *const c,
+  const uint8_t *const key, const uint32_t keyLen,
+  const uint8_t *const name, const uint32_t nameLen,
+  const uint8_t *const tag, const uint32_t tagLen, const uint32_t tagPos,
+  const uint32_t ctr, const bool keyIsFirst );
 
 void G3P_Blowfish_encodestate(const G3P_blf_ctx *c, uint8_t out[G3P_BLF_CTX_LENGTH]);
 void G3P_Blowfish_decodestate(const uint8_t in[G3P_BLF_CTX_LENGTH], G3P_blf_ctx *c);
