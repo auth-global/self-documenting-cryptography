@@ -118,8 +118,9 @@ formatFnName (B.take 28 -> name) = B.concat [bytestring32 0, name, nameExt]
   where
     nameExt = B.take (28 - B.length name) nullBuffer
 
+
 bcryptXsFree_tagBytesPerRound :: Int
-bcryptXsFree_tagBytesPerRound = 4176
+bcryptXsFree_tagBytesPerRound = bcryptXsCtr_outputLength - 32
 
 concatTakeBs :: Int -> [ByteString] -> ByteString
 concatTakeBs n bs = B.concat (takeBs (fromIntegral n) bs)
@@ -174,8 +175,8 @@ bcryptXsFree toString fnName longTag contextTags domainTag ctr0 = initRound
       let
         -- The derivation of the keys for the superround will locally commit
         -- to the first 64 - 190 bytes of the extended salt of the
-        -- penultimate miniround.  (The first 40 bytes are P-Box salt)
-        penOffset = fromIntegral tagPos + 40 + (fromIntegral miniRounds - 2) * miniRoundBytes
+        -- penultimate miniround.
+        penOffset = fromIntegral tagPos + (fromIntegral miniRounds - 2) * miniRoundBytes
         endPad0 n = concatTakeBs n (tagBytesFrom (penOffset + 64))
         endPad1 n = concatTakeBs n (tagBytesFrom (penOffset + 64 + fromIntegral n))
         key0 = phkdfCtx_initPrefixed (tagBytesFrom penOffset !! 0) sha0 &
@@ -196,45 +197,42 @@ bcryptXsFree toString fnName longTag contextTags domainTag ctr0 = initRound
 
         (pBit, pBox) = B.splitAt 8 (bcryptState_toByteString bcrypt1)
 
+        chunksR = key0 : key1 : orpheanBeholderScryDoubt <> pBit :
+                      chunkify 32 pBox
+
         list2 x y = [x,y]
       in
-        if superRounds > 0
+        if assert (fromIntegral tagPos' == (penOffset + 2*miniRoundBytes) `mod` fromIntegral (B.length longTag + 1)) $
+             superRounds > 0
         then let
 
-            -- Now we need to do the local commitment for the *next* superround,
-            -- or end-of-key-stretching finalization.
+            -- Now we need to do the local commitment for the *next* superround
 
-            -- Here's the next local commitment:
-            -- offset of the tag used for the last miniround:
+            -- The next local commitment needs the offset into the tag used
+            -- for the last miniround. There is always 128 minirounds in the
+            -- next superround.
 
             lastOffset = fromIntegral tagPos' + 127 * miniRoundBytes
 
-            (ltA : ltAs) = take halfBlocks (tagBytesFrom (fromIntegral tagPos'))
-            ltZ = take (halfBlocks + 3) (tagBytesFrom lastOffset)
+            ltA = take halfBlocks (tagBytesFrom (fromIntegral tagPos'))
+            ltZ = tagBytesFrom lastOffset
 
-            chunksR = key0 : key1 : orpheanBeholderScryDoubt <> pBit :
-                          chunkify 32 pBox ++ [ltA]
-
-
-            nextChunks = assert (length ltZ == length chunksR) $
-                            concat (zipWith list2 ltZ chunksR) ++ ltAs
+            nextChunks = concat (zipWith list2 ltZ chunksR) ++ ltA
 
             ("",nextSha) = hmacKeyPrefixed_feeds nextChunks sha0
           in
             superRound tagPos' nextSha (Just bcrypt1)
                        (ctr - miniRounds) 128 (superRounds - 1)
         else let
-            -- If we are finishing up, we just repeat the most recent tag:
+            -- Now we need to do the end-of-key-stretching finalization.
 
-            endOffset = fromIntegral tagPos' - 32*(fromIntegral halfBlocks + 2)
+            -- Repeat the most recent tag:
 
-            endChunksL = take (halfBlocks + 2) (tagBytesFrom endOffset)
+            endOffset = fromIntegral tagPos' - 32*(fromIntegral (length chunksR))
 
-            endChunksR = key0 : key1 : orpheanBeholderScryDoubt <> pBit :
-                            chunkify 32 pBox
+            endChunksL = tagBytesFrom endOffset
 
-            endChunks = assert (length endChunksL == length endChunksR) $
-                           concat (zipWith list2 endChunksL endChunksR)
+            endChunks = concat (zipWith list2 endChunksL chunksR)
 
             ("",endSha) = hmacKeyPrefixed_feeds endChunks sha0
           in

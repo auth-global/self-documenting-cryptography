@@ -35,12 +35,12 @@ There are several themes worked into this design:
     PHKDF key-stretching computation can outsource some or all of the bcrypt
     superrounds without losing control of the end result.
 
-3.  Excess Salt: our philosophy of applying salt is that it's the first thing
-    you do, it's the last thing you do, it's something you do at every
-    opportunity, and sometimes we even create new opportunities to add more
-    salt.
+3.  Excessively Extended Salt: our philosophy of applying salt is that it's
+    the first thing you do, it's the last thing you do, it's something you do
+    at every opportunity, and sometimes we even create new opportunities to
+    add more salt.
 
-4.  Unlimited Free Salt by Countering Excess Freedom: the G3P starts from
+4.  Free Plaintext Salt by Countering Excess Freedom: the G3P starts from
     conventional keys as it's first and primary layer of security.  Excessively
     long keys are often considered cryptographically suspect, but very long
     keys that likely result in totally unique hash functions is also exactly
@@ -428,7 +428,7 @@ data G3PSeedInputs = G3PSeedInputs
     --   the entropy from bcrypt's state at the end of each superround.
     --   Duplicating the 'g3pSalt_seguid' is a good default choice.
   , g3pSeedInputs_bcryptLongTag :: !ByteString
-    -- ^ Be aware this is truncated to (rounds + 1) * 4176 bytes, but
+    -- ^ Be aware this is truncated to (rounds + 1) * 4136 bytes, but
     --   length still matters after that. The primary intended use is to
     --   duplicate 'g3pSalt_longTag' a very large number of times.
     --
@@ -448,7 +448,7 @@ data G3PSeedInputs = G3PSeedInputs
     --       sufficient to meet this requirement, as is duplicating
     --       any other 'G3PSalt' parameter.
     --
-    --   3.  Ensure that this input is less than 4448 bytes long. Local HMAC
+    --   3.  Ensure that this input is 4287 bytes or less. Local HMAC
     --       computations ensure at least this many bytes are automatically
     --       committed to before the bcrypt key stretching is allowed to
     --       move forward.
@@ -467,8 +467,8 @@ data G3PSeedInputs = G3PSeedInputs
     --
     --   Failing all of that, there's still an attempt to make the G3P
     --   resistant to hostile inputs. Within each bcrypt round, the exact same
-    --   longTag bytes are repeated twice in a combinatorial block design that
-    --   ensures nonlinear effects.
+    --   longTag bytes are repeated four times in a combinatorial block design
+    --   that ensures nonlinear effects.
     --
     --   I wouldn't want to rely on this design feature of last resort without
     --   careful study, which is likely to suggest further improvements.
@@ -482,8 +482,8 @@ data G3PSeedInputs = G3PSeedInputs
     --   computation from being securely outsourced to a semi-trusted device.
     --
     --   Regarding condition 3, the actual size of a parameter that is fully
-    --   committed to via baked-in hashing is likely a bit more than 8352
-    --   bytes, but this would require further verification.
+    --   committed to via baked-in hashing is likely more than 8192 bytes, but
+    --   this would require further verification.
     --
     --   The shortest plausible attack string would seem to need to be as long
     --   as the truncation limit, which is north of 16 megabytes if you specify
@@ -496,7 +496,7 @@ data G3PSeedInputs = G3PSeedInputs
     --
     --   For example, if your deployment uses a random per-user salt, then
     --   it's a good idea to include that salt in the 'username' and
-    --   'contextTags' parameters, but exclude the plaintext of the salt
+    --   'contextTags' parameters, but exclude the plaintext of that salt
     --   from 'bcryptContextTags'.
     --
     --   This use of random salt implies that if some or all of the bcrypt
@@ -506,7 +506,8 @@ data G3PSeedInputs = G3PSeedInputs
     --   Directly including that random per-user salt in the
     --   'bcryptContextTags' vector would require that the plaintext of this
     --   salt be known to the device performing the key-stretching computation,
-    --   thus automatically obviating this possible line of defense.
+    --   thus automatically obviating this possible line of defense, barring
+    --   a more sophisticated outsourcing algorithm that implements the G3P.
     --
     --   If one is absolutely set on including that random salt here, one
     --   could hash the salt first to derive a new salt that cannot itself
@@ -514,10 +515,18 @@ data G3PSeedInputs = G3PSeedInputs
     --   are important details in cryptographic processes, and these choices
     --   have strategic implications.
     --
+    --   Alternatively, one could implement the G3P using a more sophisticated
+    --   outsourcing algorithm. This would require interactive communication
+    --   every transition between bcrypt superrounds. By contrast, the design
+    --   intension is to be able to treat outsourcing bcrypt as (relatively)
+    --   simple remote procedure call (RPC).
+    --
     --   If some unusual deployment of the G3P accepts arbitrary external
     --   inputs into the 'bcryptLongTag', one possible way to handle this
     --   situation efficiently and safely would be to hash the entire input,
-    --   and include that hash in this parameter.
+    --   and include that hash in this parameter. This is not necessary if
+    --   such a deployment duplicated the external input into both the
+    --   'g3pSalt_longTag' and 'g3pSeedInputs_bcryptLongTag' parameters.
   , g3pSeedInputs_bcryptDomainTag :: !ByteString
     -- ^ Used to derive the keys for a super round in bcrypt-xs-ctr mode.
     --   Duplicating the 'g3pSalt_domainTag' is a good default choice.
@@ -569,7 +578,7 @@ data G3PSeedInputs = G3PSeedInputs
 --      myHeader = userRandomSalt <> myDomain
 --      myAuthKey = mySprout ["auth",userRandomSalt]
 --                      myLoginDomain myHeader myHeader (word32 "AUTH")
---      myDiskKey = mySprout ["disk",myLongTag,"key","bf94facc27b76328"]
+--      myDiskKey = mySprout ["disk",myStorageDomain,myLongTag,"key","bf94facc27b76328"]
 --                     myStorageDomain myHeader myHeader (word32 "DISK")
 --   in [ myAuthKey myLongTag
 --      , myDiskKey "filename0.txt"
@@ -646,6 +655,11 @@ g3pHash
   --         and/or @echo tag@ parameters.
   --
   --     4.  never examine more than one output block.
+  --
+  -- It is possible to use this parameter safely in ways that don't exactly
+  -- meet any of the criteria above, but these criteria would seem to fairly
+  -- comprehensively cover typical use cases. I'm not sure why a deployment
+  -- designer might feel a need to go beyond these criteria.
   -> Word32 -- ^ echo counter
   -> ByteString -- ^ echo tag. A good default is to duplicate the sprout's tag.
   -> ByteString
@@ -706,8 +720,9 @@ g3pSpark salt inputs = spark
     headerLongTag =
       [ longTag
       , B.concat
-          [ bareEncode phkdfRounds, "\x00"
-          , "Global Password Prehash Protocol bcrypt(XS) v2 G3Pb2", "\x00"]
+          [ bareEncode phkdfRounds
+          , "Global Password Prehash Protocol bcryptXsFree v2 G3Pb2"
+          ]
       ]
 
     passwordPadLen = c

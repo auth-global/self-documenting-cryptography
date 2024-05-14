@@ -64,8 +64,17 @@ somewhat naively attempt to address this issue:
     (This argument assumes @length name == N@)
 
 3.  Every bcrypt round (a miniround within the superround) repeats the same
-    external bytes in the same places in the transition code, but complements
-    the first 4 bytes for a guaranteed non-linear difference.
+    4168 - N external bytes in four different places, each in the same relative
+    position with respect to a 4168-byte state or transition code.
+
+    Two of these repetitions occur by xor-ing the external bytes with the
+    last bytes of the state vector. The first N bytes of the state-xor are
+    reserved, once for key0 and once for key1.
+
+    Two of these repeititons occur as the last bytes of the transition code.
+    The first 4 bytes of the transition code is reserved for a counter, which
+    is complemented between repetitions for a guaranteed non-linear effect.
+    The remaining (N - 4) bytes are taken up by the function name.
 
     This breaks all the obvious attacks, and may well break many or all of
     the less obvious attacks too. I wouldn't want to rely too much on this
@@ -76,7 +85,7 @@ somewhat naively attempt to address this issue:
     anything, but looked plausibly strong against issues that lay well beyond
     the intended scope of the design.
 
-    (This argument assumes @length key0 == length key1 == length name@)
+    (This argument assumes @4 < length key0 == length key1 == length name@)
 
 4.  The transition code includes a counter to ensure that the transitions
     are different on every call to @expand@.  The counter takes up the
@@ -88,20 +97,6 @@ somewhat naively attempt to address this issue:
     computation, this counter /ensures/ that the next state transitioned
     to /will/ be different than before, and will be different within the
     first blowfish block, thus breaking any cycles.
-
-If I were going all-out to build a really top-notch new mode of operation
-for bcrypt centered around transition codes, I would certainly investigate
-protecting much more of the initial sequence of the transition code and
-let potentially untrusted tags have most or all of the P-box xor before
-the transition code comes into play.
-
-However, given that I'm /only/ going all out to build a really top-notch
-mode of operation for bcrypt as a password hash function with extended
-salts, I felt it best to mimic the existing mode of operation as much as
-possible: thus two derived keys get alternated in the p-box xor, simulating
-the existing structure of alternating the password and salt. This should
-allow existing analyses for bcrypt to be carried over to the G3P with much
-greater ease.
 
 -}
 
