@@ -43,6 +43,7 @@
 #define G3P_BLF_MAXKEYLEN ((G3P_BLF_N-2)*4)	/* 448 bits */
 #define G3P_BLF_MAXUTILIZED ((G3P_BLF_N+2)*4)	/* 576 bits */
 #define G3P_BLF_CTX_LENGTH 4168
+#define G3P_SALT_BYTES_PER_ROUND (G3P_BLF_CTX_LENGTH - 32)
 
 /* Blowfish context */
 typedef struct BlowfishContext {

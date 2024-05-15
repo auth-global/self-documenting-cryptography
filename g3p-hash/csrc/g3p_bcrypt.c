@@ -634,28 +634,55 @@ G3P_Blowfish_expandCtr
   const uint32_t keyLen = keyLen0 > 72 ? 72 : keyLen0;
   const uint32_t nameLen = nameLen0 > 72 ? 72 : nameLen0;
 
-  uint32_t tagPos = tagPos0;
+  assert(keyLen == nameLen); // FIXME: rework interface
+  assert(keyLen % 4 == 0); // FIXME? remove this assumption
 
   uint32_t pos = 0;
+  uint32_t tagPos;
+  if (tagLen <= G3P_SALT_BYTES_PER_ROUND) {
+    tagPos = 0;
+    if (keyIsFirst) {
+      int i;
+      for (i = 0; i < keyLen; i += 4) {
+        c->P[i >> 2] ^= G3P_then(key, keyLen, &pos);
+      }
+      for (; i < 72; i += 4) {
+        c->P[i >> 2] ^= G3P_then(tag, tagLen, &tagPos);
+      }
+    } else {
+      int i;
+      for (i = 0; i < (72 - keyLen); i += 4) {
+        c->P[i >> 2] ^= G3P_then(tag, tagLen, &tagPos);
+      }
+      for (; i < 72; i += 4) {
+        c->P[i >> 2] ^= G3P_then(key, keyLen, &pos);
+      }
+    }
 
-  if (keyIsFirst) {
-    for (int i = 0; i < 18; i++) {
-      c->P[i] ^= G3P_thenCycle(key, keyLen, &pos, tag, tagLen, &tagPos);
+    for (int i = 0; i < 4; i++) {
+      for (int k = 0; k < 256; k++) {
+        c->S[i][k] ^= G3P_then(tag, tagLen, &tagPos);
+      }
     }
   } else {
-    uint32_t n = 72 - keyLen;
-    for (int i = 0; i < 18; i++) {
-      c->P[i] ^= G3P_cycleThen(&n, tag, tagLen, &tagPos, key, keyLen, &pos);
+    tagPos = tagPos0;
+    if (keyIsFirst) {
+      for (int i = 0; i < 18; i++) {
+        c->P[i] ^= G3P_thenCycle(key, keyLen, &pos, tag, tagLen, &tagPos);
+      }
+    } else {
+      uint32_t n = 72 - keyLen;
+      for (int i = 0; i < 18; i++) {
+        c->P[i] ^= G3P_cycleThen(&n, tag, tagLen, &tagPos, key, keyLen, &pos);
+      }
+    }
+
+    for (int i = 0; i < 4; i++) {
+      for (int k = 0; k < 256; k++) {
+        c->S[i][k] ^= G3P_cycle(tag, tagLen, &tagPos);
+      }
     }
   }
-
-  for (int i = 0; i < 4; i++) {
-    for (int k = 0; k < 256; k++) {
-      c->S[i][k] ^= G3P_cycle(tag, tagLen, &tagPos);
-    }
-  }
-
-  const uint32_t tagPos1 = tagPos;
 
   tagPos = tagPos0;
   pos = 0;
@@ -685,7 +712,6 @@ G3P_Blowfish_expandCtr
 			c->S[i][k + 1] = datar;
 		}
 	}
-  assert (tagPos == tagPos1);
   return tagPos;
 };
 
