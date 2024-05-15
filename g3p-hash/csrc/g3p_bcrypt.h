@@ -74,10 +74,12 @@ G3P_Blowfish_expandCtr
 void G3P_Blowfish_encodestate(const G3P_blf_ctx *c, uint8_t out[G3P_BLF_CTX_LENGTH]);
 void G3P_Blowfish_decodestate(const uint8_t in[G3P_BLF_CTX_LENGTH], G3P_blf_ctx *c);
 
+/*
 uint32_t
-G3P_thenCycle(uint32_t *np,
-              const uint8_t *a, uint32_t al, uint32_t *ap,
-              const uint8_t *b, uint32_t bl, uint32_t *bp);
+G3P_thenCycle
+(const uint8_t *const a, const uint32_t al, uint32_t *const restrict ap,
+ const uint8_t *const b, const uint32_t bl, uint32_t *const restrict bp);
+*/
 
 extern const G3P_blf_ctx g3p_blf_init;
 

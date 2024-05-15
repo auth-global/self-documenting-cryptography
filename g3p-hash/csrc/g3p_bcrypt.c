@@ -422,21 +422,42 @@ void G3P_Blowfish_decodestate(const uint8_t in[G3P_BLF_CTX_LENGTH],
 }
 
 uint32_t
-G3P_cycle(const uint8_t *data, uint32_t len, uint32_t *current)
+G3P_cycle(const uint8_t *const data, const uint32_t len, uint32_t *const pos)
 {
-  if (data == NULL || len == 0 || current == NULL) return 0;
+  if (data == NULL || len == 0 || pos == NULL) return 0;
   uint32_t x, j;
 
-  x = 0x00000000;
-  j = *current;
+  x = 0;
+  j = *pos;
 
   for (int i = 0; i < 4; i++) {
     x = (x << 8) | data[j];
-    j++;
-    if (j >= len) j = 0;
+    if (++j >= len) j = 0;
   }
 
-  *current = j;
+  *pos = j;
+  return x;
+};
+
+
+uint32_t
+G3P_then(const uint8_t *const data, const uint32_t len, uint32_t *const pos)
+{
+  if (data == NULL || len == 0 || pos == NULL) return 0;
+  uint32_t x, j;
+
+  x = 0;
+  j = *pos;
+
+  for (int i = 0; i < 4; i++) {
+    if (j < len) {
+      x = (x << 8) | data[j++];
+    } else {
+      x <<= 8;
+    }
+  }
+
+  *pos = j;
   return x;
 };
 
@@ -467,7 +488,7 @@ G3P_cycleWx00(const uint8_t *data, uint32_t len, uint32_t *current)
 };
 
 uint32_t
-G3P_leftCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint8_t count) {
+G3P_leftCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint32_t count) {
   if (data == NULL || len == 0 || count == 0 || current == NULL) return 0;
   if (count > 4)
     count = 4;
@@ -476,9 +497,9 @@ G3P_leftCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint8_t coun
 	x = 0x00000000;
 	j = *current;
 
-  for (int i = 0; i < count; i++, j++) {
-    if (j >= len) j = 0;
+  for (int i = 0; i < count; i++) {
     x = (x << 8) | data[j];
+    if (++j >= len) j = 0;
   }
 
   x <<= 8 * (4 - count);
@@ -488,16 +509,16 @@ G3P_leftCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint8_t coun
 }
 
 uint32_t
-G3P_rightCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint8_t count) {
+G3P_rightCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint32_t count) {
   if (data == NULL || len == 0 || count == 0 || current == NULL) return 0;
 
   uint32_t x,j;
 	x = 0x00000000;
 	j = *current;
 
-  for (int i = count; i < 4; i++, j++) {
-    if (j >= len) j = 0;
+  for (int i = count; i < 4; i++) {
     x = (x << 8) | data[j];
+    if (++j >= len) j = 0;
   }
 
 	*current = j;
@@ -505,10 +526,44 @@ G3P_rightCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint8_t cou
 }
 
 uint32_t
-G3P_thenCycle(uint32_t *np,
-              const uint8_t *a, uint32_t al, uint32_t *ap,
-              const uint8_t *b, uint32_t bl, uint32_t *bp) {
-  uint32_t n = *np;
+G3P_thenCycle
+(const uint8_t *const a, const uint32_t al, uint32_t *const restrict ap,
+ const uint8_t *const b, const uint32_t bl, uint32_t *const restrict bp) {
+  const uint32_t apos = *ap;
+  if (apos >= al)
+    return G3P_cycle(b,bl,bp);
+  if (apos <= al - 4) {
+    return G3P_then(a,al,ap);
+  }
+  uint32_t x;
+  x  = G3P_leftCycle(a,al,ap,al - apos);
+  x ^= G3P_rightCycle(b,bl,bp,al - apos);
+  return x;
+}
+
+uint32_t
+G3P_thenThen
+(const uint8_t *const a, const uint32_t al, uint32_t *const restrict ap,
+ const uint8_t *const b, const uint32_t bl, uint32_t *const restrict bp) {
+  const uint32_t apos = *ap;
+  if (apos >= al)
+    return G3P_then(b,bl,bp);
+  if (apos <= al - 4) {
+    return G3P_then(a,al,ap);
+  }
+  uint32_t x;
+  x  = G3P_leftCycle(a,al,ap,al - apos);
+  x ^= G3P_rightCycle(b,bl,bp,al - apos);
+  return x;
+}
+
+
+uint32_t
+G3P_cycleThen
+(uint32_t *const restrict np,
+ const uint8_t *const a, const uint32_t al, uint32_t *const restrict ap,
+ const uint8_t *const b, const uint32_t bl, uint32_t *const restrict bp) {
+  const uint32_t n = *np;
   if (n == 0)
     return G3P_cycle(b,bl,bp);
   if (n >= 4) {
@@ -583,19 +638,14 @@ G3P_Blowfish_expandCtr
 
   uint32_t pos = 0;
 
-  uint32_t n;
-
   if (keyIsFirst) {
-    n = keyLen;
-
     for (int i = 0; i < 18; i++) {
-      c->P[i] ^= G3P_thenCycle(&n, key, keyLen, &pos, tag, tagLen, &tagPos);
+      c->P[i] ^= G3P_thenCycle(key, keyLen, &pos, tag, tagLen, &tagPos);
     }
   } else {
-    n = 72 - keyLen;
-
+    uint32_t n = 72 - keyLen;
     for (int i = 0; i < 18; i++) {
-      c->P[i] ^= G3P_thenCycle(&n, tag, tagLen, &tagPos, key, keyLen, &pos);
+      c->P[i] ^= G3P_cycleThen(&n, tag, tagLen, &tagPos, key, keyLen, &pos);
     }
   }
 
@@ -608,18 +658,17 @@ G3P_Blowfish_expandCtr
   const uint32_t tagPos1 = tagPos;
 
   tagPos = tagPos0;
-  n = nameLen;
   pos = 0;
 
-  uint32_t datal = G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, &tagPos) ^ ctr;
-  uint32_t datar = G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, &tagPos);
+  uint32_t datal = G3P_thenCycle(name, nameLen, &pos, tag, tagLen, &tagPos) ^ ctr;
+  uint32_t datar = G3P_thenCycle(name, nameLen, &pos, tag, tagLen, &tagPos);
   G3P_Blowfish_encipher(c, &datal, &datar);
   c->P[0] = datal;
   c->P[1] = datar;
 
 	for (int i = 2; i < 18; i += 2) {
-    datal ^= G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, &tagPos);
-    datar ^= G3P_thenCycle(&n, name, nameLen, &pos, tag, tagLen, &tagPos);
+    datal ^= G3P_thenCycle(name, nameLen, &pos, tag, tagLen, &tagPos);
+    datar ^= G3P_thenCycle(name, nameLen, &pos, tag, tagLen, &tagPos);
 		G3P_Blowfish_encipher(c, &datal, &datar);
 
 		c->P[i] = datal;
@@ -758,10 +807,9 @@ bcrypt_xs_ctr_expand
   if (len1 > 72) len1 = 72;
   // divide by 4, rounding up
   uint32_t words = (len1 + 3) >> 2;
-  uint32_t n = len1;
   uint32_t pos = 0;
   for (uint32_t i = 0; i < words; i++) {
-    state->P[i] ^= G3P_thenCycle (&n, key1, len1, &pos, NULL, 0, NULL);
+    state->P[i] ^= G3P_thenCycle (key1, len1, &pos, NULL, 0, NULL);
   }
 
   return tagPos;

@@ -234,8 +234,8 @@ data G3PSalt = G3PSalt
     --   The first 0-63 bytes is also used as filler padding after the
     --   contextTags, possibly making part of this parameter not horn-loaded.
     --
-    --   Constant time on inputs up to 4 kilobytes.  Overages incur one sha256
-    --   block per 64 bytes.
+    --   Constant time on inputs 0-4136 bytes.  Overages incur one sha256
+    --   block per 64 bytes, rounded up.
   , g3pSalt_contextTags :: !(Vector ByteString)
     -- ^ plaintext tags with 4x repetition. Constant-time on 0-63 encoded bytes,
     --   which includes the length encoding of each string. Thus 60 of those
@@ -728,7 +728,7 @@ g3pSpark salt inputs = spark
     passwordPadLen = c
       where
         al = encodedVectorByteLength headerLongTag
-        a  = add64WhileLt (8605 - al) 4429
+        a  = add64WhileLt (8605 - al) 4408
         bl = encodedVectorByteLength headerUsername
         b  = add64WhileLt (a - bl) 328
         cl = encodedByteLength password
