@@ -541,6 +541,7 @@ G3P_thenCycle
   return x;
 }
 
+/*
 uint32_t
 G3P_thenThen
 (const uint8_t *const a, const uint32_t al, uint32_t *const restrict ap,
@@ -553,10 +554,11 @@ G3P_thenThen
   }
   uint32_t x;
   x  = G3P_leftCycle(a,al,ap,al - apos);
+  assert(false);
   x ^= G3P_rightCycle(b,bl,bp,al - apos);
   return x;
 }
-
+*/
 
 uint32_t
 G3P_cycleThen
