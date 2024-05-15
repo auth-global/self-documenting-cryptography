@@ -418,9 +418,6 @@ getEchoCounter = \case
       else Nothing
   _ -> Nothing
 
-
-
-
 getByteStringVector_defaultEmpty :: Maybe Val -> Maybe (Vector ByteString)
 getByteStringVector_defaultEmpty = \case
   Nothing -> Just V.empty

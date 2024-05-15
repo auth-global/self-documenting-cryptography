@@ -182,6 +182,34 @@
 
     ]
 },{
+    "name":"self-referential parameters",
+    "args":{
+        "username":"username",
+        "password":"password",
+        "credentials":["credentials","vector"],
+        "seguid":"seguid",
+        "context-tags":["context-tags","vector"],
+        "domain-tag":"domain-tag",
+        "long-tag":"long-tag",
+        "phkdf-rounds":0,
+        "bcrypt-seguid":"bcrypt-seguid",
+        "bcrypt-context-tags":["bcrypt-context-tags","vector"],
+        "bcrypt-domain-tag":"bcrypt-domain-tag",
+        "bcrypt-long-tag":"bcrypt-long-tag",
+        "bcrypt-rounds":0,
+        "sprout-seguid":"sprout-seguid",
+        "role":["role","vector"],
+        "sprout-tag":"sprout-tag",
+        "echo-key":"echo-key",
+        "echo-header":"echo-header",
+        "echo-counter":"ECHO",
+        "echo-tag":"echo-tag"
+    },
+    "results":[
+        {"G3Pb2":"194155e1ceddc49f8d89d15d0365e265fd1fd112e6de10976544e3288cb33a98"
+        }
+    ]
+},{
     "name":"password padding",
     "args":{
         "username":"password padding (tests with very long inputs)",
