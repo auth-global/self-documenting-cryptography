@@ -373,7 +373,7 @@ getG3PSeedInputs env = \case
    -> let g3pSeedInputs_bcryptKey = hmacKey (fromMaybe (fromMaybe B.empty mSeguid) mBcryptSeguid)
           g3pSeedInputs_bcryptContextTags = fromMaybe (fromMaybe V.empty mTags) mCtxTags
           g3pSeedInputs_bcryptDomainTag = fromMaybe (fromMaybe B.empty mDomainTag) mBcryptDomainTag
-          g3pSeedInputs_bcryptLongTag = fromMaybe (fromMaybe B.empty mLongTag) mBcryptLongTag
+          g3pSeedInputs_bcryptLongTag = fromMaybe (fromMaybe (fromMaybe B.empty mDomainTag) mLongTag) mBcryptLongTag
        in Just (G3PSeedInputs {..}, args')
   _ -> Nothing
 
