@@ -661,8 +661,8 @@ G3P_Blowfish_expandCtr
 
     for (int i = 0; i < 4; i++) {
       for (int k = 0; k < 256; k++) {
-        c->S[i][k] ^= G3P_then(tag, tagLen, &tagPos);
         if (tagPos >= tagLen) goto end;
+        c->S[i][k] ^= G3P_then(tag, tagLen, &tagPos);
       }
     }
 
@@ -838,7 +838,7 @@ bcrypt_xs_ctr_expand
   uint32_t words = (len1 + 3) >> 2;
   uint32_t pos = 0;
   for (uint32_t i = 0; i < words; i++) {
-    state->P[i] ^= G3P_thenCycle (key1, len1, &pos, NULL, 0, NULL);
+    state->P[i] ^= G3P_then (key1, len1, &pos);
   }
 
   return tagPos;
