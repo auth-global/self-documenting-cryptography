@@ -193,12 +193,12 @@
         "context-tags":["context-tags","vector"],
         "domain-tag":"domain-tag",
         "long-tag":"long-tag",
-        "phkdf-rounds":0,
+        "phkdf-rounds":12,
         "bcrypt-seguid":"bcrypt-seguid",
         "bcrypt-context-tags":["bcrypt-context-tags","vector"],
         "bcrypt-domain-tag":"bcrypt-domain-tag",
         "bcrypt-long-tag":"bcrypt-long-tag",
-        "bcrypt-rounds":0,
+        "bcrypt-rounds":13,
         "sprout-seguid":"sprout-seguid",
         "role":["role","vector"],
         "sprout-tag":"sprout-tag",
@@ -208,7 +208,7 @@
         "echo-tag":"echo-tag"
     },
     "results":[
-        {"G3Pb2":"194155e1ceddc49f8d89d15d0365e265fd1fd112e6de10976544e3288cb33a98"
+        {"G3Pb2":"5babc25dfe79494b62b3a768b1b490bbe56c75de0dc44e9015a93a8fd2c8597d"
         }
     ]
 },{
