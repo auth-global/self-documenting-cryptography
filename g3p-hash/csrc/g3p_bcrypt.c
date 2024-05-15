@@ -662,8 +662,11 @@ G3P_Blowfish_expandCtr
     for (int i = 0; i < 4; i++) {
       for (int k = 0; k < 256; k++) {
         c->S[i][k] ^= G3P_then(tag, tagLen, &tagPos);
+        if (tagPos >= tagLen) goto end;
       }
     }
+
+  end: (void)0;
   } else {
     tagPos = tagPos0;
     if (keyIsFirst) {
