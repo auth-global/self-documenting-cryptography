@@ -541,25 +541,6 @@ G3P_thenCycle
   return x;
 }
 
-/*
-uint32_t
-G3P_thenThen
-(const uint8_t *const a, const uint32_t al, uint32_t *const restrict ap,
- const uint8_t *const b, const uint32_t bl, uint32_t *const restrict bp) {
-  const uint32_t apos = *ap;
-  if (apos >= al)
-    return G3P_then(b,bl,bp);
-  if (apos <= al - 4) {
-    return G3P_then(a,al,ap);
-  }
-  uint32_t x;
-  x  = G3P_leftCycle(a,al,ap,al - apos);
-  assert(false);
-  x ^= G3P_rightCycle(b,bl,bp,al - apos);
-  return x;
-}
-*/
-
 uint32_t
 G3P_cycleThen
 (uint32_t *const restrict np,
