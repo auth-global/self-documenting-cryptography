@@ -62,7 +62,8 @@ import           Data.Word
 import           Network.ByteOrder(word32, bytestring32)
 
 import           Crypto.PHKDF.HMAC (HmacKeyPrefixed, hmacKeyPrefixed_feeds)
-import           Crypto.PHKDF.Primitives(phkdfCtx_initPrefixed, phkdfCtx_addArgsBy, phkdfCtx_finalize)
+import           Crypto.PHKDF (PhkdfCtx, phkdfCtx_initPrefixed, phkdfCtx_addArgsBy, phkdfCtx_addArg, phkdfCtx_finalize, phkdfCtx_byteCount)
+import           Crypto.PHKDF.Assert
 
 import           Crypto.Encoding.PHKDF (chunkify, chunkifyCycle, takeBs, nullBuffer)
 import           Crypto.G3P.BCrypt.Subtle
@@ -125,10 +126,10 @@ bcryptXsFree_tagBytesPerRound = bcryptXsCtr_outputLength - 32
 concatTakeBs :: Int -> [ByteString] -> ByteString
 concatTakeBs n bs = B.concat (takeBs (fromIntegral n) bs)
 
-bcryptXsFree :: Foldable f => (a -> ByteString) -> ByteString
-             -> ByteString -> f a -> ByteString -> Word32
+bcryptXsFree :: forall f a. Foldable f => (a -> ByteString) -> ByteString
+             -> f a -> ByteString -> f a -> ByteString -> Word32
              -> HmacKeyPrefixed -> (Int, HmacKeyPrefixed)
-bcryptXsFree toString fnName longTag contextTags domainTag ctr0 = initRound
+bcryptXsFree toString fnName creds longTag contextTags domainTag ctr0 = initRound
   where
     rounds :: Int64 = fromIntegral ctr0 + 1
     -- Do 1-128 minirounds in the first superround, so that we end on an
@@ -168,10 +169,10 @@ bcryptXsFree toString fnName longTag contextTags domainTag ctr0 = initRound
         -- Now actually perform the commitment:
         ("", sha1) = hmacKeyPrefixed_feeds (ltA ++ ltZ) sha0
 
-      in superRound 0 sha1 Nothing ctr0 (fromIntegral miniRounds0) (fromIntegral superRounds0)
+      in superRound 0 sha1 (Just creds) Nothing ctr0 (fromIntegral miniRounds0) (fromIntegral superRounds0)
 
-    superRound :: Word32 -> HmacKeyPrefixed -> Maybe BCryptState -> Word32 -> Word32 -> Word32 -> (Int, HmacKeyPrefixed)
-    superRound tagPos !sha0 mBcrypt0 ctr miniRounds superRounds =
+    superRound :: Word32 -> HmacKeyPrefixed -> Maybe (f a) -> Maybe BCryptState -> Word32 -> Word32 -> Word32 -> (Int, HmacKeyPrefixed)
+    superRound tagPos !sha0 mCreds mBcrypt0 ctr miniRounds superRounds =
       let
         -- The derivation of the keys for the superround will locally commit
         -- to the first 96 - 222 bytes of the extended salt of the
@@ -180,8 +181,32 @@ bcryptXsFree toString fnName longTag contextTags domainTag ctr0 = initRound
         penBytes  = tagBytesFrom penOffset
         endPad0 n = concatTakeBs n (tagBytesFrom (penOffset + 96))
         endPad1 n = concatTakeBs n (tagBytesFrom (penOffset + 96 + fromIntegral n))
+        addCredentials :: f a -> PhkdfCtx -> PhkdfCtx
+        addCredentials cs ctx0 = ctx2
+          where
+            n0 = phkdfCtx_byteCount ctx0 `mod` 64
+            n1 = phkdfCtx_byteCount ctx1 `mod` 64
+            ctx1 = phkdfCtx_addArgsBy toString cs ctx0
+            ctx2 = phkdfCtx_addArg credsPad ctx1 &
+                   phkdfCtx_assertBufferPosition n0
+            -- Length of PHKDF end-of-args padding
+            endPaddingLen = (n0 - 1) `mod` 64
+            -- Encoded length of credentials vector, mod 64
+            credsLen = (n1 - n0) `mod` 64
+            -- We want to add 32 - 95 bytes as needed to bring the length
+            -- of the encoded credentials vector + padding equivalent to
+            -- 0 (mod 64).  Then use endPaddingLen to commit to more extended
+            -- salt  (Note that this padding will require 3 bytes to
+            -- encode it's length.)
+            credsPadLen = 32 + (29 - fromIntegral credsLen) `mod` 64
+            -- Now we'll commit to the next 32-95 bytes of the extended salt
+            -- on the penultimate miniround:
+            credsPadOffset = penOffset + 96 + 2 * fromIntegral endPaddingLen
+            credsPad = B.concat (takeBs credsPadLen (tagBytesFrom credsPadOffset))
+
         key0 = phkdfCtx_initPrefixed (penBytes !! 0) sha0 &
                phkdfCtx_addArgsBy toString contextTags &
+               maybe id addCredentials mCreds &
                phkdfCtx_finalize endPad0 (word32 "KEY0") domainTag
 
         ("",sha1) = hmacKeyPrefixed_feeds [penBytes !! 1, key0] sha0
@@ -226,7 +251,7 @@ bcryptXsFree toString fnName longTag contextTags domainTag ctr0 = initRound
 
             ("",nextSha) = hmacKeyPrefixed_feeds nextChunks sha0
           in
-            superRound tagPos' nextSha (Just bcrypt1)
+            superRound tagPos' nextSha Nothing (Just bcrypt1)
                        (ctr - miniRounds) 128 (superRounds - 1)
         else let
             -- Now we need to do the end-of-key-stretching finalization.

@@ -367,13 +367,15 @@ getG3PSeedInputs env = \case
    matchKey  env "long-tag" -> (getMaybeByteString -> Just mLongTag,
    matchKey  env "bcrypt-long-tag" -> (getMaybeByteString -> Just mBcryptLongTag,
    matchKey' env "tags" -> (getMaybeByteStringVector -> Just mTags,
+   matchKey env "bcrypt-credentials" -> (getMaybeByteStringVector -> Just mCreds,
    matchKey env "bcrypt-context-tags" -> (getMaybeByteStringVector -> Just mCtxTags,
    matchKey env "bcrypt-rounds" -> (Just (Int (fromIntegral -> g3pSeedInputs_bcryptRounds)),
-   args'))))))))))
-   -> let g3pSeedInputs_bcryptKey = hmacKey (fromMaybe (fromMaybe B.empty mSeguid) mBcryptSeguid)
+   args')))))))))))
+   -> let g3pSeedInputs_bcryptSeguid = hmacKey (fromMaybe (fromMaybe B.empty mSeguid) mBcryptSeguid)
           g3pSeedInputs_bcryptContextTags = fromMaybe (fromMaybe V.empty mTags) mCtxTags
           g3pSeedInputs_bcryptDomainTag = fromMaybe (fromMaybe B.empty mDomainTag) mBcryptDomainTag
           g3pSeedInputs_bcryptLongTag = fromMaybe (fromMaybe (fromMaybe B.empty mDomainTag) mLongTag) mBcryptLongTag
+          g3pSeedInputs_bcryptCredentials = fromMaybe V.empty mCreds
        in Just (G3PSeedInputs {..}, args')
   _ -> Nothing
 

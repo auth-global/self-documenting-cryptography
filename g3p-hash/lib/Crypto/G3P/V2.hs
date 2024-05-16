@@ -423,10 +423,21 @@ data G3PInputs = G3PInputs
   } deriving (Eq)
 
 data G3PSeedInputs = G3PSeedInputs
-  { g3pSeedInputs_bcryptKey :: !HmacKey
+  { g3pSeedInputs_bcryptSeguid :: !HmacKey
     -- ^ Key to used to generate keys for bcrypt superrounds and to soak up
     --   the entropy from bcrypt's state at the end of each superround.
     --   Duplicating the 'g3pSalt_seguid' is a good default choice.
+  , g3pSeedInputs_bcryptCredentials :: !(Vector ByteString)
+    -- ^ Used directly once to derive @key0@ for the first bcrypt superround,
+    --   and indirectly affects every cryptographic operation after that.
+    --   0-29 bytes are free. This bytecount includes the length encoding of
+    --   every bytestring, thus 0-27 data bytes incur zero incremental cost if
+    --   you encode everything in one string, or somewhat less if you use
+    --   more than one string.
+    --
+    --   Overages cost one SHA256 block per 64 bytes, rounded up. Thus, this
+    --   is a horn-loaded parameter introduced after the phkdf key-stretching
+    --   phase is complete
   , g3pSeedInputs_bcryptLongTag :: !ByteString
     -- ^ Be aware this is truncated to (rounds + 1) * 4136 bytes, but
     --   length still matters after that. The primary intended use is to
@@ -568,7 +579,8 @@ data G3PSeedInputs = G3PSeedInputs
 --        }
 --      mySeedInputs =
 --        G3PSeedInputs {
---          g3pSeedInputs_bcryptKey = mySeguid,
+--          g3pSeedInputs_bcryptSeguid = mySeguid,
+--          g3pSeedInputs_bcryptCredentials = [],
 --          g3pSeedInputs_bcryptLongTag = myLongTag,
 --          g3pSeedInputs_bcryptContextTags = [],
 --          g3pSeedInputs_bcryptDomainTag = myDomain,
@@ -867,7 +879,8 @@ g3pSpark_toSeed spark inputs = G3PSeed seed
     contextTags = g3pSpark_contextTags spark
     domainTag = g3pSpark_domainTag spark
 
-    bSeguid = g3pSeedInputs_bcryptKey inputs
+    bSeguid = g3pSeedInputs_bcryptSeguid inputs
+    bCreds = g3pSeedInputs_bcryptCredentials inputs
     bRounds = g3pSeedInputs_bcryptRounds inputs
     bLongTag = g3pSeedInputs_bcryptLongTag inputs
     bDomainTag = g3pSeedInputs_bcryptDomainTag inputs
@@ -887,7 +900,7 @@ g3pSpark_toSeed spark inputs = G3PSeed seed
       ]
 
     (_, charlieCont) =
-      bcryptXsFree id bcryptName bLongTag bContextTags bDomainTag
+      bcryptXsFree id bcryptName bCreds bLongTag bContextTags bDomainTag
                    bRounds charliePrefix
 
     contPad = B.concat $ takeBs 32 [domainTag, "\x00", charlie, nullBuffer]
