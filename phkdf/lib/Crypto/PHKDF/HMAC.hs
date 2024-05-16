@@ -29,6 +29,7 @@ module Crypto.PHKDF.HMAC
   , hmacKeyLike_toHashed
   , hmacKeyLike_toPrefixed
   , hmacKeyLike_run
+  , hmacKeyLike_byteCount
   , HmacKeyHashed()
   , hmacKeyHashed
   , hmacKeyHashed_toKey
@@ -41,6 +42,7 @@ module Crypto.PHKDF.HMAC
   , hmacKeyPrefixed_feeds
   , hmacKeyPrefixed_feedsWith
   , hmacKeyPrefixed_run
+  , hmacKeyPrefixed_byteCount
   , HmacCtx()
   , hmacCtx
   , hmacCtx_init
@@ -57,6 +59,7 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.Function((&))
 import           Data.Foldable(Foldable, toList)
+import           Data.Word(Word64)
 
 import           Crypto.PHKDF.HMAC.Subtle
 import           Crypto.Encoding.PHKDF(takeBs', dropBs)
@@ -118,6 +121,12 @@ hmacKeyLike_run = \case
   HmacKeyLike_Plain _ a -> hmacKeyHashed_run a
   HmacKeyLike_Hashed a -> hmacKeyHashed_run a
   HmacKeyLike_Prefixed a -> hmacKeyPrefixed_run a
+
+hmacKeyLike_byteCount :: HmacKeyLike -> Word64
+hmacKeyLike_byteCount = \case
+  HmacKeyLike_Plain _ _ -> 64
+  HmacKeyLike_Hashed _ -> 64
+  HmacKeyLike_Prefixed b -> hmacKeyPrefixed_byteCount b
 
 -- | A forgetful initialization, equivalent to 'hmacKey_forgetInput . hmacKey'
 hmacKey_hashed :: HmacKeyPlain -> HmacKey
@@ -205,6 +214,9 @@ hmacKeyPrefixed_run key = HmacCtx
     ipad = hmacKeyPrefixed_ipad key
     opad = hmacKeyPrefixed_opad key
     ipadCtx = hmacKeyPadding_runWith blockCount ipad
+
+hmacKeyPrefixed_byteCount :: HmacKeyPrefixed -> Word64
+hmacKeyPrefixed_byteCount key = 64 * hmacKeyPrefixed_blockCount key
 
 -- | A simple interface to HMAC-SHA-256. Note that this function was written
 --   to make partial application an efficient way to compute the hmac of

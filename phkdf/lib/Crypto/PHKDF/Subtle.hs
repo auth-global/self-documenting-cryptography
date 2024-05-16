@@ -26,7 +26,7 @@ import           Data.Word
 -- modulo 64, this doesn't matter.  However we should probably export the SHA256 counter itself
 
 data PhkdfCtx = PhkdfCtx
-  { phkdfCtx_byteLen :: !Word64
+  { phkdfCtx_byteCount :: !Word64
   , phkdfCtx_state :: !SHA256.Ctx
   , phkdfCtx_hmacKeyLike :: !HmacKeyLike
   }
@@ -37,15 +37,15 @@ phkdfCtx_unsafeFeed :: Foldable f => f ByteString -> PhkdfCtx -> PhkdfCtx
 phkdfCtx_unsafeFeed strs ctx0 =
   if null strs then ctx0
   else ctx0 {
-    phkdfCtx_byteLen = byteLen',
+    phkdfCtx_byteCount = byteCount',
     phkdfCtx_state = state'
   }
   where
     delta (P len ctx) str = P (len + (fromIntegral (B.length str))) (SHA256.update ctx str)
 
-    p0 = P (phkdfCtx_byteLen ctx0) (phkdfCtx_state ctx0)
+    p0 = P (phkdfCtx_byteCount ctx0) (phkdfCtx_state ctx0)
 
-    P byteLen' state' = foldl' delta p0 strs
+    P byteCount' state' = foldl' delta p0 strs
 
 data PhkdfGen = PhkdfGen
   { phkdfGen_hmacKeyLike :: !HmacKeyLike

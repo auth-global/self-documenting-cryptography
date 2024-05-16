@@ -223,6 +223,7 @@ module Crypto.PHKDF
   , phkdfCtx_toHmacCtx
   , phkdfCtx_toStream
   , phkdfCtx_toGen
+  , phkdfCtx_byteCount
 {--
   , PhkdfSlowCtx()
   , phkdfSlowCtx_extract
@@ -283,7 +284,7 @@ phkdfCtx_init = phkdfCtx_initLike . hmacKeyLike_init
 phkdfCtx_initLike :: HmacKeyLike -> PhkdfCtx
 phkdfCtx_initLike key =
   PhkdfCtx {
-    phkdfCtx_byteLen = 0,
+    phkdfCtx_byteCount = hmacKeyLike_byteCount key,
     phkdfCtx_state   = hmacKeyLike_ipadCtx key,
     phkdfCtx_hmacKeyLike = key
   }
@@ -297,8 +298,8 @@ phkdfCtx_initHashed = phkdfCtx_init . hmacKeyHashed_toKey
 
 phkdfCtx_initPrefixed :: ByteString -> HmacKeyPrefixed -> PhkdfCtx
 phkdfCtx_initPrefixed str key = PhkdfCtx
-    { phkdfCtx_byteLen = 64 * hmacKeyPrefixed_blockCount key
-                       + fromIntegral (B.length str)
+    { phkdfCtx_byteCount = 64 * hmacKeyPrefixed_blockCount key
+                         + fromIntegral (B.length str)
     , phkdfCtx_state = SHA256.update (hmacKeyPrefixed_ipadCtx key) str
     , phkdfCtx_hmacKeyLike = hmacKeyLike_initPrefixed key
     }
@@ -396,14 +397,14 @@ phkdfCtx_toGen genFillerPad counter0 tag ctx =
       , phkdfGen_initCtx = Just context0
       }
   where
-    n = phkdfCtx_byteLen ctx
+    n = phkdfCtx_byteCount ctx
     endPadLen = fromIntegral ((31 - n) .&. 63)
 
     endPadding = genFillerPad endPadLen
 
     ctx' = phkdfCtx_unsafeFeed ["\x00",endPadding] ctx
 
-    endPaddingIsValid = phkdfCtx_byteLen ctx' `mod` 64 == 32
+    endPaddingIsValid = phkdfCtx_byteCount ctx' `mod` 64 == 32
                      && B.length endPadding == endPadLen
 
     context0 = assert endPaddingIsValid $ phkdfCtx_state ctx'
