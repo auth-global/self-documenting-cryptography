@@ -622,7 +622,7 @@ G3P_Blowfish_expandCtr
 
   uint32_t pos = 0;
   uint32_t tagPos;
-  if (tagLen <= G3P_SALT_BYTES_PER_ROUND) {
+  if (tagLen <= 4096) {
     tagPos = 0;
     if (keyIsFirst) {
       int i;

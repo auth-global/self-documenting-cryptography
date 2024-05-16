@@ -224,8 +224,15 @@
     "results":[
         {"G3Pb2":"825be044e7333f479ca805a7f42a89b010296cafa1160ecde13e72d9973c259a"
         },
-        {"args":{"long-tag":{"ref":"prehash first light, elaborated","len":5113}},
-         "G3Pb2":"f9cd8db2f03a739eae863a45371a82fdb9580bb0b5180c71510803e50d6532c1"
+        {"args":{
+            "bcrypt-rounds":382,
+            "long-tag":{"ref":"prehash first light, elaborated","len":4095}},
+         "G3Pb2":"d5172d8d9c9fc035552ff7beb09eab8575e0240b568ffa68e2695a09f04bc646"
+        },
+        {"args":{
+            "bcrypt-rounds":368,
+            "long-tag":{"ref":"prehash first light, elaborated","len":4096}},
+         "G3Pb2":"73fa8d858677b4d6722c0fa4dd860b588a8bd17accd88a5d9cd2f6af088cffc2"
         },
         {"args":{
             "username":{
