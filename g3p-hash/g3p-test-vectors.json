@@ -157,31 +157,31 @@
         "password":"",
         "credentials":[],
         "seguid":"",
-        "context-tags":[],
+        "context-tags":null,
         "domain-tag":"",
-        "long-tag":"",
+        "long-tag":null,
         "phkdf-rounds":0,
-        "bcrypt-seguid":"",
+        "bcrypt-seguid":null,
         "bcrypt-credentials":null,
-        "bcrypt-context-tags":[],
-        "bcrypt-domain-tag":"",
-        "bcrypt-long-tag":"",
+        "bcrypt-context-tags":null,
+        "bcrypt-domain-tag":null,
+        "bcrypt-long-tag":null,
         "bcrypt-rounds":0,
-        "sprout-seguid":"",
-        "role":[],
-        "sprout-tag":"",
-        "echo-key":"",
-        "echo-header":"",
+        "sprout-seguid":null,
+        "role":null,
+        "sprout-tag":null,
+        "echo-key":null,
+        "echo-header":null,
         "echo-counter":0,
-        "echo-tag":""
+        "echo-tag":null
     },
     "results":[
         {"G3Pb2":"68b04421029eb6bb52a651953248a177246f71be02d633b0eb9c85357b6229a4",
          "G3PSpark":"b3211bf8e5aee9e18a412f56d32261e32170507998f552007f439e29a2239e2840179c258f47e9fa26d21ebf531717a288af208192366f978614b2f8bb87647c",
          "G3PSeed":"27e5bab1e5fbb2af9ade4d57dcf337eed565390e93f5be95865e5c17ae827a58"
         },
-        {"args":{"context-tags":[""]},
-         "G3Pb2":"17e0ea2836d0c1a32da5536f0aada47767fcfab26c4af4a983846e851a1ce21c"
+        {"args":{"tags":[""]},
+         "G3Pb2":"a35e9a894fb1ab12d7fa6ce0af08067cebc5f5dd772e4e14b7ae62960cbed6d1"
         }
     ]
 },{
