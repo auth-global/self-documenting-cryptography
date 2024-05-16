@@ -174,17 +174,22 @@ bcryptXsFree toString fnName longTag contextTags domainTag ctr0 = initRound
     superRound tagPos !sha0 mBcrypt0 ctr miniRounds superRounds =
       let
         -- The derivation of the keys for the superround will locally commit
-        -- to the first 64 - 190 bytes of the extended salt of the
+        -- to the first 96 - 222 bytes of the extended salt of the
         -- penultimate miniround.
         penOffset = fromIntegral tagPos + (fromIntegral miniRounds - 2) * miniRoundBytes
-        endPad0 n = concatTakeBs n (tagBytesFrom (penOffset + 64))
-        endPad1 n = concatTakeBs n (tagBytesFrom (penOffset + 64 + fromIntegral n))
-        key0 = phkdfCtx_initPrefixed (tagBytesFrom penOffset !! 0) sha0 &
+        penBytes  = tagBytesFrom penOffset
+        endPad0 n = concatTakeBs n (tagBytesFrom (penOffset + 96))
+        endPad1 n = concatTakeBs n (tagBytesFrom (penOffset + 96 + fromIntegral n))
+        key0 = phkdfCtx_initPrefixed (penBytes !! 0) sha0 &
                phkdfCtx_addArgsBy toString contextTags &
                phkdfCtx_finalize endPad0 (word32 "KEY0") domainTag
-        key1 = phkdfCtx_initPrefixed (tagBytesFrom penOffset !! 1) sha0 &
+
+        ("",sha1) = hmacKeyPrefixed_feeds [penBytes !! 1, key0] sha0
+
+        key1 = phkdfCtx_initPrefixed (penBytes !! 2) sha1 &
                phkdfCtx_addArgsBy toString contextTags &
                phkdfCtx_finalize endPad1 (word32 "KEY1") domainTag
+
         args = BCryptXsCtr
           { bcryptXsCtr_key0 = key0
           , bcryptXsCtr_key1 = key1
@@ -197,7 +202,7 @@ bcryptXsFree toString fnName longTag contextTags domainTag ctr0 = initRound
 
         (pBit, pBox) = B.splitAt 8 (bcryptState_toByteString bcrypt1)
 
-        chunksR = key0 : key1 : orpheanBeholderScryDoubt <> pBit :
+        chunksR = key1 : key0 : orpheanBeholderScryDoubt <> pBit :
                       chunkify 32 pBox
 
         list2 x y = [x,y]
