@@ -299,7 +299,7 @@ phkdfCtx_initHashed = phkdfCtx_init . hmacKeyHashed_toKey
 
 phkdfCtx_initPrefixed :: ByteString -> HmacKeyPrefixed -> PhkdfCtx
 phkdfCtx_initPrefixed str key = PhkdfCtx
-    { phkdfCtx_byteCount = 64 * hmacKeyPrefixed_blockCount key
+    { phkdfCtx_byteCount = hmacKeyPrefixed_byteCount key
                          + fromIntegral (B.length str)
     , phkdfCtx_state = SHA256.update (hmacKeyPrefixed_ipadCtx key) str
     , phkdfCtx_hmacKeyLike = hmacKeyLike_initPrefixed key

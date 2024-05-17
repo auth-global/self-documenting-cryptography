@@ -609,7 +609,7 @@ data G3PSeedInputs = G3PSeedInputs
 -- @
 --
 --   In addition to sharing the main key-stretching computation among
---   all three independent output hashes, @myDiskAuth@ also shares the
+--   all three independent output hashes, @myDiskKey@ also shares the
 --   'G3PSprout' to 'G3PKey' computation among two different calls.
 --   Although this savings is relatively miniscule, it can also be
 --   relevant in certain contexts.
@@ -641,7 +641,7 @@ data G3PSeedInputs = G3PSeedInputs
 --   inside the sprout's SHA256 context buffer. This can be done by including
 --   at least 63 bytes of non-committing data anywhere you need a safe
 --   partial evaluation point, thus the inclusion of @myLongTag@ in
---   the storage role.
+--   the storage role vector.
 --
 --   Another possibility is to use filler padding to control the context
 --   buffer position; I suggest using 32-95 or more bytes, as this ensures
@@ -710,9 +710,9 @@ g3pHash = ( fmap . fmap . fmap . fmap . fmap
 --   proving that all collisions over them are cryptographically non-trivial.
 --   The eighth is used as the HMAC key.
 --
---   Moreover, the G3P syntax generators never examine the content of any
+--   Moreover, the G3P's syntax generators never examine the content of any
 --   input, only length. Thus by parametricity, any vaguely reasonable
---   attempt to implement the G3P cannot possibly be directly responsible for
+--   attempt to implement the G3P cannot be directly responsible for
 --   introducing a data-dependent side channel.
 --
 --   The hash resulting from this initial HMAC-Extract, in addition to the
