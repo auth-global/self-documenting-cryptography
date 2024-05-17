@@ -227,14 +227,14 @@
         {"G3Pb2":"87807e2b754a4e5a9a3ddaa2f58f7a41d091d0fcb98a10d7311d23fc2a0e0090"
         },
         {"args":{
-            "bcrypt-rounds":382,
+            "bcrypt-rounds":368,
             "long-tag":{"ref":"prehash first light, elaborated","len":4095}},
-         "G3Pb2":"d5c9b5d378991ef1acfb48fd1c2352e73e6003398d0eb73714e58c407722c424"
+         "G3Pb2":"c632ec16ac636bbb92effd7de55debc139793089d0b335fa82fc30463e46cc4c"
         },
         {"args":{
-            "bcrypt-rounds":368,
+            "bcrypt-rounds":382,
             "long-tag":{"ref":"prehash first light, elaborated","len":4096}},
-         "G3Pb2":"b246b2955e0c3a7f4363488b8f2c49db4961de862a87158c384eec013440e664"
+         "G3Pb2":"77332ff10e41b169ae6bbdabd82464abc3c1b6875e592d8385e81f2ba4a3c635"
         },
         {"args":{
             "username":{
