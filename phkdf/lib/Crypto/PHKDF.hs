@@ -224,6 +224,7 @@ module Crypto.PHKDF
   , phkdfCtx_toStream
   , phkdfCtx_toGen
   , phkdfCtx_byteCount
+  , phkdfCtx_endPaddingLength
 {--
   , PhkdfSlowCtx()
   , phkdfSlowCtx_extract
@@ -387,6 +388,11 @@ phkdfCtx_toStream genFillerPad counter0 tag ctx =
   phkdfCtx_toGen genFillerPad counter0 tag ctx &
   phkdfGen_toStream
 
+
+phkdfCtx_endPaddingLength :: PhkdfCtx -> Int
+phkdfCtx_endPaddingLength ctx =
+  fromIntegral ((31 - phkdfCtx_byteCount ctx) .&. 63)
+
 phkdfCtx_toGen :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> PhkdfGen
 phkdfCtx_toGen genFillerPad counter0 tag ctx =
     PhkdfGen
@@ -397,8 +403,7 @@ phkdfCtx_toGen genFillerPad counter0 tag ctx =
       , phkdfGen_initCtx = Just context0
       }
   where
-    n = phkdfCtx_byteCount ctx
-    endPadLen = fromIntegral ((31 - n) .&. 63)
+    endPadLen = phkdfCtx_endPaddingLength ctx
 
     endPadding = genFillerPad endPadLen
 

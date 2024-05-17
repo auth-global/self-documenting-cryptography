@@ -12,18 +12,9 @@ import qualified Data.ByteString as B
 import           Data.Foldable(foldl', null)
 import           Data.Word
 
--- I should be using the counter inside the sha256 ctx, but this is a Proof of Concept
-
--- TODO: should phkdfCtx_length count bytes, or bits? Double-check how SHA256 internal counter
--- works. Decide how this should work. Then export it from Primitives module.
--- For truly bulletproof code, we probably need to be returning (Maybe Ctx), so that we don't
--- overflow SHA256's internal counter. This would be a bit of a conceptual problem with the
--- cryptohash-style interface I'm mimicking, not to mention the cryptohash implementation I
--- am depending upon.
-
--- note that there's an offset error w.r.t the sha256 internal counter and phkdfCtx_length, but
--- it's always 64 bytes.  As the internals of this module only care about the internal counter
--- modulo 64, this doesn't matter.  However we should probably export the SHA256 counter itself
+-- I should be using the counter inside the sha256 ctx.
+-- While this project is rapidly approaching maturity, it's still somewhat
+-- proof of concept.  See the new SHA256 bindings WIP.
 
 data PhkdfCtx = PhkdfCtx
   { phkdfCtx_byteCount :: !Word64

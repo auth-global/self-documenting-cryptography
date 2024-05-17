@@ -62,7 +62,7 @@ import           Data.Word
 import           Network.ByteOrder(word32, bytestring32)
 
 import           Crypto.PHKDF.HMAC (HmacKeyPrefixed, hmacKeyPrefixed_feeds)
-import           Crypto.PHKDF (PhkdfCtx, phkdfCtx_initPrefixed, phkdfCtx_addArgsBy, phkdfCtx_addArg, phkdfCtx_finalize, phkdfCtx_byteCount)
+import           Crypto.PHKDF (PhkdfCtx, phkdfCtx_initPrefixed, phkdfCtx_addArgsBy, phkdfCtx_addArg, phkdfCtx_finalize, phkdfCtx_byteCount, phkdfCtx_endPaddingLength)
 import           Crypto.PHKDF.Assert
 
 import           Crypto.Encoding.PHKDF (chunkify, chunkifyCycle, takeBs, nullBuffer)
@@ -190,7 +190,7 @@ bcryptXsFree toString fnName creds longTag contextTags domainTag ctr0 = initRoun
             ctx2 = phkdfCtx_addArg credsPad ctx1 &
                    phkdfCtx_assertBufferPosition n0
             -- Length of PHKDF end-of-args padding
-            endPaddingLen = (n0 - 1) `mod` 64
+            endPadLen = phkdfCtx_endPaddingLength ctx0
             -- Encoded length of credentials vector, mod 64
             credsLen = (n1 - n0) `mod` 64
             -- We want to add 32 - 95 bytes as needed to bring the length
@@ -201,7 +201,7 @@ bcryptXsFree toString fnName creds longTag contextTags domainTag ctr0 = initRoun
             credsPadLen = 32 + (29 - fromIntegral credsLen) `mod` 64
             -- Now we'll commit to the next 32-95 bytes of the extended salt
             -- on the penultimate miniround:
-            credsPadOffset = penOffset + 96 + 2 * fromIntegral endPaddingLen
+            credsPadOffset = penOffset + 96 + 2 * fromIntegral endPadLen
             credsPad = B.concat (takeBs credsPadLen (tagBytesFrom credsPadOffset))
 
         key0 = phkdfCtx_initPrefixed (penBytes !! 0) sha0 &

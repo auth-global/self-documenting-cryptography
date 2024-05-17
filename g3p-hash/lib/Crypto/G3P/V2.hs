@@ -430,14 +430,22 @@ data G3PSeedInputs = G3PSeedInputs
   , g3pSeedInputs_bcryptCredentials :: !(Vector ByteString)
     -- ^ Used directly once to derive @key0@ for the first bcrypt superround,
     --   and indirectly affects every cryptographic operation after that.
-    --   0-29 bytes are free. This bytecount includes the length encoding of
-    --   every bytestring, thus 0-27 data bytes incur zero incremental cost if
-    --   you encode everything in one string, or somewhat less if you use
-    --   more than one string.
+    --
+    --   0-29 bytes are free. The length encoding for each bytestring needs
+    --   to be included, thus 0-27 data bytes incur zero incremental cost if
+    --   you encode everything in one string, or less if you use more than
+    --   one string.
     --
     --   Overages cost one SHA256 block per 64 bytes, rounded up. Thus, this
     --   is a horn-loaded parameter introduced after the phkdf key-stretching
-    --   phase is complete
+    --   phase is complete.
+    --
+    --   If some unusual deployment of the G3P accepts arbitrary external
+    --   inputs into the @bcryptLongTag@, one possible way to handle this
+    --   situation efficiently and safely would be to include the entire
+    --   input in this parameter. This is not necessary if such a deployment
+    --   duplicated the external input into both the 'g3pSalt_longTag' and
+    --   'g3pSeedInputs_bcryptLongTag' parameters.
   , g3pSeedInputs_bcryptLongTag :: !ByteString
     -- ^ Be aware this is truncated to (rounds + 1) * 4136 bytes, but
     --   length still matters after that. The primary intended use is to
@@ -500,10 +508,16 @@ data G3PSeedInputs = G3PSeedInputs
     --   as the truncation limit, which is north of 16 megabytes if you specify
     --   the suggested 4000 rounds.
   , g3pSeedInputs_bcryptContextTags :: !(Vector ByteString)
-    -- ^ Also used to derive super round keys for bcrypt. Leaving this
-    --   empty is a good default choice. In particular, one /should not/
-    --   default to duplicating anything between this parameter and
-    --   the 'g3pSeed_contextTags' parameter.
+    -- ^ Also used to derive super round keys for bcrypt.  0-63 encoded
+    --   bytes are free, meaning that 60 bytes impose zero incremental cost
+    --   if you encode everything into one string, or somewhat less if you use
+    --   more than one string.
+    --
+    --   Overages cost two SHA-256 blocks per 64 bytes per bcrypt superround.
+    --
+    --   Leaving this empty is a good default choice. In particular, one
+    --   /should not/ default to duplicating anything between this parameter
+    --   and the 'g3pSeed_contextTags' parameter.
     --
     --   For example, if your deployment uses a random per-user salt, then
     --   it's a good idea to include that salt in the 'username' and
@@ -531,21 +545,20 @@ data G3PSeedInputs = G3PSeedInputs
     --   every transition between bcrypt superrounds. By contrast, the design
     --   intension is to be able to treat outsourcing bcrypt as (relatively)
     --   simple remote procedure call (RPC).
-    --
-    --   If some unusual deployment of the G3P accepts arbitrary external
-    --   inputs into the 'bcryptLongTag', one possible way to handle this
-    --   situation efficiently and safely would be to hash the entire input,
-    --   and include that hash in this parameter. This is not necessary if
-    --   such a deployment duplicated the external input into both the
-    --   'g3pSalt_longTag' and 'g3pSeedInputs_bcryptLongTag' parameters.
   , g3pSeedInputs_bcryptDomainTag :: !ByteString
     -- ^ Used to derive the keys for a super round in bcrypt-xs-ctr mode.
     --   Duplicating the 'g3pSalt_domainTag' is a good default choice.
+    --
+    --   0-19 bytes are free. 20-83 bytes and 64 bytes thereafter impose
+    --   a cost of two SHA-256 blocks per bcrypt superround.
   , g3pSeedInputs_bcryptRounds :: !Word32
     -- ^ How expensive will the bcrypt component be? 4000 rounds recommended,
     --   give or take a factor of 2 or so. Each bcrypt round is approximately
     --   as time consuming as 60 PHKDF rounds. Using the recommended cost,
     --   parameters, the cost should be dominated by bcrypt.
+    --
+    --   The number of superrounds matters for some cost calculations. This is
+    --   always @ceiling ((bcryptRounds + 1) / 128)@.
   }
 
 -- | The Global Password Prehash Protocol (G3P). Note that this function is very
