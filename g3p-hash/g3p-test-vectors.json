@@ -278,43 +278,88 @@
          "G3Pb2":"e3f82ff3963be9f75d67f72ff06a53a09f8ff9eb87d900f6f4e593bf774c7623"
         },
         {"args":{
+            "bcrypt-rounds":358,
+            "tags":["7. long tag and username padding check"],
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3045,
+                "len":4133,
+                "index":0
+            },
+            "long-tag":{
+                "ref":"prehash first light, elaborated",
+                "len":4024,
+                "index":0
+            },
+            "password":{
+                "ref":"prehash unicode test, inset naval story with a reference",
+                "len":293,
+                "index":0
+            }
+        },
+         "G3Pb2":"01ef9e39dfb482d9097f107185641f2683dbd3423e4275078672a6578fec717f"
+        },
+        {"args":{
+            "bcrypt-rounds":356,
+            "tags":["8. long tag and username padding check"],
+            "username":{
+                "ref":"prehash unicode test, lightly extended on top",
+                "len":4133,
+                "index":1
+            },
+            "long-tag":{
+                "ref":"prehash first light, elaborated",
+                "len":4024,
                 "index":1
             },
             "password":{
                 "ref":"prehash unicode test, inset naval story with a reference",
-                "len":102,
+                "len":294,
                 "index":1
-            }},
-         "G3Pb2":"96dc4323b50eec57cf084179905f130362b9f4e3557229ed438e505926e13473"
+            }
+        },
+         "G3Pb2":"9a8de0638fdf16af847d4b21884f6f77e82b66cc746eb79aad79acd4abdde933"
         },
         {"args":{
-            "long-tag":{"ref":"prehash first light","len":5049,"index":1},
+            "bcrypt-rounds":352,
+            "tags":["9. long tag and username padding check"],
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3109,
-                "index":2
+                "len":4133,
+                "index":1
+            },
+            "long-tag":{
+                "ref":"prehash first light, elaborated",
+                "len":4025,
+                "index":1
             },
             "password":{
                 "ref":"prehash unicode test, inset naval story with a reference",
-                "len":164
-            }},
-         "G3Pb2":"9e440b794f9275d42db1bb054525428bb90dd34f9815ec479f758cd441a27b6d"
+                "len":293,
+                "index":1
+            }
+        },
+         "G3Pb2":"f35e7aa85421872100d8387ac09bc3748f16df7862ab136da93b0b7adb573608"
         },
         {"args":{
-            "long-tag":{"ref":"prehash first light","len":5049,"index":1},
+            "bcrypt-rounds":338,
+            "tags":["10. long tag and username padding check"],
             "username":{
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3109,
-                "index":2
+                "len":4134,
+                "index":1
+            },
+            "long-tag":{
+                "ref":"prehash first light, elaborated",
+                "len":4024,
+                "index":1
             },
             "password":{
                 "ref":"prehash unicode test, inset naval story with a reference",
-                "len":165
-            }},
-         "G3Pb2":"6a867cf6793f6a6fa7e66f579653dcffe603855c6a5e72b3d0d67bcc8eda714e"
+                "len":293,
+                "index":1
+            }
+        },
+         "G3Pb2":"65d892ee88bf0b1d92925e16429646d224f2198d2475145fd333e19866d0ae95"
         }
     ]
 },{
