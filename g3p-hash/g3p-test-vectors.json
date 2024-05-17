@@ -240,11 +240,24 @@
          "G3Pb2":"ba32b204b25b2d612db8fec06cb3e41df1a75f62be5a83827c5d739413770289"
         },
         {"args":{
-            "username":{
+            "password":"username padding check #1",
+            "username":
+            {
                 "ref":"prehash unicode test, lightly extended on top",
-                "len":3045
+                "len":293,
+                "index":1
             }},
-         "G3Pb2":"e2e22000e46428c6f7f27283dca61da20903c878bbc1b028fa1ad25c650f13b9"
+         "G3Pb2":"87495c1bb525034a49c57e7e731993a27200904eeffcd6e0c2b8709afb32d67f"
+        },
+        {"args":{
+            "password":"username padding check #2",
+            "username":
+            {
+                "ref":"prehash unicode test, lightly extended on top",
+                "len":294,
+                "index":2
+            }},
+         "G3Pb2":"8cdd0d35f38dcfd6f0926e6acda7196c61385c13d723cf1ddbda747685eed2ed"
         },
         {"args":{
             "username":{
