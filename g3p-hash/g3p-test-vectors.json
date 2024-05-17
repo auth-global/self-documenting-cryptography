@@ -260,24 +260,22 @@
          "G3Pb2":"8cdd0d35f38dcfd6f0926e6acda7196c61385c13d723cf1ddbda747685eed2ed"
         },
         {"args":{
-            "username":{
-                "ref":"prehash unicode test, lightly extended on top",
-                "len":3046
-            }},
-         "G3Pb2":"ea82f9656e36615730e7e0cedc223733e29f4c4165c14736cfd67f0137e11888"
-        },
-        {"args":{
-            "username":{
-                "ref":"prehash unicode test, lightly extended on top",
-                "len":3045,
-                "index":1
-            },
+            "username":"5: password padding check",
             "password":{
                 "ref":"prehash unicode test, inset naval story with a reference",
-                "len":101,
+                "len":8158,
+                "index":0
+            }},
+         "G3Pb2":"e548fd708947f8fa3d74fa71c3d17f59be5ebd5656124d13c4d65253304402f1"
+        },
+        {"args":{
+            "username":"6. password padding check",
+            "password":{
+                "ref":"prehash unicode test, inset naval story with a reference",
+                "len":8159,
                 "index":1
             }},
-         "G3Pb2":"38f592e796b414432a4bebe6aba2e48ac4ef97861811e41f7469fdb4c5542f97"
+         "G3Pb2":"e3f82ff3963be9f75d67f72ff06a53a09f8ff9eb87d900f6f4e593bf774c7623"
         },
         {"args":{
             "username":{
