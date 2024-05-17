@@ -25,11 +25,11 @@ extendTagToList tag = if n <= 19 then [tag] else tag'
 --   extension, as the final portion of the message. Thus this function
 --   is the identity on short inputs.
 --
---   Extended tags that are at least 20 bytes long should be thought of as
---   a bitstring with a single null bit appended at the end to make it a
---   full bytestring.
+--   After extension, tags that are at least 20 bytes long should be thought
+--   of as a bitstring with a single null bit appended at the end to make it
+--   a full bytestring.
 --
---   Tags 160 bits or longer are first extended, if necessary, to a full
+--   Tags 160 bits or longer are first extended, iff necessary, to a full
 --   bytestring by adding a single "1" bit followed by zero to six "0" bits.
 --
 --   The bytestring is then extended by 0-63 bytes as needed to make the
@@ -38,8 +38,9 @@ extendTagToList tag = if n <= 19 then [tag] else tag'
 --   at the null byte as needed.
 --
 --   The length of this extension takes up the first 6 bits of the last byte,
---   followed by a "0" or "1" bit denoting whether the tag is a bytestring,
---   or a proper bitstring whose length is an inexact multiple of 8.
+--   followed by a "0" bit denoting the tag is a bytestring, or a "1" denoting
+--   that the tag is a proper bitstring whose length is not an exact multiple
+--   of 8.
 --
 --   The final bit is reserved for SHA-256's end-of-message padding, which
 --   will set it to 1.
@@ -56,6 +57,25 @@ extendTag = B.concat <$> extendTagToList
 --   @x@, then all collisions are non-trivial, but we haven't presented a
 --   full deductive proof of this property.  (It will eventually be part of
 --   the test suite.)
+--
+--   The rest of PHKDF and the G3P's syntax follows this as an iron rule
+--   of syntax design. I've not literally written a program to parse out
+--   the original arguments, but I've ensured that it is straightforward
+--   to do so in principle.
+--
+--   In the case of variable-length PHKDF, starting from some known buffer
+--   position (usually either 0 or 32), first there are zero or more
+--   bitstring arguments encoded via TupleHash syntax. Since TupleHash's
+--   length encoding cannot start with a null byte, a single null byte
+--   is used to signal the end of these input arguments. Then 0-63 end
+--   padding bytes are generated in order to bring the buffer position
+--   equivalent to 32 (mod 64), then 4 bytes of counter, then the extended
+--   version of PHKDF's end-of-message tag, then finally SHA256's end padding.
+--
+--   This is easy to robustly undo, as I've started to demonstrate in this
+--   subroutine. This leads to a simple categorical/combinatorial style proof
+--   that all collisions over PHKDF's input arguments and domain tag are
+--   cryptographically non-trivial.
 
 trimExtendedTag :: ByteString -> Maybe ByteString
 trimExtendedTag extTag
@@ -87,11 +107,17 @@ add64WhileLt b c
    | b >= c = b
    | otherwise = c + ((b - c) .&. 63)
 
+-- | Equivalent to 'add64WhileLt', except with trace debugging.  This should
+--   never be used in production.
+
 add64WhileLt' :: (Ord a, Num a, Bits a, Show a) => a -> a -> a
 add64WhileLt' b c
    | b >= c = b
-   | otherwise = let d = c + ((b - c) .&. 63)
-                  in trace (show b ++ " -> " ++ show d) d
+   | otherwise = trace msg d
+     where
+       d = c + ((b - c) .&. 63)
+       msg = show b ++ " + " ++ show ((d - b) `shift` (-6)) ++ " * 64 == "
+          ++ show d ++ " == " ++ show c ++ " + " ++ show (d - c)
 
 dropBs :: Int64 -> [ ByteString ] -> [ ByteString ]
 dropBs = go
