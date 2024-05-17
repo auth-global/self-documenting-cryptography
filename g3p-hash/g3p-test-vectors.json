@@ -10,8 +10,8 @@
     },
     "results":[
         {"G3Pb2":"73f26cbf3ad8233b795bf6e4d5d32e7ef6d2be4a34ca07d556c6d97c264526c2f846bb33b22597051be7c0870deb702a89e24d5df4b84048087ac3c32d813bbd"},
-        {"args":{"seguid":{"hex":"97e5078404c4d290701a54f08ed37e39ee30d989632002bbd9fb924161bf79c56fa26537c169a6d5e16f9687571e0379f310e81c6156fad754ef2c6234b65622"}},
-         "G3Pb2":"d138355a2fc52813a7f3d45e1272a6ae9adb7139aee9048e2243adfc0da17d5a7eccea5077affa4e77c7ef129deccf193e363477c5ab45070e1e25eadbb1f037"}
+        {"args":{"seguid":{"hex":"6aefea0f165a93ba619f5376980cf11156e42e531776c907b69dca3dca35125d02f2a42d2b10b60b08874e4ec8cbecef21f01b84af0d7cf8d08a113bd7bad5b4"}},
+         "G3Pb2":"62b59247a8e5bd43f9e63af5812cc30ae14a9adaae90d3fd029c574654a2ba335c5a32f7d346078f20760e20950d94bade47dd1a596cc0df00bbcc69f1f236a3"}
     ]
 },{
     "name":"prehash first light, elaborated",
@@ -28,7 +28,10 @@
         "bcrypt-rounds":7
     },
     "results":[
-        {"G3Pb2":"97e5078404c4d290701a54f08ed37e39ee30d989632002bbd9fb924161bf79c56fa26537c169a6d5e16f9687571e0379f310e81c6156fad754ef2c6234b65622"}
+        {"args":{"echo-counter":{"hex":"7fffffc0"}},
+         "G3Pb2":"6aefea0f165a93ba619f5376980cf11156e42e531776c907b69dca3dca35125d02f2a42d2b10b60b08874e4ec8cbecef21f01b84af0d7cf8d08a113bd7bad5b4"},
+        {"args":{"echo-counter":{"hex":"ffffffc0"}},
+         "G3Pb2":"08ab9b89eefdf6eb6e5b45d593de005b1d22d5b07782c605f9db703c0de7066b76b28769e7225f7a4fe08dee5820ef25e1384663c00c376ad72f9ea8cb0899fa"}
     ]
 },{
     "name":"prehash unicode test, inset naval story with a reference",
@@ -47,9 +50,9 @@
          "G3Pb2":"01a1b595c19eada304e37f4242b6a4600da1340ebf330ee284ad2a4fcb8900a0b8859ba365bc452daf0716b002930dc6a6a94430481511e0c9a2f97423cdb216"
         },
         {"args":{
-            "bcrypt-seguid":{"hex":"97e5078404c4d290701a54f08ed37e39ee30d989632002bbd9fb924161bf79c56fa26537c169a6d5e16f9687571e0379f310e81c6156fad754ef2c6234b65622"},
+            "bcrypt-seguid":{"hex":"08ab9b89eefdf6eb6e5b45d593de005b1d22d5b07782c605f9db703c0de7066b76b28769e7225f7a4fe08dee5820ef25e1384663c00c376ad72f9ea8cb0899fa"},
             "bcrypt-context-tags":["«ЗСУ» Збройні Cили України","«Луч» Державне Київське конструкторське бюро"]},
-         "G3Pb2":"1f9251ca214adf1c9863cd2410cef569a0d53d485cc3f42b896e4b8bcc6aa2f45e6d8ecf518a97ca552236c8a5182c4269236992c212a9cf29c8b42fd9f26d20"}
+         "G3Pb2":"83991bd4a3e57461d76e94f391a4956e45acf094ffc2006583204b792dab7f1da5c2daa5e2d46c7dbdf3747423536f077f4072cb3e6671b8932e33874a5d431f"}
     ]
 },{
     "name":"prehash unicode test, lightly extended on top",
@@ -228,13 +231,13 @@
         },
         {"args":{
             "bcrypt-rounds":368,
-            "long-tag":{"ref":"prehash first light, elaborated","len":4095}},
-         "G3Pb2":"c632ec16ac636bbb92effd7de55debc139793089d0b335fa82fc30463e46cc4c"
+            "long-tag":{"ref":"prehash first light, elaborated","len":4095,"index":0}},
+         "G3Pb2":"d100692bed0f8a298dc0519a45507a7465002edc0e5ea55f2ea0bf3eeed45362"
         },
         {"args":{
             "bcrypt-rounds":382,
-            "long-tag":{"ref":"prehash first light, elaborated","len":4096}},
-         "G3Pb2":"77332ff10e41b169ae6bbdabd82464abc3c1b6875e592d8385e81f2ba4a3c635"
+            "long-tag":{"ref":"prehash first light, elaborated","len":4096,"index":1}},
+         "G3Pb2":"ba32b204b25b2d612db8fec06cb3e41df1a75f62be5a83827c5d739413770289"
         },
         {"args":{
             "username":{
@@ -287,7 +290,7 @@
                 "ref":"prehash unicode test, inset naval story with a reference",
                 "len":164
             }},
-         "G3Pb2":"e50c5f4753522778439e036440e230901a7cb246d889f9dd4daeff575c7608eb"
+         "G3Pb2":"9e440b794f9275d42db1bb054525428bb90dd34f9815ec479f758cd441a27b6d"
         },
         {"args":{
             "long-tag":{"ref":"prehash first light","len":5049,"index":1},
@@ -300,7 +303,7 @@
                 "ref":"prehash unicode test, inset naval story with a reference",
                 "len":165
             }},
-         "G3Pb2":"c7b75e4748da07781974579bdbac503f678dc97bfc9a280692ca198219f0f5a3"
+         "G3Pb2":"6a867cf6793f6a6fa7e66f579653dcffe603855c6a5e72b3d0d67bcc8eda714e"
         }
     ]
 },{
