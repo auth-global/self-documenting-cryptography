@@ -624,7 +624,7 @@ data G3PSeedInputs = G3PSeedInputs
 --   @userSecondSecretHash@, and I'd probably not use @myDiskKey@ in exactly
 --   that way.
 --
---   This example is to emphasize that the G3P is designed to preserve endless
+--   This example emphasizes that the G3P is designed to preserve endless
 --   possibilites for keying end-to-end encryption (E2EE) off of the user's
 --   password, though deploying a client-side prehash function such as the G3P
 --   is absolutely required for this to be a possibility.
@@ -635,6 +635,18 @@ data G3PSeedInputs = G3PSeedInputs
 --   continuation of that partially evaluated sprout can be finalized
 --   once the storage key is provided by the authentication server upon
 --   a successful authentication.
+--
+--   This approach has the minor complication of needing to ensure that
+--   any important data has been fully committed to and isn't sitting around
+--   inside the sprout's SHA256 context buffer. This can be done by including
+--   at least 63 bytes of non-committing data anywhere you need a safe
+--   partial evaluation point, thus the inclusion of @myLongTag@ in
+--   the storage role.
+--
+--   Another possibility is to use filler padding to control the context
+--   buffer position; I suggest using 32-95 or more bytes, as this ensures
+--   the encoded length is 3 additional bytes long and thus ensures that
+--   any relative buffer position can be reached.
 --
 --   In the case that you want or need to persist or serialize the
 --   intermediate structures, then the plain-old-datatypes 'G3PSpark',
@@ -697,6 +709,11 @@ g3pHash = ( fmap . fmap . fmap . fmap . fmap
 --   7 of them can be unambiguously parsed out of the input message, thus
 --   proving that all collisions over them are cryptographically non-trivial.
 --   The eighth is used as the HMAC key.
+--
+--   Moreover, the G3P syntax generators never examine the content of any
+--   input, only length. Thus by parametricity, any vaguely reasonable
+--   attempt to implement the G3P cannot possibly be directly responsible for
+--   introducing a data-dependent side channel.
 --
 --   The hash resulting from this initial HMAC-Extract, in addition to the
 --   'G3PSalt' parameters, determine the exact size, shape, and content of the
