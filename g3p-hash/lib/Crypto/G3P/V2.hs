@@ -288,10 +288,7 @@ data G3PSalt = G3PSalt
     --   Note that this cost comparison is exact only when looking at only the
     --   PHKDF key stretching phase. The G3P also computes a reasonably large
     --   but constant number of additional SHA256 blocks as part of it's
-    --   initial HMAC-Extract operation, /G3Pb2 alfa/, and a much smaller
-    --   number (but weakly non-constant) number of SHA256 blocks to set up
-    --   and finalize the key-stretching phase, which include repetitions
-    --   of the domain tag.
+    --   initial HMAC-Extract operation, /G3Pb2 alfa/.
     --
     --   Thus if you are tuning this parameter via empirical timing tests,
     --   the direct linear relationship between this parameter and time is
