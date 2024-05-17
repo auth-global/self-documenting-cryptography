@@ -573,9 +573,9 @@ data G3PSeedInputs = G3PSeedInputs
 --      myLoginDomain = "login.my.domain.example"
 --      myStorageDomain = "cloud.my.domain.example"
 --      myLongTag = "My Corporation, Inc. https://my.domain.example/.well-known/security.txt"
---      mySeguid = "60473b8010e16d"
---      userRandomSalt = "ec8296b96e939f"
---      userSecondSecretHash = "9c08053b7e507a"
+--      mySeguid = hmacKey "9c08053b7e507a78b571b5b93e1326674540d7106da6408fcafeddcfcdf1ed76"
+--      userRandomSalt = "60473b8010e16d46"
+--      userSecondSecretHash = "0c06f683f093cb899b4a1e9836fc7281"
 --      mySalt =
 --        G3PSalt {
 --          g3pSalt_seguid = mySeguid,
@@ -603,7 +603,7 @@ data G3PSeedInputs = G3PSeedInputs
 --      myHeader = userRandomSalt <> myDomain
 --      myAuthKey = mySprout ["auth",userRandomSalt]
 --                      myLoginDomain myHeader myHeader (word32 "AUTH")
---      myDiskKey = mySprout ["disk",myStorageDomain,myLongTag,"key","bf94facc27b76328"]
+--      myDiskKey = mySprout ["disk",myStorageDomain,myLongTag,"key","7014dad47f0e7f7157d99b39a06553ce"]
 --                     myStorageDomain myHeader myHeader (word32 "DISK")
 --   in [ myAuthKey myLongTag
 --      , myDiskKey "filename0.txt"
@@ -618,11 +618,14 @@ data G3PSeedInputs = G3PSeedInputs
 --   relevant in certain contexts.
 --
 --   Note that this example is intended to be an extremely accurate sketch
---   of what a good authentication deployment that uses random salts and not
---   plaintext usernames would look like. Other details are more to stimulate
---   ideas about how one might use these things: for example I'd highly
---   recommend using actual binary encoding for @mySeguid@ etc, and I'd
---   probably not use @myDiskKey@ in exactly that way.
+--   of what a good authentication deployment that uses random salts or hashed
+--   usernames and not plaintext usernames would look like.
+--
+--   Other details are more to stimulate ideas about how one might use these
+--   things: for example I'd highly recommend using 64-byte binary @mySeguid@,
+--   a 16-byte binary @userRandomSalt@, and a 32-byte binary
+--   @userSecondSecretHash@, and I'd probably not use @myDiskKey@ in exactly
+--   that way.
 --
 --   This example is to emphasize that the G3P is designed to preserve endless
 --   possibilites for keying end-to-end encryption (E2EE) off of the user's
