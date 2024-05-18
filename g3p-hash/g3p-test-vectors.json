@@ -360,6 +360,22 @@
             }
         },
          "G3Pb2":"65d892ee88bf0b1d92925e16429646d224f2198d2475145fd333e19866d0ae95"
+        },
+        {"args":{
+            "username":"11. misc parameters padding check",
+            "credentials":{"ref":"xkcd password strength #2","len":279,"index":0},
+            "tags":{"ref":"prehash first light, elaborated","len":60,"index":0},
+            "bcrypt-credentials":"this string is of length 27"
+        },
+         "G3Pb2":"ed0649cecfe4bd109d0b772cb6c3c1cf91c9f9642d53eec8b9f4a2fbf5f820b8"
+        },
+        {"args":{
+            "username":"12. misc parameters padding check",
+            "credentials":{"ref":"xkcd password strength #2","len":280,"index":0},
+            "tags":{"ref":"prehash first light, elaborated","len":61,"index":0},
+            "bcrypt-credentials":"this string is of length 28."
+        },
+         "G3Pb2":"e035d469fbfbab610989d47532c8fcb09de08b9ae219777eb1e67070b353160f"
         }
     ]
 },{
