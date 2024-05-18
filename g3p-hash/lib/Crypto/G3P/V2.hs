@@ -76,17 +76,20 @@ There are several themes worked into this design:
     A function that does not support precomputed HMAC keys will take twice
     as many SHA256 blocks to compute the PHKDF key-stretching phase, if the
     domain tag is 19 bytes or less. If the domain tag is 20-83 bytes long,
-    it would take 1.66x as many blocks, asymptotically very slowly decaying
+    it would take 1.66x as many blocks, asymptotically decaying very slowly
     to 1x every 64 bytes of domain tag thereafter.
 
-    A function that does not support streaming and backtracking cannot
-    possibly be always forgetting during the bcrypt phase, and would require
-    the generation and storage of nearly 400 kilobytes of data assuming
-    the recommended 4000 rounds. With streaming and backtracking, the
-    entire bcrypt key-stretching computation can be carried out in just over
-    4 kilobytes of memory. Not to mention that if your implementaion supports
-    streaming and backtracking, you aren't that far away from also supporting
-    precomputed HMAC keys.
+    An implementation that does not support streaming and backtracking cannot
+    possibly be /Always Forgetting/ during bcrypt key-stretching. The most
+    straightforward such implementation, which is still much more complicated
+    than a secure implementation that uses backtracking, would generate
+    and store nearly 400 kilobytes of data, assuming the recommended 4000
+    bcrypt rounds. About a third of that 400 KB would be strictly required.
+
+    With streaming and backtracking, the entire bcrypt key-stretching
+    computation can be carried out in just over 4 kilobytes of memory. Not to
+    mention that if your implementation supports streaming and backtracking,
+    you aren't that far away from also supporting precomputed HMAC keys.
 
 7.  From the viewpoint of an academic cryptographer, morally speaking, this
     design is literally a PBKDF2, an HKDF, and a bcrypt all at the same time,
@@ -175,10 +178,6 @@ import qualified Data.Vector as V
 import           Network.ByteOrder (word32, bytestring64)
 
 import           Crypto.Encoding.PHKDF
-                    ( add64WhileLt
-                    , takeBs
-                    , nullBuffer
-                    )
 import           Crypto.Encoding.SHA3.TupleHash
 import           Crypto.PHKDF.HMAC
 import           Crypto.PHKDF
@@ -226,7 +225,7 @@ data G3PSalt = G3PSalt
     --
     --   This is typically duplicated as the 'g3pSeedInputs_bcryptLongTag'
     --   parameter, which provides a very large number of cryptoacoustic
-    --   repetitions. If this step is not taken, most or all of this parameter
+    --   repetitions. If this step is not taken, then this parameter
     --   can be discarded after the first call to HMAC is complete, making
     --   it essentially horn-loaded which would be a bit of an anomaly for
     --   this input block.
@@ -251,9 +250,10 @@ data G3PSalt = G3PSalt
     --   would be a logical candidate input location to consider.
     --
     --   If your deployment uses a random salt per account, this is an ideal
-    --   location in which to place a copy of that salt.
+    --   location in which to place a copy of that salt. This is also a
+    --   reasonable location for salts derived from hashed usernames.
     --
-    --   If your deployment uses a login name as the username salt, by
+    --   If your deployment uses a plain login name as the username salt, by
     --   including it here your deployment would then require that anybody
     --   who can crack the password must know the login name.
     --
@@ -640,8 +640,11 @@ data G3PSeedInputs = G3PSeedInputs
 --   any important data has been fully committed to and isn't sitting around
 --   inside the sprout's SHA256 context buffer. This can be done by including
 --   at least 63 bytes of non-committing data anywhere you need a safe
---   partial evaluation point, thus the inclusion of @myLongTag@ in
---   the storage role vector.
+--   partial evaluation point.
+--
+--   Thus the inclusion of @myLongTag@ in the storage role vector ensures that
+--   the original seed, the @"disk"@, and the @"cloud.my.domain.example"@
+--   strings can be fully committed to while waiting for the disk key.
 --
 --   Another possibility is to use filler padding to control the context
 --   buffer position; I suggest using 32-95 or more bytes, as this ensures
