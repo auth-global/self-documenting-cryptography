@@ -2,13 +2,13 @@
 
 {- |
 
-The [Global Password Prehash Protocol (G3P)](https://github.com/auth-global/self-documenting-cryptography/blob/prerelease/design-documents/g3p.md)
+The [Global Password Prehash Protocol (G3P)](https://github.com/auth-global/self-documenting-cryptography/)
 is a slow, attribution-armored password hash and key derivation function. Its
 intented purpose is to ensure the delivery of plaintext salts from deployed
 authentication databases to password crackers in order to support
 [self-documenting deployments](https://www.cut-the-knot.org/Curriculum/Algebra/SelfDescriptive.shtml)
 whose password hashes are /traceable/ or /useless/ after they have been /stolen/.
-This secondary security goal seeks to use [/cryptoacoustics/](https://github.com/auth-global/self-documenting-cryptography/)
+This secondary security goal seeks to use /cryptoacoustics/
 to provide [/embedded attributions/](https://joeyh.name/blog/entry/attribution_armored_code/)
 that are as difficult as possible for an adversarial implementation to remove.
 
@@ -332,9 +332,9 @@ data G3PInputs = G3PInputs
   --   combined length of the username, password, and long tag is
   --   less than about 8 kilobytes.
   --
-  --   Using a deployment-identifying seguid and domain tags makes
-  --   it perfectly safe to put normalized usernames here, as then
-  --   this salt would then only need to be unique within that deployment.
+  --   Using deployment-identifying seguids and domain tags makes it
+  --   perfectly safe to put normalized plaintext login names here, as then
+  --   this salt would then only need to be unique within a deployment.
   --
   --   This approach comes with the cost that you will have to reliably
   --   perform username normalization everywhere this hash function is
@@ -387,6 +387,20 @@ data G3PInputs = G3PInputs
   --   a secret key. While such a simple approach might not be perfect, it
   --   would likely go a long way towards mitigation.
   --
+  --   Moreover, while plaintext usernames are better than running a public
+  --   salt lookup service that doesn't attempt to mitigate account-existence
+  --   attacks, plaintext usernames have the potential of becoming a much more
+  --   obviously interesting reidentification hook if/when the password
+  --   database is leaked or otherwise compromised.
+  --
+  --   Thus handing out random salts using a public-facing service that is
+  --   capable of generating convincing, consistent nonsense for nonexistant
+  --   accounts seems better than plaintext usernames, especially if one is
+  --   operating a sufficiently sensitive identity service and/or can justify
+  --   the additional ongoing complexity and sporadic ongoing IT labor expense
+  --   of managing and handing out random salts without inadvertently providing
+  --   an account-existence oracle available to the general public 24/7.
+  --
   --   In a few specialized cases it might be possible to hide a random salt
   --   from members of the general public by requiring pre-authentication
   --   before the password can even be attempted. However, this cannot
@@ -415,8 +429,8 @@ data G3PInputs = G3PInputs
   -- ^ constant time on 0-293 bytes, or if any of the other conditions are met.
   , g3pInputs_credentials :: !(Vector ByteString)
   -- ^ constant time on 0-282 encoded bytes. This includes a variable-length
-  -- field that encodes the bit length of each string; this field itself
-  -- requires two or more bytes per string.
+  --   field that encodes the bit length of each string; this field itself
+  --   requires two or more bytes per string.
   } deriving (Eq)
 
 data G3PSeedInputs = G3PSeedInputs
