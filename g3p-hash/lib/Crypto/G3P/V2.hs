@@ -262,8 +262,9 @@ data G3PSalt = G3PSalt
     --   from this parameter.
   , g3pSalt_domainTag :: !ByteString
     -- ^ plaintext tag with one repetition per PHKDF round. 0-19 bytes are
-    --   free, 20-83 bytes cost a additional sha256 block /per PHKDF round/,
-    --   with every 64 bytes thereafter incurring a similar cost.
+    --   free, 20-83 bytes cost five additional sha256 blocks plus one block
+    --   /per PHKDF round/, with every 64 bytes thereafter incurring a similar
+    --   cost.
     --
     --   In the case of long domain tags, it is strategically advantageous
     --   to ensure that the first 32 bytes are highly actionable, as these
@@ -271,13 +272,16 @@ data G3PSalt = G3PSalt
     --
     --   This parameter provides [domain separation](https://csrc.nist.gov/glossary/term/domain_separation).
     --   A suggested value is a ICANN domain name controlled by the deployment.
+    --
     --   The name is also a bit of an homage to the "realm" parameter of HTTP
-    --   basic authentication, which in part inspired it.
+    --   basic authentication, which in part inspired the domain tag by
+    --   inspiring the question "What would the realm parameter do if it did
+    --   something useful?"
   , g3pSalt_phkdfRounds :: !Word32
     -- ^ How expensive will the PHKDF component be? An optimal implementation
     --   computes exactly two SHA256 blocks per round if the domain tag is
     --   19 bytes or less, plus one block per round for every 64 characters
-    --   over 19.
+    --   over 19, rounded up.
     --
     --   I recommend 20,000 rounds or so. You might consider adjusting that
     --   recommendation downward in the case of domain tags that exceed 19
@@ -387,11 +391,16 @@ data G3PInputs = G3PInputs
   --   a secret key. While such a simple approach might not be perfect, it
   --   would likely go a long way towards mitigation.
   --
-  --   Moreover, while plaintext usernames are better than running a public
-  --   salt lookup service that doesn't attempt to mitigate account-existence
-  --   attacks, plaintext usernames have the potential of becoming a much more
-  --   obviously interesting reidentification hook if/when the password
-  --   database is leaked or otherwise compromised.
+  --   Using plaintext (or hashed) usernames seems decidedly better than
+  --   running a public salt lookup service that doesn't attempt to mitigate
+  --   account-existence attacks, which itself can be a very juicy
+  --   reidentification hook.
+  --
+  --   A random salt service that is capable of handing out convincing,
+  --   consistent nonsense might still be capable of being some kind of weird,
+  --   exotic reidentification hook, but plaintext usernames have the potential
+  --   of becoming a much more obviously interesting reidentification hook
+  --   if/when the password database is leaked or otherwise compromised.
   --
   --   Thus handing out random salts using a public-facing service that is
   --   capable of generating convincing, consistent nonsense for nonexistant
@@ -408,19 +417,30 @@ data G3PInputs = G3PInputs
   --   solutions to the problem of key management, and key management is
   --   the fundamental problem behind authentication.
   --
-  --   One can also supplement any salt applied here with an oblivious
-  --   pseudorandom function (OPRF) in your authentication flow, especially if
-  --   password-authenticated key agreement (PAKE) is used. Through the magic
-  --   of multiparty computation, it's possible to apply a salt that only the
-  --   server knows to a password attempt that only the client knowns. However,
-  --   OPRF cannot be directly integrated into the G3P, though the G3P should
-  --   be an excellent choice for a key derivation function to prepare a
-  --   password for OPRF.
+  --   One might alsos supplement or replace any salt applied here with an
+  --   oblivious pseudorandom function (OPRF) in your authentication flow,
+  --   especially if password-authenticated key agreement (PAKE) is used.
   --
-  --   I see this choice of plain usernames versus random salts as a fairly
-  --   fundamental tradeoff in the design of G3P deployments. I took the time
-  --   to ensure that both are possible. Either can be executed poorly,
-  --   and either can be executed well.
+  --   Through the magic of multiparty computation, it's possible to apply a
+  --   salt that only the server knows to a password attempt that only the
+  --   client knowns. However, OPRF cannot be directly integrated into the G3P,
+  --   though the G3P should be an excellent choice for a key derivation
+  --   function to prepare a password for OPRF.
+  --
+  --   I see this choice of plain usernames versus random salts or possibly
+  --   even none at all as a fairly fundamental tradeoff in the design of G3P
+  --   deployments. I took the time to ensure that all are possible. Any can
+  --   be executed poorly, and any can be executed well.
+  --
+  --   In my estimation, of these three approaches that I've started to
+  --   sketch, the hardest to mess up badly is to use the G3P to derive
+  --   a salt from plaintext login names, and then include that salt here
+  --   and the 'g3pSalt_contextTags' parameters for the actual password
+  --   attempt.
+  --
+  --   The other approaches do seem to offer potentially worthwhile rewards,
+  --   but they also create additional attack surfaces that specific
+  --   deployments could make vulnerable.
   --
   --   This decision has significant strategic consequences. I don't think
   --   there exists a one-size-fits-all solution, and there are quite a few
@@ -465,7 +485,7 @@ data G3PSeedInputs = G3PSeedInputs
     --   Also be aware that nobody should trust this parameter with arbitrary,
     --   potentially hostile input that is selected after all of the other
     --   inputs to the bcrypt computation are known. There are, however,
-    --   a large number of ways to avoid any potential issues, including:
+    --   a large number of ways to avoid any potential issue, including:
     --
     --   1.  Ensuring that this input is fully commited to before looking
     --       at all of the other input parameters /by convention/, which is
@@ -476,7 +496,8 @@ data G3PSeedInputs = G3PSeedInputs
     --       entirety of its contents in the derivation of at least one other
     --       input parameter. Note that duplicating 'g3pSalt_longTag' is
     --       sufficient to meet this requirement, as is duplicating
-    --       any other 'G3PSalt' parameter.
+    --       any other 'G3PSalt' parameter. This is highly recommended as it
+    --       ensures that varying this parameter is expensive as possible.
     --
     --   3.  Ensure that this input is 4287 bytes or less. Local HMAC
     --       computations ensure at least this many bytes are automatically
@@ -518,6 +539,19 @@ data G3PSeedInputs = G3PSeedInputs
     --   The shortest plausible attack string would seem to need to be as long
     --   as the truncation limit, which is north of 16 megabytes if you specify
     --   the suggested 4000 rounds.
+    --
+    --   Here, the attack model of concern is preventing any external input
+    --   from affecting the final bcrypt state in any way that's better than
+    --   a multiplicity of fair coin flips.
+    --
+    --   Failing to fully commit to the bcrypt long tag up-front potentially
+    --   allows external input to tweak the final result without redoing
+    --   the entirety of the key-stretching computation, even if the desired
+    --   fairness property is ensured.
+    --
+    --   This final bcrypt state is then consumed as part of an HMAC message.
+    --   This outer HMAC provides the next line of defense against this type of
+    --   attack. This line of defense pretends this outer HMAC doesn't exist.
   , g3pSeedInputs_bcryptContextTags :: !(Vector ByteString)
     -- ^ Also used to derive super round keys for bcrypt.  0-63 encoded
     --   bytes are free, meaning that 60 bytes impose zero incremental cost
@@ -560,8 +594,8 @@ data G3PSeedInputs = G3PSeedInputs
     -- ^ Used to derive the keys for a super round in bcrypt-xs-ctr mode.
     --   Duplicating the 'g3pSalt_domainTag' is a good default choice.
     --
-    --   0-19 bytes are free. 20-83 bytes and 64 bytes thereafter impose
-    --   a cost of two SHA-256 blocks per bcrypt superround.
+    --   0-19 bytes are free. 20-83 bytes and every 64 bytes thereafter
+    --   impose a cost of two SHA-256 blocks per bcrypt superround.
   , g3pSeedInputs_bcryptRounds :: !Word32
     -- ^ How expensive will the bcrypt component be? 4000 rounds recommended,
     --   give or take a factor of 2 or so. Each bcrypt round is approximately
