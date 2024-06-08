@@ -221,10 +221,12 @@ module Crypto.PHKDF
   , phkdfCtx_finalize
   , phkdfCtx_finalizeHmac
   , phkdfCtx_toHmacCtx
+  , phkdfCtx_toHmacKeyPrefixed
   , phkdfCtx_toStream
   , phkdfCtx_toGen
   , phkdfCtx_byteCount
   , phkdfCtx_endPaddingLength
+  , phkdfCtx_blockPaddingLength
 {--
   , PhkdfSlowCtx()
   , phkdfSlowCtx_extract
@@ -286,7 +288,7 @@ phkdfCtx_initLike :: HmacKeyLike -> PhkdfCtx
 phkdfCtx_initLike key =
   PhkdfCtx {
     phkdfCtx_byteCount = hmacKeyLike_byteCount key,
-    phkdfCtx_state   = hmacKeyLike_ipadCtx key,
+    phkdfCtx_state = hmacKeyLike_ipadCtx key,
     phkdfCtx_hmacKeyLike = key
   }
 
@@ -305,14 +307,26 @@ phkdfCtx_initPrefixed str key = PhkdfCtx
     , phkdfCtx_hmacKeyLike = hmacKeyLike_initPrefixed key
     }
 
+-- | Retrieve the HmacKeyPlain that the phkdfCtx was originally
+--   initialized with, if possible
+
 phkdfCtx_hmacKeyPlain :: PhkdfCtx -> Maybe HmacKeyPlain
 phkdfCtx_hmacKeyPlain = hmacKeyLike_toPlain . phkdfCtx_hmacKeyLike
+
+-- | Retrieve the HmacKeyHashed that the phkdfCtx was originally
+--   initialized with, if possible
 
 phkdfCtx_hmacKeyHashed :: PhkdfCtx -> Maybe HmacKeyHashed
 phkdfCtx_hmacKeyHashed = hmacKeyLike_toHashed . phkdfCtx_hmacKeyLike
 
+-- | Retrieve the HmacKeyPrefixed that the phkdfCtx was originally
+--   initialized with.
+
 phkdfCtx_hmacKeyPrefixed  :: PhkdfCtx -> HmacKeyPrefixed
 phkdfCtx_hmacKeyPrefixed = hmacKeyLike_toPrefixed . phkdfCtx_hmacKeyLike
+
+-- | Retrieve the HmacKey that the phkdfCtx was originally
+--   initialized with, if possible.
 
 phkdfCtx_hmacKey :: PhkdfCtx -> Maybe HmacKey
 phkdfCtx_hmacKey = hmacKeyLike_toKey . phkdfCtx_hmacKeyLike
@@ -330,6 +344,7 @@ phkdfCtx_toResetHmacCtx :: PhkdfCtx -> HmacCtx
 phkdfCtx_toResetHmacCtx = hmacKeyLike_run . phkdfCtx_hmacKeyLike
 
 -- FIXME? what should happen when the SHA256 counters overflow?
+--        (As SHA-256 can handle 2.3e6 TB, this isn't a pressing issue.)
 
 -- | append a single string onto the end of @phkdfStream@'s list of
 --   arguments.
@@ -375,6 +390,31 @@ phkdfCtx_toHmacCtx ctx =
     hmacCtx_ipadCtx = phkdfCtx_state ctx
   }
 
+-- | Turn a 'PhkdfCtx' into a 'HmacKeyPrefixed' by adding a null byte followed
+--   by 0-63 bytes as needed to get to a SHA256 block boundary
+
+phkdfCtx_toHmacKeyPrefixed
+  :: (Int -> ByteString)
+  -> PhkdfCtx
+  -> HmacKeyPrefixed
+phkdfCtx_toHmacKeyPrefixed genFillerPad ctx =
+  HmacKeyPrefixed
+  { hmacKeyPrefixed_blockCount = phkdfCtx_byteCount ctx' `div` 64
+  , hmacKeyPrefixed_ipad = hmacKeyPadding_unsafeFromCtx ipadCtx'
+  , hmacKeyPrefixed_opad = hmacKeyLike_opad (phkdfCtx_hmacKeyLike ctx)
+  }
+  where
+    blockPadLen = phkdfCtx_blockPaddingLength ctx
+
+    blockPadding = genFillerPad blockPadLen
+
+    ctx' = phkdfCtx_unsafeFeed ["\x00",blockPadding] ctx
+
+    paddingIsValid = phkdfCtx_byteCount ctx' `mod` 64 == 0
+                  && B.length blockPadding == blockPadLen
+
+    ipadCtx' = assert paddingIsValid $ phkdfCtx_state ctx'
+
 -- | "improperly" close out a 'PhkdfCtx' as if it were a call to @hmac@ instead
 --   of @phkdfStream@, though with a TupleHash message encoding.
 
@@ -388,10 +428,18 @@ phkdfCtx_toStream genFillerPad counter0 tag ctx =
   phkdfCtx_toGen genFillerPad counter0 tag ctx &
   phkdfGen_toStream
 
+-- | How long would the end padding be if the PhkdfCtx was finalized?
 
 phkdfCtx_endPaddingLength :: PhkdfCtx -> Int
 phkdfCtx_endPaddingLength ctx =
   fromIntegral ((31 - phkdfCtx_byteCount ctx) .&. 63)
+
+-- | How long would the block padding be if 'phkdfCtx_toHmacKeyPrefixed' is
+--   called?
+
+phkdfCtx_blockPaddingLength :: PhkdfCtx -> Int
+phkdfCtx_blockPaddingLength ctx =
+  fromIntegral ((63 - phkdfCtx_byteCount ctx) .&. 63)
 
 phkdfCtx_toGen :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> PhkdfGen
 phkdfCtx_toGen genFillerPad counter0 tag ctx =

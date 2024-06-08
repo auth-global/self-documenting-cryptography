@@ -4,10 +4,9 @@
 
 An alternate implementation of HMAC in terms of cryptohash-sha256, because
 the HMAC implementation provided there doesn't support precomputed keys or
-streaming inputs.  TODO: prepare a patch for cryptohash-sha256.
+streaming inputs or backtracking. TODO: prepare a patch for cryptohash-sha256.
 
 -}
-
 
 module Crypto.PHKDF.HMAC
   ( hmac
@@ -51,6 +50,7 @@ module Crypto.PHKDF.HMAC
   , hmacCtx_updates, hmacCtx_feeds
   , hmacCtx_finalize
   , hmacCtx_finalizeBits
+--  , hmacCtx_toHmacKeyPrefixed
   ) where
 
 import qualified Crypto.Hash.SHA256 as SHA256
@@ -63,7 +63,6 @@ import           Data.Word(Word64)
 
 import           Crypto.PHKDF.HMAC.Subtle
 import           Crypto.Encoding.PHKDF(takeBs', dropBs)
-
 
 hmacKey :: HmacKeyPlain -> HmacKey
 hmacKey key = HmacKey_Plain key (hmacKeyHashed key)
@@ -218,16 +217,30 @@ hmacKeyPrefixed_run key = HmacCtx
 hmacKeyPrefixed_byteCount :: HmacKeyPrefixed -> Word64
 hmacKeyPrefixed_byteCount key = 64 * hmacKeyPrefixed_blockCount key
 
--- | A simple interface to HMAC-SHA-256. Note that this function was written
+-- | A simple interface to HMAC-SHA256. Note that this function was written
 --   to make partial application an efficient way to compute the hmac of
 --   multiple messages with exactly the same key:
 --
 --   @
---     let hash = hmac "my-key"
---      in (hash "message 1", hash "message 2")
+--     let myHash = hmac "my-key"
+--      in (myHash "message 1", myHash "message 2", myHash "message 3")
 --   @
-
--- Written in the point-free style to help ensure the above claim is true
+--
+--   This typically saves two SHA-256 blocks per reused function application,
+--   saving four block computations among the two reused calls to @myHash@ in
+--   this example.
+--
+--   Initializing the @myHash@ closure requires computing two SHA-256 blocks.
+--   Applying the closure requires two further SHA-256 blocks per message,
+--   as every message is less than 56 bytes long. Thus the total computation
+--   requires 8 SHA-256 blocks with reuse, or 12 SHA-256 blocks without reuse.
+--
+--   Key reuse can save four or more block computations per application if
+--   the reused key is more than 64 bytes long.
+--
+--   This high-level interface is implemented using 'hmacCtx_finalize',
+--   'hmacKeyHashed_run', and 'hmacKeyHashed' composed in a point-free style
+--   in order to help ensure this claim is true.
 
 hmac :: HmacKeyPlain -> ByteString -> ByteString
 hmac = fmap hmacCtx_finalize . hmacCtx_initWith . hmacKey_hashed
@@ -273,3 +286,12 @@ hmacCtx_finalizeBits bits bitlen (HmacCtx ic oc) = outer
   where
     inner = SHA256.finalizeBits ic bits bitlen
     outer = SHA256.finalize (SHA256.update (hmacKeyPadding_runWith 1 oc) inner)
+
+-- Ugh, I don't have convenient access to cryptohash's internal counter. I
+-- should fix that. I also need to fix the fact that cryptohash-sha256 exposes
+-- endianess issues in a publicly-facing bytestrings, thus potentially creating
+-- less-than-immediately-obvious problems when serializing/deserializing SHA256
+-- states. Thus part of the reason why I started on newer SHA256 bindings for
+-- GHC 9.4.
+
+-- hmacCtx_toHmacKeyPrefixed :: HmacCtx -> (ByteString, HmacKeyPrefixed)
