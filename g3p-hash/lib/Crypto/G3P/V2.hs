@@ -648,7 +648,9 @@ data G3PSeedInputs = G3PSeedInputs
 --      myHeader = userRandomSalt <> myDomain
 --      myAuthKey = mySprout ["auth",userRandomSalt]
 --                      myLoginDomain myHeader myHeader (word32 "AUTH")
---      myDiskKey = mySprout ["disk",myStorageDomain,myLongTag,"key","7014dad47f0e7f7157d99b39a06553ce"]
+--      myDiskKey = mySprout
+--                     ["disk", myStorageDomain, myLongTag,
+--                      "key", "7014dad47f0e7f7157d99b39a06553ce"]
 --                     myStorageDomain myHeader myHeader (word32 "DISK")
 --   in [ myAuthKey myLongTag
 --      , myDiskKey "filename0.txt"
