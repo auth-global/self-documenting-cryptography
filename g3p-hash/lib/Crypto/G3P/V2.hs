@@ -25,7 +25,8 @@ There are several themes worked into this design:
 1.  Always Be enCoding: one of the plaintext salts or another should be mixed
     into the final state as often and frequently as possible. If an attacker
     chooses to deploy fully homomorphic encryption in a password cracker,
-    let there be no rest for the wicked.
+    let there be no rest for the wicked. Key stretching and plaintext salting
+    should be two sides of the same coin.
 
 2.  Always Be Forgetting: it should be possible to transfer the key stretching
     process to another semi-trusted computing element without providing that
