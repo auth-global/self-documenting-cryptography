@@ -64,21 +64,25 @@ results =
                  myHeader myHeader (word32 "AUTH") myLongTag
 
       -- Now, everything above would ideally happen on the client device, not
-      -- the server. However, the server needs to hash it further before
-      -- storage. To prevent precomputation attacks on an account, we
-      -- use a secret HMAC key + the main key-stretching component on the
-      -- server in this sketch of a hypothetical deployment.
+      -- the server. However, the server needs to hash the result further before
+      -- storage. To deter precomputation attacks on an account, this sketch
+      -- of a hypothetical deployment combines two somewhat crude but effective
+      -- strategies:
+      --
+      --   1. The auth servers perform the main key-stretching computation, and
+      --
+      --   2. The auth servers perform this computation behind a secret HMAC key
 
-      -- In many contexts in my estimation, argon2 is likely to be the most
-      -- easily accepted main key-stretching hash function. However without
+      -- In my estimation, in many contexts argon2 is likely to be the most
+      -- easily accepted hash function for key-stretching. However without
       -- modification argon2 doesn't have much cryptoacoustic potential,
       -- unlike yescrypt and Catena which appear to have some (probably
-      -- "accidental") cryptoacoustic potential.
+      -- largely "accidental") cryptoacoustic potential.
 
       -- I'd love to build a new hash function based closely on argon2, but
       -- this is delicate, time-consuming, and unpredictable work. For the
       -- time being, combining argon2 and g3pFoxtrot is almost certainly an
-      -- excellent choice for server-side hashing:
+      -- excellent choice for server-side hashing.
 
       mySecretSeguid = hmacKey "7db250698fe555f6832f33189f97e14ef3c1c2dcada5807119aa7676c24f3fac"
 
@@ -117,7 +121,6 @@ results =
         }
 
       myPrestoreHash = myFoxtrot ("P" <> myAuthPrehash) (word32 "PASS")
-
       (Right myArgon2Hash) = myArgon2 userRandomSalt (myPrestoreHash <> myLongTag)
       myStorageHash = myFoxtrot ("A" <> myArgon2Hash) (word32 "HASH")
 

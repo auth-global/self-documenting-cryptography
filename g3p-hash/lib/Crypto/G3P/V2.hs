@@ -44,7 +44,7 @@ There are several themes worked into this design:
 4.  Free Plaintext Salt by Countering Excess Freedom: the G3P starts from
     conventional keys as it's first and primary layer of security.  Excessively
     long keys are often considered cryptographically suspect, but very long
-    keys that likely result in totally unique hash functions is also exactly
+    keys that likely result in totally unique hash functions are also exactly
     what is needed in the information theoretic sense in order for there to
     plausibly be much if any cryptoacoustic advantage. Therefore, we use long
     plaintext salts with low entropy density throughout our hashing process,
