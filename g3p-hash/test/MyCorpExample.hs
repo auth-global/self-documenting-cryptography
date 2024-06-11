@@ -1,5 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+{- |
+
+This is intended to be a fairly realistic sketch of what a reasonable-quality
+deployment of the G3P might look like for authentication purposes.
+
+It starts to sketch how end-to-end encryption might work, but this is intended
+more to stimulate the imagination than be a complete sketch.
+
+-}
+
 -- TODO: get the JSON test harness capable of handling partial evaluation
 -- TODO: actually set up haddock example testing
 
@@ -109,7 +119,7 @@ results =
         , g3pFoxtrotSalt_contextTags = V.singleton userRandomSalt
         , g3pFoxtrotSalt_domainTag = myLoginDomain
         , g3pFoxtrotSalt_bcryptRounds = 383
-        }) input [userRandomSalt] [] ctr
+        }) input [] [] ctr
 
       myArgon2 = hash $ HashOptions
         { hashIterations = 3
@@ -150,7 +160,7 @@ results =
 auResults :: [Text]
 auResults =
   [ "3759cc63959878c79e9077f7c8dc401cad1700e03bab7ca52ef2982553c37197"
-  , "daae3f4695cf91a4a75aa9389eda00ff10396db5790fa1d4a724801773fd6d5a"
+  , "e8c26138add0f16e49ad1e2b55ff333eda42fa7330969146f55ac48a49f7166e"
   , "d0a3b6c432b6b612fb82a60554fa3fa906e8a4cc324c6f1de38e52d8eec254cf"
   , "c2fb84c71dbe52280bd0d481c770e4e476a5e0daeeddc3e9eee00423bef9a7e4"
   ]
