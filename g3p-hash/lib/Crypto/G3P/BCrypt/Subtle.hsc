@@ -6,10 +6,11 @@ Bcrypt with an excessive amount of freedom and salt, appropriate for
 our excessively salty era. This module exports bindings that are
 potentially cryptographically unsafe to lower-level functions written in C.
 
-Bcrypt's state machine exhibits a beautiful grouplike structure. Blowfish's
-state machine is exactly 4168 bytes, and bcrypt's modification to blowfish's
-key expansion represents a /transition code/ that is also exactly 4168 bytes
-long.
+Bcrypt's state machine exhibits a beautiful grouplike structure known as a
+/quasigroup/, see [wikipedia](https://en.wikipedia.org/wiki/Quasigroup) or the
+[ncat wiki](https://ncatlab.org/nlab/show/quasigroup). Blowfish's state machine
+is exactly 4168 bytes, and bcrypt's modification to blowfish's key expansion
+represents a /transition code/ that is also exactly 4168 bytes long.
 
 Basically, each call to /Blowfish_expandstate/ encrypts the transition code
 with the Blowfish block cipher in Cipher Block Chaining (CBC) mode of operation.
@@ -24,16 +25,17 @@ codes, and output states. Given any two components of any one of these
 and transition codes.  One can also implement /Blowfish_reverseExpandstate/
 that computes input states from output states and transition codes, and
 /Blowfish_transitionCode/ that computes transition codes from input states
-and output states.
+and output states. Together they form the triple of functions needed to satisfy
+the universal-algebra-flavored definition of a quasigroup.
 
-This structure implies that no state or transition code is particularly
+This quasigroup implies that no state or transition code is particularly
 special, and that choosing a different transition code does not change the
 dynamical properties of the blowfish state machine /on average/.
 
 Of course, the molecules in a cup full of room-temperature water /on average/
 are moving much too slowly to ever become a gas, yet a cup full of water that
 is exposed to the open air will reliably evaporate over time. Similarly,
-this grouplike structure also implies that allowing unrestricted use of
+this quasigroup structure also implies that allowing unrestricted use of
 transition codes, as the 'bcryptXs' binding allows you to do, is horribly
 broken from a security perspective.
 

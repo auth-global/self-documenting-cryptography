@@ -12,6 +12,9 @@ more to stimulate the imagination than be a complete sketch.
 
 -- TODO: get the JSON test harness capable of handling partial evaluation
 -- TODO: actually set up haddock example testing
+-- TODO: include good examples of rehearsals
+--           G3Pb2 full dress rehearsal on password change
+--           G3Pb2 login tech rehearsal on login page load
 
 module MyCorpExample where
 
@@ -132,7 +135,11 @@ results =
 
       myPrestoreHash = myFoxtrot ("P" <> myAuthPrehash) (word32 "PASS")
       (Right myArgon2Hash) = myArgon2 userRandomSalt (myPrestoreHash <> myLongTag)
-      myStorageHash = myFoxtrot ("A" <> myArgon2Hash) (word32 "HASH")
+      myStoredHash = myFoxtrot ("A" <> myArgon2Hash) (word32 "HASH")
+
+      -- Now, myStoredHash is suitable to be stored in an auth database,
+      -- and subsequent authentication attempts can compare this hash against
+      -- the database.
 
       -- Then, if this server-side authentication flow is successful, the auth
       -- server returns a storage key for the account, allowing end-to-end
@@ -152,7 +159,7 @@ results =
                       "key","7014dad47f0e7f7157d99b39a06553ce"]
                      myStorageDomain myHeader myHeader (word32 "DISK")
    in [ myAuthPrehash
-      , myStorageHash
+      , myStoredHash
       , myDiskKey "filename0.txt"
       , myDiskKey "quarterly-report.pdf"
       ]
