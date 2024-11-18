@@ -76,7 +76,7 @@ cpu_to_be64(const uint64_t hll)
 #endif
 }
 
-const uint32_t hs_sha256_init[const SHA256_STATE_LEN] = {
+const uint32_t hs_sha256_init[SHA256_STATE_LEN] = {
   0x6a09e667,
   0xbb67ae85,
   0x3c6ef372,
@@ -87,10 +87,10 @@ const uint32_t hs_sha256_init[const SHA256_STATE_LEN] = {
   0x5be0cd19
 };
 
-const uint8_t hs_sha256_padding[const (SHA256_BLOCK_SIZE + 1)] = { 0x80, };
+const uint8_t hs_sha256_padding[SHA256_BLOCK_SIZE + 1] = { 0x80, };
 
 /* 232 times the cube root of the first 64 primes 2..311 */
-static const uint32_t k[const] = {
+static const uint32_t k[] = {
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
   0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
   0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
@@ -158,7 +158,9 @@ sha256_do_chunk_aligned(uint32_t state[const restrict SHA256_STATE_LEN], uint32_
 }
 
 static void
-sha256_do_chunk(uint32_t state[const restrict SHA256_STATE_LEN], const uint8_t buf[const restrict SHA256_BLOCK_SIZE])
+sha256_do_chunk
+(uint32_t state[const restrict SHA256_STATE_LEN],
+ const uint8_t buf[const restrict SHA256_BLOCK_SIZE])
 {
   uint32_t w[64]; /* only first 16 words are filled in */
   if (ptr_uint32_aligned(buf)) { /* aligned buf */
@@ -173,20 +175,20 @@ sha256_do_chunk(uint32_t state[const restrict SHA256_STATE_LEN], const uint8_t b
   explicit_bzero(&w, sizeof(w));
 }
 
-uint64_t hs_sha256_update
-(const uint32_t state[const restrict SHA256_STATE_LEN],
+uint64_t
+hs_sha256_update
+(const uint32_t state[const SHA256_STATE_LEN],
  uint64_t const count,
  const uint8_t *const buffer,
  const uint8_t *const data,
  size_t const datalen,
- uint32_t out[const restrict SHA256_STATE_LEN])
+ uint32_t out[const SHA256_STATE_LEN])
 {
   const size_t bufferLen = count & 0x3F;
   size_t newCount = count;
-  memcpy(out, state, sizeof(state));
-  if (  datalen < SHA256_BLOCK_SIZE &&
-       (datalen + bufferLen) < SHA256_BLOCK_SIZE  ) {
-    return newCount;
+  if (out != state) memcpy(out, state, sizeof(*state) * SHA256_STATE_LEN);
+  if ( (datalen + bufferLen) < SHA256_BLOCK_SIZE  ) {
+    return newCount + datalen;
   } else {
     size_t dataPos = 0;
     size_t dataLeft = datalen;
@@ -200,43 +202,44 @@ uint64_t hs_sha256_update
       newCount += dataPos;
     }
     while (dataLeft >= SHA256_BLOCK_SIZE) {
+      sha256_do_chunk(out, data + dataPos);
       dataPos += SHA256_BLOCK_SIZE;
       dataLeft -= SHA256_BLOCK_SIZE;
-      sha256_do_chunk(out, data + dataPos);
       newCount += SHA256_BLOCK_SIZE;
     }
     return newCount + dataLeft;
   }
 }
 
-void hs_sha256_update_ctx
-(const sha256_ctx *const restrict in,
+void
+hs_sha256_update_ctx
+(const sha256_ctx *const in,
  const uint8_t *const data,
  const size_t datalen,
- sha256_ctx  *const restrict out)
+ sha256_ctx  *const out)
 {
   const size_t bufferLen = in->count & 0x3F;
-  if ( datalen < SHA256_BLOCK_SIZE &&
-       (datalen + bufferLen) < SHA256_BLOCK_SIZE) {
+  if ( (datalen + bufferLen) < SHA256_BLOCK_SIZE) {
     const size_t pos = sizeof(sha256_ctx) + bufferLen;
-    memcpy(out, in, pos);
+    if (in != out) memcpy(out, in, pos);
     if (data != NULL && datalen > 0) {
-      memcpy(out + pos, data, datalen);
-      out->count += datalen;
+      memcpy(out->buffer + bufferLen, data, datalen);
+      out->count = in->count + datalen;
     }
   } else {
     const uint64_t newCounter =
-      hs_sha256_update(in->state, in->counter, in->buffer,
+      hs_sha256_update(in->state, in->count, in->buffer,
                        data, datalen, out->state);
     const size_t outLen = newCounter & 0x3F;
-    new->counter = newCounter;
+    out->count = newCounter;
     if (outLen > 0) memcpy(out->buffer, data + datalen - outLen, outLen);
   }
 }
 
-void hs_sha256_encode_state
-(const uint32_t in[const restrict SHA256_STATE_LEN],
- uint8_t out[const restrict SHA256_DIGEST_SIZE])
+void
+hs_sha256_encode_state
+(const uint32_t in[const SHA256_STATE_LEN],
+ uint8_t out[const SHA256_DIGEST_SIZE])
 {
 #if WORDS_BIGENDIAN
   memcpy(out, (uint8_t *)in, SHA256_DIGEST_SIZE);
@@ -255,9 +258,10 @@ void hs_sha256_encode_state
 #endif
 }
 
-void hs_sha256_decode_state
-(const uint8_t in[const restrict SHA256_DIGEST_SIZE],
- uint32_t out[const restrict SHA256_STATE_LEN])
+void
+hs_sha256_decode_state
+(const uint8_t in[const SHA256_DIGEST_SIZE],
+ uint32_t out[const SHA256_STATE_LEN])
 {
 #if WORDS_BIGENDIAN
   memcpy((uint8_t *)out, in, SHA256_DIGEST_SIZE);
@@ -267,11 +271,209 @@ void hs_sha256_decode_state
   } else {
     for (int i = 0; i < SHA256_DIGEST_SIZE; i += 4) {
       out [i >> 2]
-        = ((uint32_t)in[i  ]) << 24;
-        | ((uint32_t)in[i+1]) << 16;
-        | ((uint32_t)in[i+2]) <<  8;
+        = ((uint32_t)in[i  ]) << 24
+        | ((uint32_t)in[i+1]) << 16
+        | ((uint32_t)in[i+2]) <<  8
         | ((uint32_t)in[i+3]);
     }
   }
 #endif
+}
+
+// The unpinned ByteArray approach I'm taking to the FFI seems to
+// necessitate this kind of accessor functions.  It'd be nice
+// to simply use #{peek sha256_ctx, count} style accessors from
+// haskell, but I'm not sure that works with this approach.
+uint64_t
+hs_sha256_get_count
+(const sha256_ctx *const ctx)
+{
+  return ctx->count;
+}
+
+// Oof, this function should actually be const-polymorphic.  This function has
+// two valid types, with const pointers on both input and output, and without
+// const..  I'm using the I'm using without, as haskell's FFI ignores this,
+// and we won't be using these functions from C.
+
+// Not likely to matter much one way or the other in C... but for the sake
+// of the C compiler we definitely do not want to mutate const pointers
+// from Haskell...
+
+uint8_t *
+hs_sha256_get_buffer
+(sha256_ctx *const ctx)
+{
+  return ctx->buffer;
+}
+
+uint32_t *
+hs_sha256_get_state
+(sha256_ctx *const ctx)
+{
+  return ctx->state;
+}
+
+void
+hs_sha256_cons
+(const uint32_t state[const SHA256_STATE_LEN],
+ uint64_t const blockcount,
+ const uint8_t *const buffer,
+ size_t const bufferlen,
+ sha256_ctx *const out)
+{
+  if (out == NULL) return;
+  memcpy(out->state, state, sizeof(*state) * SHA256_STATE_LEN);
+  if (buffer != NULL) {
+    memcpy(out->buffer, buffer, bufferlen);
+    out->count = blockcount << 6 + bufferlen;
+  } else {
+    out->count = blockcount << 6;
+  }
+}
+
+void
+hs_sha256_init_ctx
+(sha256_ctx *const out)
+{
+  hs_sha256_cons(hs_sha256_init, 0, NULL, 0, out);
+}
+
+void
+hs_sha256_finalize
+(const uint32_t state[const SHA256_STATE_LEN],
+ uint64_t const count,
+ const uint8_t *const buffer,
+ const uint8_t *const data,
+ size_t const datalen,
+ uint8_t out[const SHA256_DIGEST_SIZE])
+{
+  uint8_t mybuffer[SHA256_BLOCK_SIZE] __attribute__ ((aligned (4)));
+  uint32_t mystate[SHA256_STATE_LEN];
+  uint64_t mycount;
+  size_t bufferLen = count & 0x3F;
+  size_t mybufferLen = 0;
+  if ( (bufferLen + datalen) < SHA256_BLOCK_SIZE) {
+    memcpy(mystate,state,sizeof(*state) * SHA256_STATE_LEN);
+    memcpy(mybuffer, buffer, bufferLen);
+    mybufferLen += bufferLen;
+    memcpy(mybuffer + bufferLen, data, datalen);
+    mybufferLen += datalen;
+    mycount = count + datalen;
+  } else {
+    mycount =
+      hs_sha256_update(state, count, buffer,
+                       data, datalen, mystate);
+    mybufferLen = mycount & 0x3F;
+    memcpy(mybuffer, data + (datalen - mybufferLen), mybufferLen);
+  }
+  if (mybufferLen < 56) {
+    memcpy(mybuffer + mybufferLen, hs_sha256_padding, 56 - mybufferLen);
+  } else {
+    memcpy(mybuffer + mybufferLen, hs_sha256_padding, 64 - mybufferLen);
+    sha256_do_chunk(mystate,mybuffer);
+    memset(mybuffer,0,56);
+  }
+
+  mybuffer[56] = (mycount >> 53) & 0xFF;
+  mybuffer[57] = (mycount >> 45) & 0xFF;
+  mybuffer[58] = (mycount >> 37) & 0xFF;
+  mybuffer[59] = (mycount >> 29) & 0xFF;
+  mybuffer[60] = (mycount >> 21) & 0xFF;
+  mybuffer[61] = (mycount >> 13) & 0xFF;
+  mybuffer[62] = (mycount >>  5) & 0xFF;
+  mybuffer[63] = (mycount <<  3) & 0xFF;
+
+  sha256_do_chunk(mystate, mybuffer);
+
+  hs_sha256_encode_state(mystate, out);
+
+  explicit_bzero(&mystate, sizeof(mystate));
+  explicit_bzero(&mybuffer, sizeof(mybuffer));
+}
+
+void
+hs_sha256_finalize_ctx
+(const sha256_ctx *const in,
+ const uint8_t *const data,
+ size_t const datalen,
+ uint8_t out[const SHA256_DIGEST_SIZE])
+{
+  hs_sha256_finalize(in->state, in->count, in->buffer, data, datalen, out);
+}
+
+void
+hs_sha256_finalize_ctx_bits
+(const sha256_ctx *const in,
+ const uint8_t *const bits,
+ uint64_t const bitlen,
+ uint8_t out[const SHA256_DIGEST_SIZE])
+{
+  hs_sha256_finalize_bits(in->state, in->count, in->buffer, bits, bitlen, out);
+}
+
+void
+hs_sha256_finalize_bits
+(const uint32_t state[const SHA256_STATE_LEN],
+ uint64_t const count,
+ const uint8_t *const buffer,
+ const uint8_t *const bits,
+ uint64_t const bitlen,
+ uint8_t out[const SHA256_DIGEST_SIZE])
+{
+  uint8_t mybuffer[SHA256_BLOCK_SIZE] __attribute__ ((aligned (4)));
+  uint32_t mystate[SHA256_STATE_LEN];
+  uint64_t mycount;
+  size_t bufferLen = count & 0x3F;
+  size_t mybufferLen = 0;
+
+  // number of bytes in the final bits, rounded down
+  uint64_t byteLen = bitlen >> 3;
+  if ( (bufferLen + byteLen) < SHA256_BLOCK_SIZE) {
+    memcpy(mystate,state,sizeof(*state) * SHA256_STATE_LEN);
+    memcpy(mybuffer, buffer, bufferLen);
+    mybufferLen += bufferLen;
+    memcpy(mybuffer + bufferLen, bits, byteLen);
+    mybufferLen += byteLen;
+    mycount = count + byteLen;
+  } else {
+    mycount =
+      hs_sha256_update(state, count, buffer,
+                       bits, byteLen, mystate);
+    mybufferLen = mycount & 0x3F;
+    memcpy(mybuffer, bits + (byteLen - mybufferLen), mybufferLen);
+  }
+
+  uint8_t bitsLeft = bitlen & 7;
+
+  // we need this conditional to avoid dereferencing past the end of "bits"
+  uint8_t lastByte = bitsLeft == 0 ? 0x80
+    : (bits[byteLen + 1] & (0xFF << (8 - bitsLeft))) | 1 << (7 - bitsLeft);
+
+  mybuffer[mybufferLen++] = lastByte;
+  if (mybufferLen <= 56) {
+    memset(mybuffer + mybufferLen, 0, 56 - mybufferLen);
+  } else {
+    memset(mybuffer + mybufferLen, 0, 64 - mybufferLen);
+    sha256_do_chunk(mystate,mybuffer);
+    memset(mybuffer,0,56);
+  }
+
+  uint64_t finalBitLen = mycount << 3 + bitsLeft ;
+
+  mybuffer[56] = (finalBitLen >> 56) & 0xFF;
+  mybuffer[57] = (finalBitLen >> 48) & 0xFF;
+  mybuffer[58] = (finalBitLen >> 40) & 0xFF;
+  mybuffer[59] = (finalBitLen >> 32) & 0xFF;
+  mybuffer[60] = (finalBitLen >> 24) & 0xFF;
+  mybuffer[61] = (finalBitLen >> 16) & 0xFF;
+  mybuffer[62] = (finalBitLen >>  8) & 0xFF;
+  mybuffer[63] = (finalBitLen      ) & 0xFF;
+
+  sha256_do_chunk(mystate, mybuffer);
+
+  hs_sha256_encode_state(mystate, out);
+
+  explicit_bzero(&mystate, sizeof(mystate));
+  explicit_bzero(&mybuffer, sizeof(mybuffer));
 }

@@ -1,0 +1,46 @@
+name:                sha256
+version:             0.1.0.0
+synopsis:  A modern binding to SHA256, HMAC, HKDF, and PBKDF2
+-- description:
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Vincent Hanquez, Herbert Valerio Riedel, Leon P Smith
+maintainer:          Auth Global
+copyright:           2006 Vincent Hanquez, 2016 Herbert Valerio Riedel, 2024 Auth Global
+category:            Graphics
+build-type:          Simple
+extra-source-files:  CHANGELOG.md
+cabal-version:       >=1.10
+
+library
+
+  exposed-modules:
+                     -- Crypto.Sha256
+                     Crypto.Sha256.Subtle
+                     Crypto.Sha256.Subtle.FFI
+                     -- Crypto.Sha256.Hmac
+                     -- Crypto.Sha256.Hmac.Subtle
+  build-depends:     base
+                   , bytestring
+		   , ghc-prim
+  hs-source-dirs:    lib
+  include-dirs:      csrc
+  default-language:  Haskell2010
+  install-includes:  csrc/hs_sha256.h
+  c-sources:         csrc/hs_sha256.c
+
+test-suite test
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    test
+  main-is:           Main.hs
+
+  -- other-modules: 
+
+  build-depends:     base
+                   , base16
+                   , bytestring
+		   , sha256
+                   , tasty
+                   , tasty-hunit
+  default-language:  Haskell2010
+
