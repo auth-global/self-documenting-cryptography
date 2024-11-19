@@ -17,8 +17,12 @@ library
   exposed-modules:
                      Crypto.Sha256
                      Crypto.Sha256.Subtle
-                     -- Crypto.Sha256.Hmac
-                     -- Crypto.Sha256.Hmac.Subtle
+                     Crypto.Sha256.Hmac
+                     Crypto.Sha256.Hmac.Subtle
+
+  other-modules:
+                     Crypto.Sha256.Hmac.Implementation
+
   build-depends:     base
                    , bytestring
 		   , ghc-prim

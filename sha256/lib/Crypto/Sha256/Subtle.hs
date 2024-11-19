@@ -74,8 +74,8 @@ sha256state_fromCtx (Sha256Ctx# ctx#) =
         (# st2, b #) = unsafeFreezeByteArray# a st1
      in (# st2, Sha256State# b #)
 
-sha256state_toCtx :: Word64 -> ByteString -> Sha256State -> Sha256Ctx
-sha256state_toCtx blocks bytes (Sha256State# p) =
+sha256state_runWith :: Word64 -> ByteString -> Sha256State -> Sha256Ctx
+sha256state_runWith blocks bytes (Sha256State# p) =
     unsafePerformIO . unsafeUseAsCStringLen bytes $ \(bp, bl) -> IO $ \st ->
       let (# st0, a #) = newByteArray# ctxLen# st
           (# st1, () #) = unIO (c_sha256_promote_to_ctx p blocks bp (fromIntegral bl) a) st0
@@ -176,3 +176,13 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"
     -> Word64
     -> CString
     -> IO ()
+
+{--
+-- I'll need this once I get around to implementing Eq instances for
+-- Sha256State and whatnot:
+
+foreign import capi unsafe "string.h memcmp"
+  c_memcmp :: ByteArray#
+           -> ByteArray#
+	   -> CSize -> CInt
+--}

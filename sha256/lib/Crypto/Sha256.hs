@@ -6,7 +6,7 @@ module Crypto.Sha256
   , sha256_init
   , sha256_update
   , sha256_feed
-  -- , sha256_updates
+  , sha256_updates
   , sha256_byteCount
   , sha256_blockCount
   , sha256_bufferLength
@@ -18,6 +18,7 @@ import Data.Bits((.&.), shiftR)
 import Data.ByteString(ByteString)
 import qualified Data.ByteString as B
 import Data.ByteString.Unsafe(unsafeUseAsCString, unsafeUseAsCStringLen)
+import Data.Foldable(foldl')
 import Data.Function((&))
 import Data.Word
 import Foreign.C
@@ -61,6 +62,8 @@ sha256_update ctx0@(Sha256Ctx# ctx) bs
             (# st'2, b #) = unsafeFreezeByteArray# a st'1
          in (# st'2, Sha256Ctx# b #)
 
+sha256_updates :: Foldable f => Sha256Ctx -> f ByteString -> Sha256Ctx
+sha256_updates = foldl' sha256_update 
 
 sha256_feed :: ByteString -> Sha256Ctx -> Sha256Ctx
 sha256_feed = flip sha256_update
