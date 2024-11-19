@@ -13,11 +13,17 @@ module Crypto.Sha256.Hmac.Subtle
   , hmacKeyLike_ipadCtx
   , hmacKeyLike_opad
   , hmacKeyLike_opadCtx
+  , hmacKeyLike_runIpadCtx
+  , hmacKeyLike_runOpadCtx
   , HmacKeyHashed(..)
   , hmacKeyHashed_ipadCtx
   , hmacKeyHashed_opadCtx
+  , hmacKeyHashed_runIpadCtx
+  , hmacKeyHashed_runOpadCtx
   , HmacKeyPrefixed(..)
   , hmacKeyPrefixed_opadCtx
+  , hmacKeyPrefixed_runIpadCtx
+  , hmacKeyPrefixed_runOpadCtx
   , HmacCtx(..)
   ) where
 
