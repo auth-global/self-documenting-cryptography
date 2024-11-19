@@ -15,3 +15,5 @@ type Sha256CtxPtr# = ByteArray#
 data Sha256State = Sha256State# { unSha256State# :: Sha256StatePtr# }
 
 data Sha256Ctx = Sha256Ctx# { unSha256Ctx# :: Sha256CtxPtr# }
+
+data Sha256MutCtx a = Sha256MutCtx# { unSha256MutCtx# :: Sha256MutCtxPtr# a }

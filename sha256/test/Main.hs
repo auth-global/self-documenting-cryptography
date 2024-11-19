@@ -6,7 +6,7 @@ import           Data.Function((&))
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import Crypto.Sha256.Subtle.FFI
+import Crypto.Sha256
 
 d :: ByteString -> ByteString
 d = B.decodeBase16Lenient
@@ -15,7 +15,7 @@ sha256 :: ByteString -> ByteString
 sha256 x =
   sha256_init &
   sha256_update x &
-  sha256_finalizeBits B.empty 0
+  sha256_finalize
 
 main = do
     defaultMain $ testGroup "sha256" 

@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 library
 
   exposed-modules:
-                     -- Crypto.Sha256
+                     Crypto.Sha256
                      Crypto.Sha256.Subtle
                      Crypto.Sha256.Subtle.FFI
                      -- Crypto.Sha256.Hmac
