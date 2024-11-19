@@ -14,7 +14,7 @@ d = B.decodeBase16Lenient
 sha256 :: ByteString -> ByteString
 sha256 x =
   sha256_init &
-  sha256_update x &
+  sha256_feed x &
   sha256_finalize
 
 main = do

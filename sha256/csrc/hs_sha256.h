@@ -33,6 +33,14 @@ hs_sha256_update_ctx
  sha256_ctx  *const out);
 
 void
+hs_sha256_promote_to_ctx
+(const uint32_t state[const SHA256_STATE_LEN],
+ uint64_t const blockcount,
+ const uint8_t *const data,
+ size_t const datalen,
+ sha256_ctx *const out);
+
+void
 hs_sha256_finalize
 (const uint32_t state[const SHA256_STATE_LEN],
  uint64_t const count,

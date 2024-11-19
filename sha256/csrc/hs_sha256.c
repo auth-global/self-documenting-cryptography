@@ -237,6 +237,20 @@ hs_sha256_update_ctx
 }
 
 void
+hs_sha256_promote_to_ctx
+(const uint32_t state[const SHA256_STATE_LEN],
+ uint64_t const blockcount,
+ const uint8_t *const data,
+ size_t const datalen,
+ sha256_ctx *const out)
+{
+  uint64_t const count = hs_sha256_update(state, blockcount << 6, NULL, data, datalen, out->state);
+  out->count = count;
+  size_t const bufferlen = count & 0x3F;
+  memcpy(out->buffer, data + (datalen - bufferlen), bufferlen);
+}
+
+void
 hs_sha256_encode_state
 (const uint32_t in[const SHA256_STATE_LEN],
  uint8_t out[const SHA256_DIGEST_SIZE])
