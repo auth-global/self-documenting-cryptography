@@ -7,6 +7,7 @@ import           Test.Tasty
 import           Test.Tasty.HUnit
 
 import Crypto.Sha256
+import qualified HMAC
 
 d :: ByteString -> ByteString
 d = B.decodeBase16Lenient
@@ -18,10 +19,13 @@ sha256 x =
   sha256_finalize
 
 main = do
-    defaultMain $ testGroup "sha256" 
-      [ testCase ("sha256-" ++ show n) (run x)
-      | (n,x) <- zip [1..] testVectors
-      ]
+    defaultMain $ testGroup "toplevel" [
+      testGroup "sha256" 
+        [ testCase ("sha256-" ++ show n) (run x)
+        | (n,x) <- zip [1..] testVectors
+        ],
+      testGroup "hmac" HMAC.tests
+     ]
   where
     run :: SHA256TestVector -> Assertion
     run x = B.encodeBase16 (sha256 (msg x)) @?= B.encodeBase16 (out x)
