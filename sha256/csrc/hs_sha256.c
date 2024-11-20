@@ -491,3 +491,59 @@ hs_sha256_finalize_bits
   explicit_bzero(&mystate, sizeof(mystate));
   explicit_bzero(&mybuffer, sizeof(mybuffer));
 }
+
+// memcmp that is supposed to run in constant time, i.e. time independent of
+// the content of the input
+int
+hs_sha256_const_memcmp
+( const uint8_t *const a,
+  const uint8_t *const b,
+  size_t const n )
+{
+  int d, out = 0;
+  size_t i = n;
+  while (i > 0) {
+    i--;
+    d = a[i] - b[i];
+    out = d == 0 ? out : d;
+  }
+  return out;
+}
+
+int
+hs_sha256_const_memcmp_uint32be
+(const uint32_t *const a,
+ const uint32_t *const b,
+ uint32_t const n )
+{
+  int d, out = 0;
+  uint32_t i = n;
+  while (i > 0) {
+    i--;
+    for (int j = 0; j < 32; j += 8 ) {
+      d = (a[i] >> j) & 0xFF - (b[i] >> j) & 0xFF;
+      out = d == 0 ? out : d;
+    }
+  }
+  return out;
+}
+
+// constant-ish time memcmp, could be better, but should be pretty good
+// doesn't handle nulls, must be passed a non-null argument!
+int
+hs_sha256_const_memcmp_ctx
+(const sha256_ctx *const a,
+ const sha256_ctx *const b )
+{
+  int d;
+  if (d = hs_sha256_const_memcmp_uint32be(a->state, b->state, SHA256_STATE_LEN)) return d;
+  int x = a->count & 0x3F;
+  int y = b->count & 0x3F;
+  int n = (x < y) ? x : y;
+  if (d = hs_sha256_const_memcmp(a->buffer, b->buffer, n)) return d;
+  if (d = x - y) return d;
+  // does this last comparison even matter in practice?
+  if (a->count == b->count) return 0;
+  if (a->count < b->count) return -1;
+  return 1;
+}

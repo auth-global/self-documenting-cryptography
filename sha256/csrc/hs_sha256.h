@@ -106,6 +106,23 @@ void
 hs_sha256_init_ctx
 (sha256_ctx *const out);
 
+int
+hs_sha256_const_memcmp
+( const uint8_t *const a,
+  const uint8_t *const b,
+  size_t const n );
+
+int
+hs_sha256_const_memcmp_ctx
+(const sha256_ctx *const a,
+ const sha256_ctx *const b);
+
+int
+hs_sha256_const_memcmp_uint32be
+(const uint32_t *const a,
+ const uint32_t *const b,
+ uint32_t const n );
+
 extern const uint32_t hs_sha256_init[SHA256_STATE_LEN];
 
 extern const uint8_t hs_sha256_padding[(SHA256_BLOCK_SIZE + 1)];

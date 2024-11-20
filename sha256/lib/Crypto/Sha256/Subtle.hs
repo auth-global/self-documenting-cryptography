@@ -24,14 +24,28 @@ type Sha256CtxPtr# = ByteArray#
 
 data Sha256State = Sha256State# { unSha256State# :: Sha256StatePtr# }
 
+instance Eq Sha256State where
+  x == y = compare x y == EQ
+
+instance Ord Sha256State where
+  compare (Sha256State# x) (Sha256State# y) =
+    compare (c_const_memcmp_uint32be x y 8) 0
+
 data Sha256Ctx = Sha256Ctx# { unSha256Ctx# :: Sha256CtxPtr# }
+
+instance Eq Sha256Ctx where
+  x == y = compare x y == EQ
+
+instance Ord Sha256Ctx where
+  compare (Sha256Ctx# x) (Sha256Ctx# y) =
+    compare (c_const_memcmp_ctx x y) 0
 
 data Sha256MutCtx a = Sha256MutCtx# { unSha256MutCtx# :: Sha256MutCtxPtr# a }
 
 sha256state_init :: Sha256State
 sha256state_init =
   unsafePerformIO . IO $ \st ->
-    let (Ptr addr) = c_sha256_init 
+    let (Ptr addr) = c_sha256_init
         (# st0, a #) = newByteArray# 32# st
         st1 = copyAddrToByteArray# addr a 0# 32# st0
         -- FIXME?  Review this to ensure that 32# is the correct input above
@@ -177,12 +191,22 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"
     -> CString
     -> IO ()
 
-{--
--- I'll need this once I get around to implementing Eq instances for
--- Sha256State and whatnot:
+foreign import capi unsafe "hs_sha256.h hs_sha256_const_memcmp"
+  c_const_memcmp
+    :: ByteArray#
+    -> ByteArray#
+    -> CSize
+    -> CInt
 
-foreign import capi unsafe "string.h memcmp"
-  c_memcmp :: ByteArray#
-           -> ByteArray#
-	   -> CSize -> CInt
---}
+foreign import capi unsafe "hs_sha256.h hs_sha256_const_memcmp_uint32be"
+  c_const_memcmp_uint32be
+    :: ByteArray#
+    -> ByteArray#
+    -> Word32
+    -> CInt
+
+foreign import capi unsafe "hs_sha256.h hs_sha256_const_memcmp_ctx"
+  c_const_memcmp_ctx
+    :: ByteArray#
+    -> ByteArray#
+    -> CInt
