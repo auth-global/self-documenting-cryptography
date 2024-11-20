@@ -2,11 +2,22 @@
 
 module Crypto.Sha256.Subtle where
 
+import           Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BL
+import           Data.ByteString.Unsafe(unsafeUseAsCString, unsafeUseAsCStringLen)
+
+import           Data.ByteString.Builder (byteString, shortByteString)
+import qualified Data.ByteString.Builder as BB
+import           Data.ByteString.Short.Internal (ShortByteString(..))
+import qualified Data.ByteString.Short as SB
+import           Data.ByteString.Builder.Extra (word64Host)
+
+-- import Data.Array.Byte
 import Data.Bits((.&.), shiftR)
 import Data.ByteString(ByteString)
 import Data.Word
 import qualified Data.ByteString as B
-import Data.ByteString.Unsafe(unsafeUseAsCString, unsafeUseAsCStringLen)
 import Foreign.C
 import Foreign.Ptr
 import GHC.Exts
@@ -14,33 +25,41 @@ import GHC.Prim(RealWorld)
 import GHC.IO
 import System.IO.Unsafe
 
-type Sha256MutStatePtr# = MutableByteArray#
+-- | this is cryptohash-sha256, an external library that was used to prototype
+--   PHKDF, provided the C implementation used in the initial version of this
+--   library, and whose Haskell bindings are now being used to debug this library:
 
-type Sha256StatePtr# = ByteArray#
+import qualified Crypto.Hash.SHA256 as SHA256
 
-type Sha256MutCtxPtr# = MutableByteArray#
+nullBuffer = B.replicate 64 0
 
-type Sha256CtxPtr# = ByteArray#
+type Sha256MutableState# = MutableByteArray#
 
-data Sha256State = Sha256State# { unSha256State# :: Sha256StatePtr# }
+type Sha256State# = ByteArray#
+
+type Sha256MutableCtx# = MutableByteArray#
+
+type Sha256Ctx# = ByteArray#
+
+data Sha256State = Sha256State { unSha256State :: Sha256State# }
 
 instance Eq Sha256State where
   x == y = compare x y == EQ
 
 instance Ord Sha256State where
-  compare (Sha256State# x) (Sha256State# y) =
+  compare (Sha256State x) (Sha256State y) =
     compare (c_const_memcmp_uint32be x y 8) 0
 
-data Sha256Ctx = Sha256Ctx# { unSha256Ctx# :: Sha256CtxPtr# }
+data Sha256Ctx = Sha256Ctx { unSha256Ctx :: Sha256Ctx#, auxSha256Ctx :: !SHA256.Ctx }
 
 instance Eq Sha256Ctx where
   x == y = compare x y == EQ
 
 instance Ord Sha256Ctx where
-  compare (Sha256Ctx# x) (Sha256Ctx# y) =
+  compare (Sha256Ctx x _) (Sha256Ctx y _) =
     compare (c_const_memcmp_ctx x y) 0
 
-data Sha256MutCtx a = Sha256MutCtx# { unSha256MutCtx# :: Sha256MutCtxPtr# a }
+data Sha256MutableCtx a = Sha256MutableCtx { unSha256MutableCtx :: Sha256MutableCtx# a }
 
 sha256state_init :: Sha256State
 sha256state_init =
@@ -52,7 +71,7 @@ sha256state_init =
         -- Problem is the documentation is ambiguous, and the source is magic.
         -- I'm assuming copyAddrToByteArray# works similarly as copyByteArray#.
         (# st2, b #) = unsafeFreezeByteArray# a st1
-     in (# st2, Sha256State# b #)
+     in (# st2, (Sha256State b) #)
 
 -- | Note that this function only processes as many 64-byte blocks as possible,
 --   then discards the remainder of the input.  Also note that this function does
@@ -60,12 +79,12 @@ sha256state_init =
 --   will have to be done externally.
 
 sha256state_feed :: ByteString -> Sha256State -> Sha256State
-sha256state_feed b (Sha256State# p) =
+sha256state_feed b (Sha256State p) =
   unsafePerformIO . unsafeUseAsCStringLen b $ \(bp, bl) -> IO $ \st ->
     let (# st0, a #) = newByteArray# 32# st
         (# st1, _ #) = unIO (c_sha256_update p 0 nullPtr bp (fromIntegral bl) a) st0
         (# st2, b #) = unsafeFreezeByteArray# a st1
-     in (# st2, Sha256State# b #)
+     in (# st2, Sha256State b #)
 
 -- | Cast a Sha256Ctx to a Sha256State, without (much, if any) copying.
 --   This has the disadvantage that the result will retain at least 8, and up to
@@ -74,29 +93,37 @@ sha256state_feed b (Sha256State# p) =
 --   supports freezing mutable contexts into immutable contexts without copying.
 
 sha256state_fromCtxInplace :: Sha256Ctx -> Sha256State
-sha256state_fromCtxInplace (Sha256Ctx# a) = Sha256State# a
+sha256state_fromCtxInplace (Sha256Ctx a _) = Sha256State a
 
--- | Cast a Sha256Ctx to a Sha256State, without (much, if any) copying.
---   This copies the first 32 bytes of the Sha256Ctx structure, so the result is always
---   as small as possible.
+-- | Cast a Sha256Ctx to a Sha256State. This copies the first 32 bytes of the
+--   Sha256Ctx structure, so the result is always as small as possible.
 
 sha256state_fromCtx :: Sha256Ctx -> Sha256State
-sha256state_fromCtx (Sha256Ctx# ctx#) =
+sha256state_fromCtx (Sha256Ctx ctx _) =
   unsafePerformIO . IO $ \st ->
     let (# st0, a #) = newByteArray# 32# st
-        st1 = copyByteArray# ctx# 0# a 0# 32# st0
+        st1 = copyByteArray# ctx 0# a 0# 32# st0
         (# st2, b #) = unsafeFreezeByteArray# a st1
-     in (# st2, Sha256State# b #)
+     in (# st2, Sha256State b #)
 
 sha256state_runWith :: Word64 -> ByteString -> Sha256State -> Sha256Ctx
-sha256state_runWith blocks bytes (Sha256State# p) =
+sha256state_runWith blocks bytes shast@(Sha256State p) =
     unsafePerformIO . unsafeUseAsCStringLen bytes $ \(bp, bl) -> IO $ \st ->
       let (# st0, a #) = newByteArray# ctxLen# st
           (# st1, () #) = unIO (c_sha256_promote_to_ctx p blocks bp (fromIntegral bl) a) st0
           (# st2, b #) = unsafeFreezeByteArray# a st1
-       in (# st2, Sha256Ctx# b #)
+       in (# st2, Sha256Ctx b aux #)
   where
     (I# ctxLen#) = 40 + B.length bytes .&. 0x3F
+    aux = SHA256.update (sha256state_initAux blocks shast) bytes 
+    
+sha256state_initAux :: Word64 -> Sha256State -> SHA256.Ctx
+sha256state_initAux blockCount (Sha256State state#) = SHA256.Ctx (run out)
+  where
+    run = BL.toStrict . BL.take (8 + 64 + 32) . BB.toLazyByteString
+    out = word64Host (64 * blockCount)
+       <> byteString nullBuffer
+       <> shortByteString (SBS state#)
 
 -- these calls must be labelled "unsafe", because the datastructures
 -- we will be passing in are unpinned... keep that in mind when selecting
@@ -115,69 +142,69 @@ foreign import ccall unsafe "hs_sha256.h &hs_sha256_init"
     c_sha256_init :: Ptr Word32
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_init_ctx"
-    c_sha256_init_ctx :: Sha256MutCtxPtr# RealWorld -> IO ()
+    c_sha256_init_ctx :: Sha256MutableCtx# RealWorld -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_promote_to_ctx"
   c_sha256_promote_to_ctx
-    :: Sha256StatePtr# -- ^ @state@, a pointer to an constant array of eight Word32
+    :: Sha256State# -- ^ @state@, a pointer to an constant array of eight Word32
     -> Word64 -- ^ @blockCount@, the number of blocks that a sha256 context has processed
     -> CString -- ^ pointer to the constant data to process
     -> CSize -- ^ length of the data to process
-    -> Sha256MutCtxPtr# RealWorld -- ^ output pointer
+    -> Sha256MutableCtx# RealWorld -- ^ output pointer
     -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_update"
   c_sha256_update
-    :: Sha256StatePtr# -- ^ @state@, a pointer to an constant array of eight Word32
+    :: Sha256State# -- ^ @state@, a pointer to an constant array of eight Word32
     -> Word64 -- ^ @count@, the number of bytes that a sha256 context has seen
     -> Ptr Word8 -- ^ @buffer@, a pointer to 0-63 constant bytes representing the unprocessed data seen by the context. The length is encoded by the least six significant bits of @count@.
     -> CString -- ^ pointer to the constant data to process
     -> CSize -- ^ length of the data to process
-    -> Sha256MutStatePtr# RealWorld -- ^ output pointer, may be same as input pointer
+    -> Sha256MutableState# RealWorld -- ^ output pointer, may be same as input pointer
     -> IO Word64 -- ^ the new @count@
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_update_ctx"
   c_sha256_update_ctx
-    :: Sha256CtxPtr# -- ^ @ctx@, a pointer to a constant sha256 context
+    :: Sha256Ctx# -- ^ @ctx@, a pointer to a constant sha256 context
     -> CString -- ^ pointer to the constant data to process
     -> CSize -- ^ length of the data to process
-    -> Sha256MutCtxPtr# RealWorld -- ^ output pointer
+    -> Sha256MutableCtx# RealWorld -- ^ output pointer
     -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_update_ctx"
   c_sha256_mutate_ctx
-    :: Sha256MutCtxPtr# RealWorld -- ^ @ctx@, a pointer to a constant sha256 context
+    :: Sha256MutableCtx# RealWorld -- ^ @ctx@, a pointer to a constant sha256 context
     -> CString -- ^ pointer to the constant data to process
     -> CSize -- ^ length of the data to process
-    -> Sha256MutCtxPtr# RealWorld -- ^ output pointer, can be same as the input context
+    -> Sha256MutableCtx# RealWorld -- ^ output pointer, can be same as the input context
     -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_encode_state"
   c_sha256_encode_state
-    :: Sha256StatePtr#
+    :: Sha256State#
     -> MutableByteArray# RealWorld
     -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_encode_state"
   c_sha256_encode_mutable_state
-    :: Sha256MutStatePtr# RealWorld
+    :: Sha256MutableState# RealWorld
     -> MutableByteArray# RealWorld
     -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_decode_state"
   c_sha256_decode_state
     :: ByteArray#
-    -> Sha256MutStatePtr# RealWorld
+    -> Sha256MutableState# RealWorld
     -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_get_count"
   c_sha256_get_count
-    :: Sha256StatePtr#
+    :: Sha256State#
     -> Word64
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"
   c_sha256_finalize_ctx_bits
-    :: Sha256CtxPtr#
+    :: Sha256Ctx#
     -> CString
     -> Word64
     -> CString
@@ -185,7 +212,7 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"
   c_sha256_finalize_mutable_ctx_bits
-    :: Sha256MutCtxPtr# RealWorld
+    :: Sha256MutableCtx# RealWorld
     -> CString
     -> Word64
     -> CString
@@ -205,8 +232,16 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_const_memcmp_uint32be"
     -> Word32
     -> CInt
 
+foreign import capi unsafe "hs_sha256.h hs_sha256_const_memcmp_uint32be"
+  c_const_memcmp_uint32be_BA_Ptr
+    :: ByteArray#
+    -> Ptr Word32
+    -> Word32
+    -> CInt
+
 foreign import capi unsafe "hs_sha256.h hs_sha256_const_memcmp_ctx"
   c_const_memcmp_ctx
     :: ByteArray#
     -> ByteArray#
     -> CInt
+
