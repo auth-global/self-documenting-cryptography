@@ -173,7 +173,7 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_decode_state"
 foreign import capi unsafe "hs_sha256.h hs_sha256_get_count"
   c_sha256_get_count
     :: Sha256StatePtr#
-    -> IO Word64
+    -> Word64
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"
   c_sha256_finalize_ctx_bits

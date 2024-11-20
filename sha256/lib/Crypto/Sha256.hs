@@ -27,6 +27,9 @@ import GHC.Prim(RealWorld)
 import GHC.IO
 import System.IO.Unsafe
 
+-- TODO: there are a number of magic literals scattered throughout that
+-- really ought to be a symbolic constant of some sort
+
 import Crypto.Sha256.Subtle
 
 hash :: ByteString -> ByteString
@@ -41,8 +44,7 @@ sha256_init =
      in (# st2, Sha256Ctx# b #)
 
 sha256_byteCount :: Sha256Ctx -> Word64
-sha256_byteCount (Sha256Ctx# ctx) =
-   unsafeDupablePerformIO (c_sha256_get_count ctx)
+sha256_byteCount (Sha256Ctx# ctx) = c_sha256_get_count ctx
 
 sha256_blockCount :: Sha256Ctx -> Word64
 sha256_blockCount ctx = sha256_byteCount ctx `shiftR` 6
@@ -54,7 +56,7 @@ sha256_update :: Sha256Ctx -> ByteString -> Sha256Ctx
 sha256_update ctx0@(Sha256Ctx# ctx) bs
   | B.null bs = ctx0
   | otherwise = unsafePerformIO $ do
-      count <- c_sha256_get_count ctx
+      let count = c_sha256_get_count ctx
       let (I# bufLen#) = 40 + fromIntegral ((count + fromIntegral (B.length bs)) .&. 0x3F)
       unsafeUseAsCStringLen bs $ \(bp,bl) -> IO $ \st ->
         let (# st'0, a #) = newByteArray# bufLen# st
@@ -63,7 +65,7 @@ sha256_update ctx0@(Sha256Ctx# ctx) bs
          in (# st'2, Sha256Ctx# b #)
 
 sha256_updates :: Foldable f => Sha256Ctx -> f ByteString -> Sha256Ctx
-sha256_updates = foldl' sha256_update 
+sha256_updates = foldl' sha256_update
 
 sha256_feed :: ByteString -> Sha256Ctx -> Sha256Ctx
 sha256_feed = flip sha256_update
@@ -80,4 +82,3 @@ sha256_finalizeBits bits bitlen0 (Sha256Ctx# ctx) =
           c_sha256_finalize_ctx_bits ctx bp bitlen rp
           return result
   where bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
-
