@@ -7,7 +7,7 @@ module Crypto.PHKDF.Primitives.Subtle
   ) where
 
 import           Prelude hiding (null)
-import qualified Crypto.Hash.SHA256 as SHA256
+import           Crypto.Sha256 as Sha256
 import           Crypto.PHKDF.HMAC (HmacKeyLike)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
@@ -29,11 +29,11 @@ import           Data.Word
 
 data PhkdfCtx = PhkdfCtx
   { phkdfCtx_byteLen :: !Word64
-  , phkdfCtx_state :: !SHA256.Ctx
+  , phkdfCtx_state :: !Sha256Ctx
   , phkdfCtx_hmacKeyLike :: !HmacKeyLike
   }
 
-data P = P !Word64 !SHA256.Ctx
+data P = P !Word64 !Sha256Ctx
 
 phkdfCtx_unsafeFeed :: Foldable f => f ByteString -> PhkdfCtx -> PhkdfCtx
 phkdfCtx_unsafeFeed strs ctx0 =
@@ -43,7 +43,7 @@ phkdfCtx_unsafeFeed strs ctx0 =
     phkdfCtx_state = state'
   }
   where
-    delta (P len ctx) str = P (len + (fromIntegral (B.length str))) (SHA256.update ctx str)
+    delta (P len ctx) str = P (len + (fromIntegral (B.length str))) (sha256_update ctx str)
 
     p0 = P (phkdfCtx_byteLen ctx0) (phkdfCtx_state ctx0)
 
@@ -65,5 +65,5 @@ data PhkdfGen = PhkdfGen
   , phkdfGen_extTag :: !ByteString
   , phkdfGen_counter :: !Word32
   , phkdfGen_state :: !ByteString
-  , phkdfGen_initCtx :: !(Maybe SHA256.Ctx)
+  , phkdfGen_initCtx :: !(Maybe Sha256Ctx)
   }

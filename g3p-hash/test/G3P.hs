@@ -11,6 +11,7 @@ import Data.Aeson.Key(Key)
 import qualified Data.Aeson.Key as K
 import Data.Aeson.KeyMap(KeyMap)
 import qualified Data.Aeson.KeyMap as KM
+import Data.Base16.Types
 import Data.ByteString(ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Base16 as B
@@ -194,7 +195,7 @@ parseJSONByteString = \case
     String txt -> pure (T.encodeUtf8 txt)
     Object obj | KM.size obj == 1 -> do
         txt <- obj .: "hex"
-        case B.decodeBase16 (T.encodeUtf8 txt) of
+        case B.decodeBase16Untyped (T.encodeUtf8 txt) of
           Left _ -> empty
           Right x -> pure x
     _ -> empty
@@ -209,7 +210,7 @@ parseJSONVectorByteString val =
 parseJSONHash :: Value -> Parser ByteString
 parseJSONHash = \case
     String txt ->
-        case B.decodeBase16 (T.encodeUtf8 txt) of
+        case B.decodeBase16Untyped (T.encodeUtf8 txt) of
             Left _ -> empty
             Right x -> pure x
     _ -> empty
@@ -256,7 +257,7 @@ compareAu name bs outStream
   | B.null bs = assertFailure ("\"" ++ name ++ "\":\"" ++ concatMap toHex (S.take 4 outStream) ++ "\"")
   | otherwise = B.encodeBase16 (takeBytes (B.length bs) outStream) @?= B.encodeBase16 bs
   where
-    toHex = T.unpack . B.encodeBase16
+    toHex = T.unpack . extractBase16 . B.encodeBase16
 
 -- FIXME? Allow computation of tweaks without recomputing seed
 

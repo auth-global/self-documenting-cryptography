@@ -43,4 +43,4 @@ newtype G3PTree = G3PTree
 
 newtype G3PKey = G3PKey
   { g3pKey_streamKey :: HmacKeyHashed
-  } deriving (Eq)
+  } -- deriving (Eq)

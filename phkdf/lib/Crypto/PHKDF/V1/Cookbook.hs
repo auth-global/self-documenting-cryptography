@@ -139,7 +139,7 @@ data PhkdfInputBlock = PhkdfInputBlock
     --   primary key-stretching component of a deployment, but if it is used
     --   this way, we recommend at least 250,000 rounds.  This can be adjusted
     --   downward in the case of domain tags longer than 19 bytes.
-  } deriving (Eq, Ord, Show)
+  } -- deriving (Eq, Ord, Show)
 
 -- | The username and password are grouped together because they are normally
 --   expected to be supplied by users or other observers of a deployment.
@@ -174,7 +174,7 @@ data PhkdfInputArgs = PhkdfInputArgs
   --   knowledge of the password.
   , phkdfInputArgs_password    :: !ByteString
   , phkdfInputArgs_credentials :: !(Vector ByteString)
-  } deriving (Eq, Ord, Show)
+  } -- deriving (Eq, Ord, Show)
 
 -- | These parameters are used to tweak the final output, without redoing any
 --   expensive key stretching.  A possible use case is including a high entropy
@@ -197,7 +197,7 @@ data PhkdfInputArgs = PhkdfInputArgs
 data PhkdfInputTweak = PhkdfInputTweak
   { phkdfInputTweak_role :: !(Vector ByteString)
   , phkdfInputTweak_echoTag  :: !ByteString
-  } deriving (Eq, Ord, Show)
+  } -- deriving (Eq, Ord, Show)
 
 -- | A plain-old-data explicit representation of the intermediate 'phkdfPass'
 --   computation after the 'PhkdfInputBlock' and 'PhkdfInputArgs' have been
@@ -214,7 +214,7 @@ data PhkdfSeed = PhkdfSeed
   , phkdfSeed_seguidKey :: !HmacKey
   , phkdfSeed_domainTag :: !ByteString
   , phkdfSeed_secret :: !ByteString
-  } deriving (Eq)
+  } -- deriving (Eq)
 
 -- | A non-tweakable, complete password prehash protocol
 

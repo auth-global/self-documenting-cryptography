@@ -263,7 +263,7 @@ import           Data.Stream (Stream(..))
 import qualified Data.Stream as Stream
 import           Network.ByteOrder (bytestring32)
 
-import qualified Crypto.Hash.SHA256 as SHA256
+import           Crypto.Sha256 as Sha256
 import           Crypto.PHKDF.HMAC
 import           Crypto.PHKDF.HMAC.Subtle
 import           Crypto.PHKDF.Subtle
@@ -303,7 +303,7 @@ phkdfCtx_initPrefixed :: ByteString -> HmacKeyPrefixed -> PhkdfCtx
 phkdfCtx_initPrefixed str key = PhkdfCtx
     { phkdfCtx_byteCount = hmacKeyPrefixed_byteCount key
                          + fromIntegral (B.length str)
-    , phkdfCtx_state = SHA256.update (hmacKeyPrefixed_ipadCtx key) str
+    , phkdfCtx_state = sha256_update (hmacKeyPrefixed_ipadCtx key) str
     , phkdfCtx_hmacKeyLike = hmacKeyLike_initPrefixed key
     }
 
@@ -399,8 +399,7 @@ phkdfCtx_toHmacKeyPrefixed
   -> HmacKeyPrefixed
 phkdfCtx_toHmacKeyPrefixed genFillerPad ctx =
   HmacKeyPrefixed
-  { hmacKeyPrefixed_blockCount = phkdfCtx_byteCount ctx' `div` 64
-  , hmacKeyPrefixed_ipad = hmacKeyPadding_unsafeFromCtx ipadCtx'
+  { hmacKeyPrefixed_ipadCtx = ipadCtx'
   , hmacKeyPrefixed_opad = hmacKeyLike_opad (phkdfCtx_hmacKeyLike ctx)
   }
   where
@@ -474,7 +473,7 @@ phkdfGen_initLike key initBytes = initGen
     -- Round down to the previous buffer boundary
     n = B.length initBytes .&. complement 63
     (blocks, state0) = B.splitAt n initBytes
-    ipad0 = SHA256.update (hmacKeyLike_ipadCtx key) blocks
+    ipad0 = sha256_update (hmacKeyLike_ipadCtx key) blocks
 
     initGen counter0 tag = PhkdfGen
       { phkdfGen_hmacKeyLike = key
@@ -511,7 +510,7 @@ phkdfGen_peek gen =
 phkdfGen_toHmacCtx :: PhkdfGen -> HmacCtx
 phkdfGen_toHmacCtx gen =
   (hmacKeyLike_run (phkdfGen_hmacKeyLike gen)) {
-     hmacCtx_ipadCtx = SHA256.update ipad (phkdfGen_state gen)
+     hmacCtx_ipadCtx = sha256_update ipad (phkdfGen_state gen)
     }
   where
     ipad =

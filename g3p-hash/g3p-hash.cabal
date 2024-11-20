@@ -49,12 +49,12 @@ test-suite test
 
   other-modules:     G3P
                      G3Pb2
-                     MyCorpExample
+--                     MyCorpExample
 
   build-depends:     base
                    , aeson >= 2
-                   , argon2
-                   , base16 < 1
+--                   , argon2
+                   , base16 >= 1
                    , bytestring
                    , containers
                    , g3p-hash

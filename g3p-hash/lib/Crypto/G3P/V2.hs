@@ -298,7 +298,7 @@ data G3PSalt = G3PSalt
     --   Thus if you are tuning this parameter via empirical timing tests,
     --   the direct linear relationship between this parameter and time is
     --   approximate, not exact, due to a this reasonably large offset.
-  } deriving (Eq)
+  } -- deriving (Eq)
 
 -- | These parameters are grouped together because they are hashed once
 --   near the beginning of the protocol and then are no longer needed, unless

@@ -342,13 +342,13 @@ data G3PSeed = G3PSeed
   , g3pSeed_seguidKey :: !HmacKey
   , g3pSeed_domainTag :: !ByteString
   , g3pSeed_secret :: !ByteString
-  } deriving (Eq)
+  } -- deriving (Eq)
 
 data G3PKey = G3PKey
   { g3pKey_secret :: !ByteString
   , g3pKey_secretKey :: HmacKey
   , g3pKey_domainTag :: !ByteString
-  } deriving (Eq)
+  } -- deriving (Eq)
 
 data G3PGen = G3PGen
   { g3pGen_secret :: !ByteString
