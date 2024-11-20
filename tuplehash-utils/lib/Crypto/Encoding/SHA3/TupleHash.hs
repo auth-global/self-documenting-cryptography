@@ -116,7 +116,7 @@ encodeString bytes
     byteLen = fromIntegral (B.length bytes) :: Word
 
 encodedByteLength :: ByteString -> Int
-encodedByteLength (B.length -> n) = lengthOfLeftEncode n + n
+encodedByteLength (B.length -> n) = lengthOfLeftEncodeFromBytes n + n
 
 encodedVectorByteLength :: Foldable f => f ByteString -> Int
 encodedVectorByteLength = foldl' (\a x -> a + encodedByteLength x) 0
