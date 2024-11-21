@@ -52,11 +52,11 @@ instance Ord HashString where
   compare (HashString xsbs@(SBS x)) (HashString ysbs@(SBS y)) =
       case compare (c_const_memcmp x y minlen) 0 of
         EQ -> compare xlen ylen
-	cmp -> cmp
+        cmp -> cmp
     where
       xlen = SB.length xsbs
       ylen = SB.length ysbs
-      minlen = fromIntegral (min xlen ylen) 
+      minlen = fromIntegral (min xlen ylen)
 
 hashString_toShort :: HashString -> ShortByteString
 hashString_toShort = unHashString
@@ -117,16 +117,15 @@ sha256_update ctx0@(Sha256Ctx ctx aux) bytes
         let (# st'0, a #) = newByteArray# bufLen# st
             (# st'1, _ #) = unIO (c_sha256_update_ctx ctx bp (fromIntegral bl) a) st'0
             (# st'2, b #) = unsafeFreezeByteArray# a st'1
-	    aux' = SHA256.update aux bytes
-	    ctx' = Sha256Ctx b aux'
+            aux' = SHA256.update aux bytes
+            ctx' = Sha256Ctx b aux'
          in if sha256ctx_cryptohash_ctx_eq ctx' aux'
-	    then (# st'2, Sha256Ctx b aux' #)
-            else error ("sha256_update contexts not equal:"
-	           ++ "\n ctx' st: " ++ map w2c (SB.unpack (sha256state_encode (sha256state_fromCtxInplace ctx')))
-		   
-		   ++ "\n       n: " ++ show (sha256_byteCount ctx')
-		   ++ "\n aux' st: " ++ map w2c (SB.unpack (sha256_cryptohash_ctx_encode aux'))
-		   ++ "\n  bytes: " ++ show bytes ++ "\n")
+            then (# st'2, ctx' #)
+            else error ("sha256_update output contexts not equal:"
+                   ++ "\n ctx' st: " ++ map w2c (SB.unpack (extractBase16 (SB.encodeBase16' (sha256state_encode (sha256state_fromCtx ctx')))))
+                   ++ "\n       n: " ++ show (sha256_byteCount ctx')
+                   ++ "\n aux' st: " ++ map w2c (SB.unpack (extractBase16 (SB.encodeBase16' (sha256_cryptohash_ctx_encode aux'))))
+                   ++ "\n  bytes: " ++ show bytes ++ "\n")
 sha256_updates :: Foldable f => Sha256Ctx -> f ByteString -> Sha256Ctx
 sha256_updates = foldl' sha256_update
 
@@ -140,15 +139,23 @@ sha256_finalize :: Sha256Ctx -> ByteString
 sha256_finalize = sha256_finalizeBits B.empty 0
 
 sha256_finalizeBits :: ByteString -> Word64 -> Sha256Ctx -> ByteString
-sha256_finalizeBits bits bitlen0 (Sha256Ctx ctx _) =
-    unsafePerformIO $ do
-      let result = B.replicate 32 0
-      unsafeUseAsCString result $ \rp ->
-        unsafeUseAsCString bits $ \bp -> do
+sha256_finalizeBits bits bitlen0 ctx0@(Sha256Ctx ctx aux)
+    | out == out' = out'
+    | otherwise = error (    "sha256_finalizeBits: output hashes not equal"
+                        ++ "\n  out  " ++ map w2c (B.unpack (extractBase16 (B.encodeBase16' out)))
+                        ++ "\n  out' " ++ map w2c (B.unpack (extractBase16 (B.encodeBase16' out')))
+                        ++ "\n")
+  where
+    bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
+
+    out = unsafePerformIO $ do
+      unsafeUseAsCString bits $ \bp -> do
+        let result = B.replicate 32 (bp `seq` 0)
+        unsafeUseAsCString result $ \rp -> do
           c_sha256_finalize_ctx_bits ctx bp bitlen rp
           return result
-  where bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
 
+    out' = SHA256.finalizeBits aux bits (fromIntegral bitlen0)
 
 sha256_hashFinalBitString :: ByteString -> Word64 -> Sha256Ctx -> HashString
 sha256_hashFinalBitString bits bitlen0 (Sha256Ctx ctx _) =
