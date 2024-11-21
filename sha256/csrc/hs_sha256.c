@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 #include <ghcautoconf.h>
 
@@ -161,6 +162,15 @@ sha256_do_chunk
 (uint32_t state[const restrict SHA256_STATE_LEN],
  const uint8_t buf[const restrict SHA256_BLOCK_SIZE])
 {
+  /*
+  printf(  "state:   ");
+  for (int i = 0; i < SHA256_STATE_LEN; i++)
+    printf("%08x", state[i]);
+  printf("\nbuffer:  ");
+  for (int i = 0; i < SHA256_BLOCK_SIZE; i++)
+    printf("%02x", buf[i]);
+  printf("\n");
+  */
   uint32_t w[64]; /* only first 16 words are filled in */
   if (ptr_uint32_aligned(buf)) { /* aligned buf */
     cpu_to_be32_array(w, (const uint32_t *)buf, 16);
@@ -172,6 +182,12 @@ sha256_do_chunk
   }
   sha256_do_chunk_aligned(state, w);
   explicit_bzero(&w, sizeof(w));
+  /*
+  printf(  "state':  ");
+  for (int i = 0; i < SHA256_STATE_LEN; i++)
+    printf("%08x", state[i]);
+  printf("\n");
+  */
 }
 
 size_t
@@ -209,7 +225,7 @@ hs_sha256_update_ctx
     out->count += datalen;
   } else if ( bufferlen == 0 ) {
     const size_t processedLen = hs_sha256_update(in->state, data, datalen, out->state);
-    out->count += datalen;
+    out->count = in->count + datalen;
     memcpy(out->buffer, data + processedLen, datalen - processedLen);
   } else {
     // Don't assume the output has enough extra space for a full buffer
@@ -321,11 +337,12 @@ hs_sha256_finalize_ctx_bits
   memcpy(buffer, in->buffer, bufferPos);
   if (data == NULL || datalenbits < 8) {
     memcpy(state, in, SHA256_DIGEST_SIZE);
+    dataPos = 0;
   } else if (dataLeft < bufferLeft) {
-    memcpy(buffer + bufferPos, data, dataLeft);
     memcpy(state, in, SHA256_DIGEST_SIZE);
-    bufferPos += dataLeft;
     dataPos = dataLeft;
+    memcpy(buffer + bufferPos, data, dataLeft);
+    bufferPos += dataLeft;
   } else {
     memcpy(buffer + bufferPos, data, bufferLeft);
     hs_sha256_update(in->state, buffer, SHA256_BLOCK_SIZE, state);

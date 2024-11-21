@@ -1,6 +1,6 @@
 packages:
   sha256/
   phkdf/
---  g3p-hash/
+  g3p-hash/
   cryptohash-sha256/
   tuplehash-utils/
