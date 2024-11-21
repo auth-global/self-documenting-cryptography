@@ -4,16 +4,6 @@ module Crypto.Sha256.Hmac.Implementation where
 
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BL
-
-import           Data.ByteString.Builder (byteString, shortByteString)
-import qualified Data.ByteString.Builder as BB
-import           Data.ByteString.Short (ShortByteString)
-import qualified Data.ByteString.Short as SB
-import           Data.ByteString.Builder.Extra (word64Host)
-
-import           Data.Function(on)
-import           Data.Word(Word64)
 
 import           Crypto.Sha256 as Sha256
 import           Crypto.Sha256.Subtle

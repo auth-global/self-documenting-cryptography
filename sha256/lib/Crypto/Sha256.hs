@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, OverloadedStrings, ScopedTypeVariables, BangPatterns #-}
 
 module Crypto.Sha256
   ( hash
@@ -25,7 +25,6 @@ import           Data.Bits((.&.), shiftR)
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString as B
 import           Data.ByteString.Internal (w2c)
-import qualified Data.ByteString.Base16 as B
 import           Data.ByteString.Short.Internal(ShortByteString(..))
 import qualified Data.ByteString.Short as SB
 import qualified Data.ByteString.Short.Base16 as SB
@@ -34,16 +33,12 @@ import           Data.ByteString.Unsafe(unsafeUseAsCString, unsafeUseAsCStringLe
 import Data.Foldable(foldl')
 import Data.Function((&))
 import Data.Word
-import Foreign.C
 import GHC.Exts
-import GHC.Prim(RealWorld)
 import GHC.IO
-import System.IO.Unsafe
 
 import Crypto.Sha256.Subtle
 import qualified Crypto.Hash.SHA256 as SHA256
 
-import Debug.Trace
 
 newtype HashString = HashString { unHashString :: ShortByteString }
 
@@ -90,9 +85,9 @@ hash x = sha256_init & sha256_finalizeBits x maxBound
 sha256_init :: Sha256Ctx
 sha256_init =
   unsafePerformIO . IO $ \st ->
-    let (# st0, a #) = newPinnedByteArray# 40# st
-        (# st1, _ #) = unIO (c_sha256_init_ctx a) st0
-        (# st2, b #) = unsafeFreezeByteArray# a st1
+    let !(# st0, a #) = newPinnedByteArray# 40# st
+        !(# st1, _ #) = unIO (c_sha256_init_ctx a) st0
+        !(# st2, b #) = unsafeFreezeByteArray# a st1
      in (# st2, Sha256Ctx b SHA256.init #)
 
 sha256_byteCount :: Sha256Ctx -> Word64
@@ -104,7 +99,7 @@ sha256_blockCount ctx = sha256_byteCount ctx `shiftR` 6
 sha256_bufferLength :: Sha256Ctx -> Word8
 sha256_bufferLength ctx = fromIntegral (sha256_byteCount ctx .&. 0x3F)
 
-encodeB16 = extractBase16 . SB.encodeBase16
+encodeB16 = map w2c . SB.unpack . extractBase16 . SB.encodeBase16'
 
 sha256_state :: Sha256Ctx -> HashString
 sha256_state = HashString . sha256state_encode . sha256state_fromCtxInplace
@@ -114,19 +109,19 @@ sha256_update ctx0@(Sha256Ctx ctx aux) bytes
   | B.null bytes = ctx0
   | otherwise = unsafePerformIO $ do
       let count = c_sha256_get_count ctx + fromIntegral (B.length bytes)
-      let (I# bufLen#) = 40 + fromIntegral (count .&. 0x3F)
+      let !(I# bufLen#) = 40 + fromIntegral (count .&. 0x3F)
       unsafeUseAsCStringLen bytes $ \(bp,bl) -> IO $ \st ->
-        let (# st'0, a #) = newPinnedByteArray# bufLen# st
-            (# st'1, _ #) = unIO (c_sha256_update_ctx ctx bp (fromIntegral bl) a) st'0
-            (# st'2, b #) = unsafeFreezeByteArray# a st'1
+        let !(# st'0, a #) = newPinnedByteArray# bufLen# st
+            !(# st'1, _ #) = unIO (c_sha256_update_ctx ctx bp (fromIntegral bl) a) st'0
+            !(# st'2, b #) = unsafeFreezeByteArray# a st'1
             aux' = SHA256.update aux bytes
             ctx' = Sha256Ctx b aux'
          in if sha256ctx_cryptohash_ctx_eq ctx' aux'
             then (# st'2, ctx' #)
             else error ("sha256_update output contexts not equal:"
-                   ++ "\n ctx' st: " ++ map w2c (SB.unpack (extractBase16 (SB.encodeBase16' (sha256state_encode (sha256state_fromCtx ctx')))))
+                   ++ "\n ctx' st: " ++ encodeB16 (sha256state_encode (sha256state_fromCtx ctx'))
                    ++ "\n       n: " ++ show (sha256_byteCount ctx')
-                   ++ "\n aux' st: " ++ map w2c (SB.unpack (extractBase16 (SB.encodeBase16' (sha256_cryptohash_ctx_encode aux'))))
+                   ++ "\n aux' st: " ++ encodeB16 (sha256_cryptohash_ctx_encode aux')
                    ++ "\n  bytes: " ++ show bytes ++ "\n")
 sha256_updates :: Foldable f => Sha256Ctx -> f ByteString -> Sha256Ctx
 sha256_updates = foldl' sha256_update
@@ -167,9 +162,9 @@ sha256_finalizeBits bits bitlen0 ctx = hashString_toByteString (sha256_hashFinal
 sha256_hashFinalBitString :: ByteString -> Word64 -> Sha256Ctx -> HashString
 sha256_hashFinalBitString bits bitlen0 (Sha256Ctx ctx _) =
     unsafePerformIO . unsafeUseAsCString bits $ \bp -> IO $ \st ->
-      let (# st0, a #) = newPinnedByteArray# 32# st
-          (# st1, () #) = unIO (c_sha256_finalize_ctx_bits_ba ctx bp bitlen a) st0
-          (# st2, b #) = unsafeFreezeByteArray# a st1
+      let !(# st0, a #) = newPinnedByteArray# 32# st
+          !(# st1, () #) = unIO (c_sha256_finalize_ctx_bits_ba ctx bp bitlen a) st0
+          !(# st2, b #) = unsafeFreezeByteArray# a st1
        in (# st2, HashString (SBS b) #)
   where
     bitlen = min (fromIntegral (B.length bits) * 8) bitlen0

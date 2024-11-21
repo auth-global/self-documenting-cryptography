@@ -205,7 +205,6 @@ hmacKeyLike_blockCount = \case
 hmacKeyLike_bufferLength :: HmacKeyLike -> Word8
 hmacKeyLike_bufferLength = const 0
 
-
 -- | Precompute an HmacKey without retaining the plaintext input, equivalent to
 --   'hmacKey_forgetInput . hmacKey'
 hmacKey_hashed :: HmacKeyPlain -> HmacKey
