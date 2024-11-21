@@ -3,14 +3,8 @@
 module Crypto.Sha256.Subtle where
 
 import           Data.ByteString (ByteString)
-import qualified Data.ByteString.Lazy as BL
 import           Data.ByteString.Unsafe(unsafeUseAsCStringLen)
-
-import           Data.ByteString.Builder (byteString, shortByteString)
-import qualified Data.ByteString.Builder as BB
 import           Data.ByteString.Short.Internal (ShortByteString(..))
-import qualified Data.ByteString.Short as SB
-import           Data.ByteString.Builder.Extra (word64Host)
 
 -- import Data.Array.Byte
 import Data.Bits((.&.))
@@ -20,12 +14,6 @@ import Foreign.C
 import Foreign.Ptr
 import GHC.Exts
 import GHC.IO
-
--- | this is cryptohash-sha256, an external library that was used to prototype
---   PHKDF, provided the C implementation used in the initial version of this
---   library, and whose Haskell bindings are now being used to debug this library:
-
-import qualified Crypto.Hash.SHA256 as SHA256
 
 nullBuffer :: ByteString
 nullBuffer = B.replicate 64 0
@@ -38,7 +26,7 @@ type Sha256MutableCtx# = MutableByteArray#
 
 type Sha256Ctx# = ByteArray#
 
-data Sha256State = Sha256State { unSha256State :: Sha256State# }
+data Sha256State = Sha256State { unSha256State :: !Sha256State# }
 
 instance Eq Sha256State where
   x == y = compare x y == EQ
@@ -47,22 +35,22 @@ instance Ord Sha256State where
   compare (Sha256State x) (Sha256State y) =
     compare (c_const_memcmp_uint32be x y 8) 0
 
-data Sha256Ctx = Sha256Ctx { unSha256Ctx :: Sha256Ctx#, auxSha256Ctx :: !SHA256.Ctx }
+data Sha256Ctx = Sha256Ctx { unSha256Ctx :: !Sha256Ctx# }
 
 instance Eq Sha256Ctx where
   x == y = compare x y == EQ
 
 instance Ord Sha256Ctx where
-  compare (Sha256Ctx x _) (Sha256Ctx y _) =
+  compare (Sha256Ctx x) (Sha256Ctx y) =
     compare (c_const_memcmp_ctx x y) 0
 
-data Sha256MutableCtx a = Sha256MutableCtx { unSha256MutableCtx :: Sha256MutableCtx# a }
+data Sha256MutableCtx a = Sha256MutableCtx { unSha256MutableCtx :: !(Sha256MutableCtx# a) }
 
 sha256state_init :: Sha256State
 sha256state_init =
   unsafePerformIO . IO $ \st ->
     let !(Ptr addr) = c_sha256_init
-        !(# st0, a #) = newPinnedByteArray# 32# st
+        !(# st0, a #) = newByteArray# 32# st
         st1 = copyAddrToByteArray# addr a 0# 32# st0
         -- FIXME?  Review this to ensure that 32# is the correct input above
         -- Problem is the documentation is ambiguous, and the source is magic.
@@ -78,7 +66,7 @@ sha256state_init =
 sha256state_feed :: ByteString -> Sha256State -> Sha256State
 sha256state_feed bytes (Sha256State p) =
   unsafePerformIO . unsafeUseAsCStringLen bytes $ \(bp, bl) -> IO $ \st ->
-    let !(# st0, a #) = newPinnedByteArray# 32# st
+    let !(# st0, a #) = newByteArray# 32# st
         !(# st1, _ #) = unIO (c_sha256_update p bp (fromIntegral bl) a) st0
         !(# st2, b #) = unsafeFreezeByteArray# a st1
      in (# st2, Sha256State b #)
@@ -90,42 +78,33 @@ sha256state_feed bytes (Sha256State p) =
 --   supports freezing mutable contexts into immutable contexts without copying.
 
 sha256state_fromCtxInplace :: Sha256Ctx -> Sha256State
-sha256state_fromCtxInplace (Sha256Ctx a _) = Sha256State a
+sha256state_fromCtxInplace (Sha256Ctx a) = Sha256State a
 
 -- | Cast a Sha256Ctx to a Sha256State. This copies the first 32 bytes of the
 --   Sha256Ctx structure, so the result is always as small as possible.
 
 sha256state_fromCtx :: Sha256Ctx -> Sha256State
-sha256state_fromCtx (Sha256Ctx ctx _) =
+sha256state_fromCtx (Sha256Ctx ctx) =
   unsafePerformIO . IO $ \st ->
-    let !(# st0, a #) = newPinnedByteArray# 32# st
+    let !(# st0, a #) = newByteArray# 32# st
         st1 = copyByteArray# ctx 0# a 0# 32# st0
         !(# st2, b #) = unsafeFreezeByteArray# a st1
      in (# st2, Sha256State b #)
 
 sha256state_runWith :: Word64 -> ByteString -> Sha256State -> Sha256Ctx
-sha256state_runWith blocks bytes shast@(Sha256State p) =
+sha256state_runWith blocks bytes (Sha256State p) =
     unsafePerformIO . unsafeUseAsCStringLen bytes $ \(bp, bl) -> IO $ \st ->
-      let !(# st0, a #) = newPinnedByteArray# ctxLen# st
+      let !(# st0, a #) = newByteArray# ctxLen# st
           !(# st1, () #) = unIO (c_sha256_promote_to_ctx p blocks bp (fromIntegral bl) a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
-       in (# st2, Sha256Ctx b aux #)
+       in (# st2, Sha256Ctx b #)
   where
     !(I# ctxLen#) = 40 + B.length bytes .&. 0x3F
-    aux = SHA256.update (sha256state_initAux blocks shast) bytes
-
-sha256state_initAux :: Word64 -> Sha256State -> SHA256.Ctx
-sha256state_initAux blockCount (Sha256State state#) = SHA256.Ctx (run out)
-  where
-    run = BL.toStrict . BL.take (8 + 64 + 32) . BB.toLazyByteString
-    out = word64Host (64 * blockCount)
-       <> byteString nullBuffer
-       <> shortByteString (SBS state#)
 
 sha256state_encode :: Sha256State -> ShortByteString
 sha256state_encode (Sha256State x) =
     unsafePerformIO . IO $ \st ->
-      let !(# st0, a #) = newPinnedByteArray# 32# st
+      let !(# st0, a #) = newByteArray# 32# st
           !(# st1, () #) = unIO (c_sha256_encode_state x a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
        in (# st2, SBS b #)
@@ -133,26 +112,10 @@ sha256state_encode (Sha256State x) =
 sha256state_decode :: ShortByteString -> Sha256State
 sha256state_decode (SBS x) =
     unsafePerformIO . IO $ \st ->
-      let !(# st0, a #) = newPinnedByteArray# 32# st
+      let !(# st0, a #) = newByteArray# 32# st
           !(# st1, () #) = unIO (c_sha256_decode_state x a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
        in (# st2, Sha256State b #)
-
--- Horrible implementation, but I don't plan on using this in production:
-
-sha256state_cryptohash_ctx_eq :: Sha256State -> SHA256.Ctx -> Bool
-sha256state_cryptohash_ctx_eq st (SHA256.Ctx ctx) =
-    sha256state_encode st == encode (SB.toShort (B.take 32 (B.drop 72 ctx)))
-  where
-    encode (SBS x) = sha256state_encode (Sha256State x)
-
-sha256_cryptohash_ctx_encode :: SHA256.Ctx -> ShortByteString
-sha256_cryptohash_ctx_encode (SHA256.Ctx ctx) = encode (SB.toShort (B.take 32 (B.drop 72 ctx)))
-  where
-    encode (SBS x) = sha256state_encode (Sha256State x)
-
-sha256ctx_cryptohash_ctx_eq :: Sha256Ctx -> SHA256.Ctx -> Bool
-sha256ctx_cryptohash_ctx_eq = sha256state_cryptohash_ctx_eq . sha256state_fromCtxInplace 
 
 -- these calls must be labelled "unsafe", because the datastructures
 -- we will be passing in are unpinned... keep that in mind when selecting

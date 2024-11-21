@@ -26,14 +26,14 @@ library
                    , base16
                    , bytestring
 		   , ghc-prim
-		   , cryptohash-sha256
 
   hs-source-dirs:    lib
   include-dirs:      csrc
   default-language:  Haskell2010
   ghc-options:       -Wall
-  cc-options:        -fsanitize=undefined -Wno-stringop-overread -Wno-stringop-overflow
-  ld-options:        -fsanitize=undefined  
+  -- Enable these to see an accurate memory-use analysis in the warnings,
+  -- but unfortunately this doesn't seem to play nice with flexible array members
+  cc-options:        -Wall -Wno-stringop-overread -Wno-stringop-overflow  
   install-includes:  csrc/hs_sha256.h
   c-sources:         csrc/hs_sha256.c
 
