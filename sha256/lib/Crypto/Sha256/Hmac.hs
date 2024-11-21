@@ -9,6 +9,7 @@ backtracking, and bitstring inputs.
 
 module Crypto.Sha256.Hmac
   ( hmac
+  , hmac'
   , HmacKeyPlain
   -- , hmacKeyPlain_eq
   , HmacKey()
@@ -56,8 +57,8 @@ module Crypto.Sha256.Hmac
   , hmacCtx_initWith
   , hmacCtx_update,  hmacCtx_feed
   , hmacCtx_updates, hmacCtx_feeds
-  , hmacCtx_finalize
-  , hmacCtx_finalizeBits
+  , hmacCtx_finalize,     hmacCtx_finalize_toByteString
+  , hmacCtx_finalizeBits, hmacCtx_finalizeBits_toByteString
   , hmacCtx_byteCount
   , hmacCtx_blockCount
   , hmacCtx_bufferLength
@@ -319,7 +320,10 @@ hmacKeyPrefixed_bufferLength = const 0
 --   in order to help ensure key reuse works as expected.
 
 hmac :: HmacKeyPlain -> ByteString -> ByteString
-hmac = fmap hmacCtx_finalize . hmacCtx_initWith . hmacKey_hashed
+hmac = fmap hmacCtx_finalize_toByteString . hmacCtx_initWith . hmacKey_hashed
+
+hmac' :: HmacKeyPlain -> ByteString -> HashString
+hmac' = fmap hmacCtx_finalize . hmacCtx_initWith . hmacKey_hashed
 
 hmacCtx :: HmacKeyPlain -> HmacCtx
 hmacCtx = hmacCtx_init . hmacKey_hashed
@@ -351,20 +355,29 @@ hmacCtx_feeds bs (HmacCtx ic oc) = HmacCtx (sha256_updates ic (toList bs)) oc
 
 -- | Finish computing the final 32-byte hash for an HMAC context.
 
-hmacCtx_finalize :: HmacCtx -> ByteString
-hmacCtx_finalize (HmacCtx ic oc) = outer
-  where
-    inner = sha256_finalize ic
-    outer = sha256_finalize (sha256state_runWith 1 inner oc)
+hmacCtx_finalize :: HmacCtx -> HashString
+hmacCtx_finalize = hmacCtx_finalizeBits B.empty 0
 
 -- | Append any arbitrary bitstring onto the end of an HMAC context, and
 --   finish computing the final 32-byte hash.
 
-hmacCtx_finalizeBits :: ByteString -> Word64 -> HmacCtx -> ByteString
+hmacCtx_finalizeBits :: ByteString -> Word64 -> HmacCtx -> HashString
 hmacCtx_finalizeBits bits bitlen (HmacCtx ic oc) = outer
   where
-    inner = sha256_finalizeBits bits bitlen ic
+    inner = sha256_finalizeBits_toByteString bits bitlen ic
     outer = sha256_finalize (sha256state_runWith 1 inner oc)
+
+hmacCtx_finalize_toByteString :: HmacCtx -> ByteString
+hmacCtx_finalize_toByteString = hmacCtx_finalizeBits_toByteString B.empty 0
+
+-- | Append any arbitrary bitstring onto the end of an HMAC context, and
+--   finish computing the final 32-byte hash.
+
+hmacCtx_finalizeBits_toByteString :: ByteString -> Word64 -> HmacCtx -> ByteString
+hmacCtx_finalizeBits_toByteString bits bitlen (HmacCtx ic oc) = outer
+  where
+    inner = sha256_finalizeBits_toByteString bits bitlen ic
+    outer = sha256_finalize_toByteString (sha256state_runWith 1 inner oc)
 
 hmacCtx_byteCount :: HmacCtx -> Word64
 hmacCtx_byteCount = sha256_byteCount . hmacCtx_ipadCtx

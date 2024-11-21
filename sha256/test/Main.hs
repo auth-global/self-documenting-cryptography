@@ -12,12 +12,6 @@ import qualified HMAC
 d :: ByteString -> ByteString
 d = B.decodeBase16Lenient
 
-sha256 :: ByteString -> ByteString
-sha256 x =
-  sha256_init &
-  sha256_feed x &
-  sha256_finalize
-
 main = do
     defaultMain $ testGroup "toplevel" [
       testGroup "sha256" 
@@ -28,7 +22,7 @@ main = do
      ]
   where
     run :: SHA256TestVector -> Assertion
-    run x = B.encodeBase16 (sha256 (msg x)) @?= B.encodeBase16 (out x)
+    run x = B.encodeBase16 (hash (msg x)) @?= B.encodeBase16 (out x)
 
 data SHA256TestVector = SHA256TestVector
   { msg :: !ByteString

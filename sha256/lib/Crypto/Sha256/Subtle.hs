@@ -5,6 +5,7 @@ module Crypto.Sha256.Subtle where
 import           Data.ByteString (ByteString)
 import           Data.ByteString.Unsafe(unsafeUseAsCStringLen)
 import           Data.ByteString.Short.Internal (ShortByteString(..))
+import qualified Data.ByteString.Short as SB
 
 -- import Data.Array.Byte
 import Data.Bits((.&.))
@@ -17,6 +18,23 @@ import GHC.IO
 
 nullBuffer :: ByteString
 nullBuffer = B.replicate 64 0
+
+-- | A binary-encoded string. Supports constant-time comparisons, for
+--   both equality and ordering.
+
+newtype HashString = HashString { unHashString :: ShortByteString }
+
+instance Eq HashString where
+  x == y = compare x y == EQ
+
+instance Ord HashString where
+  compare (HashString xsbs@(SBS x)) (HashString ysbs@(SBS y)) =
+      compare (c_const_memcmp x y minlen) 0
+        <> compare xlen ylen
+    where
+      xlen = SB.length xsbs
+      ylen = SB.length ysbs
+      minlen = fromIntegral (min xlen ylen)
 
 type Sha256MutableState# = MutableByteArray#
 
@@ -101,16 +119,16 @@ sha256state_runWith blocks bytes (Sha256State p) =
   where
     !(I# ctxLen#) = 40 + B.length bytes .&. 0x3F
 
-sha256state_encode :: Sha256State -> ShortByteString
+sha256state_encode :: Sha256State -> HashString
 sha256state_encode (Sha256State x) =
     unsafePerformIO . IO $ \st ->
       let !(# st0, a #) = newByteArray# 32# st
           !(# st1, () #) = unIO (c_sha256_encode_state x a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
-       in (# st2, SBS b #)
+       in (# st2, HashString (SBS b) #)
 
-sha256state_decode :: ShortByteString -> Sha256State
-sha256state_decode (SBS x) =
+sha256state_decode :: HashString -> Sha256State
+sha256state_decode (HashString (SBS x)) =
     unsafePerformIO . IO $ \st ->
       let !(# st0, a #) = newByteArray# 32# st
           !(# st1, () #) = unIO (c_sha256_decode_state x a) st0

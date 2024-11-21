@@ -2,6 +2,7 @@
 
 module Crypto.Sha256
   ( hash
+  , hash'
   , HashString(..)
   , hashString_toShort
   , hashString_toShortBase16
@@ -15,15 +16,15 @@ module Crypto.Sha256
   , sha256_blockCount
   , sha256_bufferLength
   , sha256_state
-  , sha256_finalize
-  , sha256_finalizeBits
-  , sha256_hashFinalBitString
+  , sha256_finalize    , sha256_finalize_toByteString
+  , sha256_finalizeBits, sha256_finalizeBits_toByteString
   ) where
 
 import           Data.Base16.Types
 import           Data.Bits((.&.), shiftR)
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Base16 as B
 import           Data.ByteString.Internal (w2c, unsafeCreate)
 import           Data.ByteString.Short.Internal(ShortByteString(..))
@@ -33,26 +34,12 @@ import           Data.ByteString.Unsafe(unsafeUseAsCString, unsafeUseAsCStringLe
 
 import Data.Foldable(foldl')
 import Data.Function((&))
+import Data.Monoid
 import Data.Word
 import GHC.Exts
 import GHC.IO
 
 import Crypto.Sha256.Subtle
-
-newtype HashString = HashString { unHashString :: ShortByteString }
-
-instance Eq HashString where
-  x == y = compare x y == EQ
-
-instance Ord HashString where
-  compare (HashString xsbs@(SBS x)) (HashString ysbs@(SBS y)) =
-      case compare (c_const_memcmp x y minlen) 0 of
-        EQ -> compare xlen ylen
-        cmp -> cmp
-    where
-      xlen = SB.length xsbs
-      ylen = SB.length ysbs
-      minlen = fromIntegral (min xlen ylen)
 
 hashString_toShort :: HashString -> ShortByteString
 hashString_toShort = unHashString
@@ -79,7 +66,10 @@ hashString_toBase16 = SB.fromShort . hashString_toShortBase16
 -- really ought to refer to a symbolic constant of some sort
 
 hash :: ByteString -> ByteString
-hash x = sha256_init & sha256_finalizeBits x maxBound
+hash x = sha256_init & sha256_finalizeBits_toByteString x maxBound
+
+hash' :: ByteString -> HashString
+hash' x = sha256_init & sha256_finalizeBits x maxBound
 
 sha256_init :: Sha256Ctx
 sha256_init =
@@ -102,7 +92,7 @@ encodeB16 :: ShortByteString -> String
 encodeB16 = map w2c . SB.unpack . extractBase16 . SB.encodeBase16'
 
 sha256_state :: Sha256Ctx -> HashString
-sha256_state = HashString . sha256state_encode . sha256state_fromCtxInplace
+sha256_state = sha256state_encode . sha256state_fromCtxInplace
 
 sha256_update :: Sha256Ctx -> ByteString -> Sha256Ctx
 sha256_update ctx0@(Sha256Ctx ctx) bytes
@@ -126,24 +116,26 @@ sha256_feed = flip sha256_update
 sha256_feeds :: Foldable f => f ByteString -> Sha256Ctx -> Sha256Ctx
 sha256_feeds = flip sha256_updates
 
-sha256_finalize :: Sha256Ctx -> ByteString
+sha256_finalize :: Sha256Ctx -> HashString
 sha256_finalize = sha256_finalizeBits B.empty 0
 
-sha256_finalizeBits :: ByteString -> Word64 -> Sha256Ctx -> ByteString
-sha256_finalizeBits bits bitlen0 (Sha256Ctx ctx) =
-  unsafeCreate 32 $ \rp ->
-    unsafeUseAsCString bits $ \bp ->
-      c_sha256_finalize_ctx_bits ctx bp bitlen rp
-  where
-    enc = map w2c . B.unpack . extractBase16 . B.encodeBase16'
-    bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
+sha256_finalize_toByteString :: Sha256Ctx -> ByteString
+sha256_finalize_toByteString = sha256_finalizeBits_toByteString B.empty 0
 
-sha256_hashFinalBitString :: ByteString -> Word64 -> Sha256Ctx -> HashString
-sha256_hashFinalBitString bits bitlen0 (Sha256Ctx ctx) =
+sha256_finalizeBits :: ByteString -> Word64 -> Sha256Ctx -> HashString
+sha256_finalizeBits bits bitlen0 (Sha256Ctx ctx) =
     unsafePerformIO . unsafeUseAsCString bits $ \bp -> IO $ \st ->
       let !(# st0, a #) = newByteArray# 32# st
           !(# st1, () #) = unIO (c_sha256_finalize_ctx_bits_ba ctx bp bitlen a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
        in (# st2, HashString (SBS b) #)
+  where
+    bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
+
+sha256_finalizeBits_toByteString :: ByteString -> Word64 -> Sha256Ctx -> ByteString
+sha256_finalizeBits_toByteString bits bitlen0 (Sha256Ctx ctx) =
+    unsafeCreate 32 $ \rp ->
+      unsafeUseAsCString bits $ \bp ->
+        c_sha256_finalize_ctx_bits ctx bp bitlen rp
   where
     bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
