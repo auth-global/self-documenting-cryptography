@@ -138,14 +138,16 @@ sha256_feeds = flip sha256_updates
 sha256_finalize :: Sha256Ctx -> ByteString
 sha256_finalize = sha256_finalizeBits B.empty 0
 
-{--
+{--}
 sha256_finalizeBits :: ByteString -> Word64 -> Sha256Ctx -> ByteString
-sha256_finalizeBits bits bitlen0 (Sha256Ctx ctx aux)
+sha256_finalizeBits bits bitlen0 ctx0@(Sha256Ctx ctx aux)
     | out == out' = {- trace ("\nout  " ++ enc out ++ "\nout' " ++ enc out') -} out
-    | otherwise = error (    "sha256_finalizeBits: output hashes not equal"
+    | otherwise = trace (    "sha256_finalizeBits: output hashes not equal"
                         ++ "\n  out  " ++ enc out
                         ++ "\n  out' " ++ enc out'
-                        ++ "\n")
+                        ++ "\n  ctx  " ++ encodeB16 (unHashString (sha256_state ctx0))
+                        ++ "\n  aux  " ++ encodeB16 (sha256_cryptohash_ctx_encode aux)
+                        ++ "\n") out
   where
     enc = map w2c . B.unpack . extractBase16 . B.encodeBase16'
     bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
@@ -157,22 +159,22 @@ sha256_finalizeBits bits bitlen0 (Sha256Ctx ctx aux)
 
     out' = SHA256.finalizeBits aux bits (fromIntegral bitlen0)
 --}
-{--}
+{--
 sha256_finalizeBits :: ByteString -> Word64 -> Sha256Ctx -> ByteString
 sha256_finalizeBits bits bitlen0 ctx = hashString_toByteString (sha256_hashFinalBitString bits bitlen0 ctx)
 --}
 
 sha256_hashFinalBitString :: ByteString -> Word64 -> Sha256Ctx -> HashString
-sha256_hashFinalBitString bits bitlen0 ctx0@(Sha256Ctx ctx aux) = out {--
+sha256_hashFinalBitString bits bitlen0 ctx0@(Sha256Ctx ctx aux)
     | out == out' = {- trace ("\nout  " ++ encodeB16 out ++ "\nout' " ++ encode out') -} out
-    | otherwise = error (    "sha256_hashFinalBitString: output hashes not equal"
+    | otherwise = trace (    "sha256_hashFinalBitString: output hashes not equal"
                         ++ "\n  out  " ++ encodeB16 (unHashString out)
                         ++ "\n  out' " ++ encodeB16 (unHashString out')
-			++ "\n  ctx  " ++ encodeB16 (unHashString (sha256_state ctx0))
-			++ "\n  aux  " ++ enc (unHashSting
-                        ++ "\n") --}
+                        ++ "\n  ctx  " ++ encodeB16 (unHashString (sha256_state ctx0))
+                        ++ "\n  aux  " ++ encodeB16 (sha256_cryptohash_ctx_encode aux)
+                        ++ "\n") out
   where
-    enc = map w2c . B.unpack . extractBase16 . B.encodeBase16'
+--    enc = map w2c . B.unpack . extractBase16 . B.encodeBase16'
     bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
 
     out = unsafePerformIO . unsafeUseAsCString bits $ \bp -> IO $ \st ->
