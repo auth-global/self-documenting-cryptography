@@ -115,8 +115,8 @@ sha256state_runWith blocks bytes shast@(Sha256State p) =
        in (# st2, Sha256Ctx b aux #)
   where
     (I# ctxLen#) = 40 + B.length bytes .&. 0x3F
-    aux = SHA256.update (sha256state_initAux blocks shast) bytes 
-    
+    aux = SHA256.update (sha256state_initAux blocks shast) bytes
+
 sha256state_initAux :: Word64 -> Sha256State -> SHA256.Ctx
 sha256state_initAux blockCount (Sha256State state#) = SHA256.Ctx (run out)
   where
@@ -124,6 +124,38 @@ sha256state_initAux blockCount (Sha256State state#) = SHA256.Ctx (run out)
     out = word64Host (64 * blockCount)
        <> byteString nullBuffer
        <> shortByteString (SBS state#)
+
+sha256state_encode :: Sha256State -> ShortByteString
+sha256state_encode (Sha256State x) =
+    unsafePerformIO . IO $ \st ->
+      let (# st0, a #) = newByteArray# 32# st
+          (# st1, () #) = unIO (c_sha256_encode_state x a) st0
+          (# st2, b #) = unsafeFreezeByteArray# a st1
+       in (# st2, SBS b #)
+
+sha256state_decode :: ShortByteString -> Sha256State
+sha256state_decode (SBS x) =
+    unsafePerformIO . IO $ \st ->
+      let (# st0, a #) = newByteArray# 32# st
+          (# st1, () #) = unIO (c_sha256_decode_state x a) st0
+          (# st2, b #) = unsafeFreezeByteArray# a st1
+       in (# st2, Sha256State b #)
+
+-- Horrible implementation, but I don't plan on using this in production:
+
+sha256state_cryptohash_ctx_eq :: Sha256State -> SHA256.Ctx -> Bool
+sha256state_cryptohash_ctx_eq st (SHA256.Ctx ctx) =
+    sha256state_encode st == encode (SB.toShort (B.take 32 (B.drop 72 ctx)))
+  where
+    encode (SBS x) = sha256state_encode (Sha256State x)
+
+sha256_cryptohash_ctx_encode :: SHA256.Ctx -> ShortByteString
+sha256_cryptohash_ctx_encode (SHA256.Ctx ctx) = encode (SB.toShort (B.take 32 (B.drop 72 ctx)))
+  where
+    encode (SBS x) = sha256state_encode (Sha256State x)
+
+sha256ctx_cryptohash_ctx_eq :: Sha256Ctx -> SHA256.Ctx -> Bool
+sha256ctx_cryptohash_ctx_eq = sha256state_cryptohash_ctx_eq . sha256state_fromCtxInplace 
 
 -- these calls must be labelled "unsafe", because the datastructures
 -- we will be passing in are unpinned... keep that in mind when selecting
@@ -179,24 +211,6 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_update_ctx"
     -> Sha256MutableCtx# RealWorld -- ^ output pointer, can be same as the input context
     -> IO ()
 
-foreign import capi unsafe "hs_sha256.h hs_sha256_encode_state"
-  c_sha256_encode_state
-    :: Sha256State#
-    -> MutableByteArray# RealWorld
-    -> IO ()
-
-foreign import capi unsafe "hs_sha256.h hs_sha256_encode_state"
-  c_sha256_encode_mutable_state
-    :: Sha256MutableState# RealWorld
-    -> MutableByteArray# RealWorld
-    -> IO ()
-
-foreign import capi unsafe "hs_sha256.h hs_sha256_decode_state"
-  c_sha256_decode_state
-    :: ByteArray#
-    -> Sha256MutableState# RealWorld
-    -> IO ()
-
 foreign import capi unsafe "hs_sha256.h hs_sha256_get_count"
   c_sha256_get_count
     :: Sha256State#
@@ -211,11 +225,31 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"
     -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"
+  c_sha256_finalize_ctx_bits_ba
+    :: Sha256Ctx#
+    -> CString
+    -> Word64
+    -> MutableByteArray# RealWorld
+    -> IO ()
+
+foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"
   c_sha256_finalize_mutable_ctx_bits
     :: Sha256MutableCtx# RealWorld
     -> CString
     -> Word64
     -> CString
+    -> IO ()
+
+foreign import capi unsafe "hs_sha256.h hs_sha256_encode_state"
+  c_sha256_encode_state
+    :: Sha256State#
+    -> MutableByteArray# RealWorld
+    -> IO ()
+
+foreign import capi unsafe "hs_sha256.h hs_sha256_decode_state"
+  c_sha256_decode_state
+    :: ByteArray#
+    -> Sha256MutableState# RealWorld
     -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_const_memcmp"
@@ -232,16 +266,8 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_const_memcmp_uint32be"
     -> Word32
     -> CInt
 
-foreign import capi unsafe "hs_sha256.h hs_sha256_const_memcmp_uint32be"
-  c_const_memcmp_uint32be_BA_Ptr
-    :: ByteArray#
-    -> Ptr Word32
-    -> Word32
-    -> CInt
-
 foreign import capi unsafe "hs_sha256.h hs_sha256_const_memcmp_ctx"
   c_const_memcmp_ctx
     :: ByteArray#
     -> ByteArray#
     -> CInt
-
