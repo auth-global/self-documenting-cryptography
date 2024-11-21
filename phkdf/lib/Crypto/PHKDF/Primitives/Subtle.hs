@@ -1,5 +1,6 @@
 module Crypto.PHKDF.Primitives.Subtle
   ( PhkdfCtx(..)
+  , phkdfCtx_byteLen
   , phkdfCtx_unsafeFeed
   , PhkdfSlowCtx(..)
   , phkdfSlowCtx_lift
@@ -28,10 +29,12 @@ import           Data.Word
 -- modulo 64, this doesn't matter.  However we should probably export the SHA256 counter itself
 
 data PhkdfCtx = PhkdfCtx
-  { phkdfCtx_byteLen :: !Word64
-  , phkdfCtx_state :: !Sha256Ctx
+  { phkdfCtx_state :: !Sha256Ctx
   , phkdfCtx_hmacKeyLike :: !HmacKeyLike
   }
+
+phkdfCtx_byteLen :: PhkdfCtx -> Word64
+phkdfCtx_byteLen = sha256_byteCount . phkdfCtx_state
 
 data P = P !Word64 !Sha256Ctx
 
@@ -39,15 +42,8 @@ phkdfCtx_unsafeFeed :: Foldable f => f ByteString -> PhkdfCtx -> PhkdfCtx
 phkdfCtx_unsafeFeed strs ctx0 =
   if null strs then ctx0
   else ctx0 {
-    phkdfCtx_byteLen = byteLen',
-    phkdfCtx_state = state'
+    phkdfCtx_state = sha256_feeds strs (phkdfCtx_state ctx0)
   }
-  where
-    delta (P len ctx) str = P (len + (fromIntegral (B.length str))) (sha256_update ctx str)
-
-    p0 = P (phkdfCtx_byteLen ctx0) (phkdfCtx_state ctx0)
-
-    P byteLen' state' = foldl' delta p0 strs
 
 data PhkdfSlowCtx = PhkdfSlowCtx
   { phkdfSlowCtx_phkdfCtx :: !PhkdfCtx

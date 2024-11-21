@@ -281,7 +281,6 @@ phkdfCtx_init = phkdfCtx_initLike . hmacKeyLike_init
 phkdfCtx_initLike :: HmacKeyLike -> PhkdfCtx
 phkdfCtx_initLike key =
   PhkdfCtx {
-    phkdfCtx_byteLen = 0,
     phkdfCtx_state   = hmacKeyLike_ipadCtx key,
     phkdfCtx_hmacKeyLike = key
   }
@@ -295,9 +294,7 @@ phkdfCtx_initHashed = phkdfCtx_init . hmacKeyHashed_toKey
 
 phkdfCtx_initPrefixed :: ByteString -> HmacKeyPrefixed -> PhkdfCtx
 phkdfCtx_initPrefixed str key = PhkdfCtx
-    { phkdfCtx_byteLen = 64 * hmacKeyPrefixed_blockCount key
-                       + fromIntegral (B.length str)
-    , phkdfCtx_state = sha256_update (hmacKeyPrefixed_ipadCtx key) str
+    { phkdfCtx_state = sha256_update (hmacKeyPrefixed_ipadCtx key) str
     , phkdfCtx_hmacKeyLike = hmacKeyLike_initPrefixed key
     }
 
