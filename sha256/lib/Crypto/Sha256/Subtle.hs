@@ -79,7 +79,7 @@ sha256state_feed :: ByteString -> Sha256State -> Sha256State
 sha256state_feed bytes (Sha256State p) =
   unsafePerformIO . unsafeUseAsCStringLen bytes $ \(bp, bl) -> IO $ \st ->
     let !(# st0, a #) = newPinnedByteArray# 32# st
-        !(# st1, _ #) = unIO (c_sha256_update p 0 nullPtr bp (fromIntegral bl) a) st0
+        !(# st1, _ #) = unIO (c_sha256_update p bp (fromIntegral bl) a) st0
         !(# st2, b #) = unsafeFreezeByteArray# a st1
      in (# st2, Sha256State b #)
 
@@ -185,11 +185,9 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_promote_to_ctx"
 foreign import capi unsafe "hs_sha256.h hs_sha256_update"
   c_sha256_update
     :: Sha256State# -- ^ @state@, a pointer to an constant array of eight Word32
-    -> Word64 -- ^ @count@, the number of bytes that a sha256 context has seen
-    -> Ptr Word8 -- ^ @buffer@, a pointer to 0-63 constant bytes representing the unprocessed data seen by the context. The length is encoded by the least six significant bits of @count@.
     -> CString -- ^ pointer to the constant data to process
     -> CSize -- ^ length of the data to process
-    -> Sha256MutableState# RealWorld -- ^ output pointer, may be same as input pointer
+    -> Sha256MutableState# RealWorld -- ^ output pointer
     -> IO Word64 -- ^ the new @count@
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_update_ctx"
@@ -218,7 +216,7 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"
     :: Sha256Ctx#
     -> CString
     -> Word64
-    -> CString
+    -> Ptr Word8
     -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"

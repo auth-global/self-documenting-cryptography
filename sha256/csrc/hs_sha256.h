@@ -16,21 +16,19 @@ typedef struct sha256_ctx
   uint8_t  buffer[];
 } sha256_ctx;
 
-uint64_t
+size_t
 hs_sha256_update
-(const uint32_t state[const SHA256_STATE_LEN],
- uint64_t const count,
- const uint8_t *const buffer,
+(const uint32_t state[static const SHA256_STATE_LEN],
  const uint8_t *const data,
  size_t const datalen,
- uint32_t out[const SHA256_STATE_LEN]);
+ uint32_t out[static const SHA256_STATE_LEN]);
 
 void
 hs_sha256_update_ctx
-(const sha256_ctx *const in,
+(const sha256_ctx in[static const 1],
  const uint8_t *const data,
  const size_t datalen,
- sha256_ctx  *const out);
+ sha256_ctx out[static const 1]);
 
 void
 hs_sha256_promote_to_ctx
@@ -41,33 +39,8 @@ hs_sha256_promote_to_ctx
  sha256_ctx *const out);
 
 void
-hs_sha256_finalize
-(const uint32_t state[const SHA256_STATE_LEN],
- uint64_t const count,
- const uint8_t *const buffer,
- const uint8_t *const data,
- size_t const datalen,
- uint8_t out[const SHA256_DIGEST_SIZE]);
-
-void
-hs_sha256_finalize_ctx
-(const sha256_ctx *const in,
- const uint8_t *const data,
- size_t const datalen,
- uint8_t out[const SHA256_DIGEST_SIZE]);
-
-void
 hs_sha256_finalize_ctx_bits
 (const sha256_ctx *const in,
- const uint8_t *const bits,
- uint64_t const bitlen,
- uint8_t out[const SHA256_DIGEST_SIZE]);
-
-void
-hs_sha256_finalize_bits
-(const uint32_t state[const SHA256_STATE_LEN],
- uint64_t const count,
- const uint8_t *const buffer,
  const uint8_t *const bits,
  uint64_t const bitlen,
  uint8_t out[const SHA256_DIGEST_SIZE]);
@@ -93,14 +66,6 @@ hs_sha256_get_buffer
 uint32_t *
 hs_sha256_get_state
 (sha256_ctx *const ctx);
-
-void
-hs_sha256_cons
-(const uint32_t state[const SHA256_STATE_LEN],
- uint64_t const blockcount,
- const uint8_t *const buffer,
- size_t const bufferlen,
- sha256_ctx *const out);
 
 void
 hs_sha256_init_ctx

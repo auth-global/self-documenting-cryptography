@@ -24,7 +24,8 @@ import           Data.Base16.Types
 import           Data.Bits((.&.), shiftR)
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString as B
-import           Data.ByteString.Internal (w2c)
+import qualified Data.ByteString.Base16 as B
+import           Data.ByteString.Internal (w2c, unsafeCreate)
 import           Data.ByteString.Short.Internal(ShortByteString(..))
 import qualified Data.ByteString.Short as SB
 import qualified Data.ByteString.Short.Base16 as SB
@@ -39,6 +40,7 @@ import GHC.IO
 import Crypto.Sha256.Subtle
 import qualified Crypto.Hash.SHA256 as SHA256
 
+import Debug.Trace
 
 newtype HashString = HashString { unHashString :: ShortByteString }
 
@@ -99,6 +101,7 @@ sha256_blockCount ctx = sha256_byteCount ctx `shiftR` 6
 sha256_bufferLength :: Sha256Ctx -> Word8
 sha256_bufferLength ctx = fromIntegral (sha256_byteCount ctx .&. 0x3F)
 
+encodeB16 :: ShortByteString -> String
 encodeB16 = map w2c . SB.unpack . extractBase16 . SB.encodeBase16'
 
 sha256_state :: Sha256Ctx -> HashString
@@ -134,10 +137,11 @@ sha256_feeds = flip sha256_updates
 
 sha256_finalize :: Sha256Ctx -> ByteString
 sha256_finalize = sha256_finalizeBits B.empty 0
+
 {--
 sha256_finalizeBits :: ByteString -> Word64 -> Sha256Ctx -> ByteString
-sha256_finalizeBits bits bitlen0 ctx0@(Sha256Ctx ctx aux) 
-    | out == out' = trace ("\nout  " ++ enc out ++ "\nout' " ++ enc out') out  
+sha256_finalizeBits bits bitlen0 (Sha256Ctx ctx aux)
+    | out == out' = {- trace ("\nout  " ++ enc out ++ "\nout' " ++ enc out') -} out
     | otherwise = error (    "sha256_finalizeBits: output hashes not equal"
                         ++ "\n  out  " ++ enc out
                         ++ "\n  out' " ++ enc out'
@@ -146,25 +150,35 @@ sha256_finalizeBits bits bitlen0 ctx0@(Sha256Ctx ctx aux)
     enc = map w2c . B.unpack . extractBase16 . B.encodeBase16'
     bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
 
-    out = unsafePerformIO $ do
-      unsafeUseAsCString bits $ \bp -> do
-        let result = B.replicate 32 (bp `seq` 0)
-        unsafeUseAsCString result $ \rp -> do
+    out =
+      unsafeCreate 32 $ \rp ->
+        unsafeUseAsCString bits $ \bp ->
           c_sha256_finalize_ctx_bits ctx bp bitlen rp
-          return result
 
     out' = SHA256.finalizeBits aux bits (fromIntegral bitlen0)
 --}
-
+{--}
 sha256_finalizeBits :: ByteString -> Word64 -> Sha256Ctx -> ByteString
 sha256_finalizeBits bits bitlen0 ctx = hashString_toByteString (sha256_hashFinalBitString bits bitlen0 ctx)
+--}
 
 sha256_hashFinalBitString :: ByteString -> Word64 -> Sha256Ctx -> HashString
-sha256_hashFinalBitString bits bitlen0 (Sha256Ctx ctx _) =
-    unsafePerformIO . unsafeUseAsCString bits $ \bp -> IO $ \st ->
+sha256_hashFinalBitString bits bitlen0 ctx0@(Sha256Ctx ctx aux) = out {--
+    | out == out' = {- trace ("\nout  " ++ encodeB16 out ++ "\nout' " ++ encode out') -} out
+    | otherwise = error (    "sha256_hashFinalBitString: output hashes not equal"
+                        ++ "\n  out  " ++ encodeB16 (unHashString out)
+                        ++ "\n  out' " ++ encodeB16 (unHashString out')
+			++ "\n  ctx  " ++ encodeB16 (unHashString (sha256_state ctx0))
+			++ "\n  aux  " ++ enc (unHashSting
+                        ++ "\n") --}
+  where
+    enc = map w2c . B.unpack . extractBase16 . B.encodeBase16'
+    bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
+
+    out = unsafePerformIO . unsafeUseAsCString bits $ \bp -> IO $ \st ->
       let !(# st0, a #) = newPinnedByteArray# 32# st
           !(# st1, () #) = unIO (c_sha256_finalize_ctx_bits_ba ctx bp bitlen a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
        in (# st2, HashString (SBS b) #)
-  where
-    bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
+
+    out' = HashString (SB.toShort (SHA256.finalizeBits aux bits (fromIntegral bitlen0)))

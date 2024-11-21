@@ -26,7 +26,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <assert.h>
 #include <string.h>
 #include <ghcautoconf.h>
 
@@ -175,40 +174,23 @@ sha256_do_chunk
   explicit_bzero(&w, sizeof(w));
 }
 
-uint64_t
+size_t
 hs_sha256_update
 (const uint32_t state[const SHA256_STATE_LEN],
- uint64_t const count,
- const uint8_t *const buffer,
  const uint8_t *const data,
  size_t const datalen,
  uint32_t out[const SHA256_STATE_LEN])
 {
-  const size_t bufferLen = count & 0x3F;
-  size_t newCount = count;
-  if (out != state) memcpy(out, state, sizeof(*state) * SHA256_STATE_LEN);
-  if ( (datalen + bufferLen) < SHA256_BLOCK_SIZE  ) {
-    return newCount + datalen;
-  } else {
-    size_t dataPos = 0;
-    size_t dataLeft = datalen;
-    if (bufferLen > 0) {
-      dataPos = SHA256_BLOCK_SIZE - bufferLen;
-      dataLeft -= dataPos;
-      uint8_t mybuf[SHA256_BLOCK_SIZE] __attribute__ ((aligned (4)));
-      memcpy(mybuf, buffer, bufferLen);
-      memcpy(mybuf + bufferLen, data, dataPos);
-      sha256_do_chunk(out, mybuf);
-      newCount += dataPos;
-    }
-    while (dataLeft >= SHA256_BLOCK_SIZE) {
-      sha256_do_chunk(out, data + dataPos);
-      dataPos += SHA256_BLOCK_SIZE;
+  if (out != state) memcpy(out, state, SHA256_DIGEST_SIZE);
+  if (data == NULL) return 0;
+  size_t i = 0;
+  size_t dataLeft = datalen;
+  while (dataLeft >= SHA256_BLOCK_SIZE) {
+      sha256_do_chunk(out, data + i);
+      i += SHA256_BLOCK_SIZE;
       dataLeft -= SHA256_BLOCK_SIZE;
-      newCount += SHA256_BLOCK_SIZE;
-    }
-    return newCount + dataLeft;
   }
+  return i;
 }
 
 void
@@ -216,23 +198,32 @@ hs_sha256_update_ctx
 (const sha256_ctx *const in,
  const uint8_t *const data,
  const size_t datalen,
- sha256_ctx  *const out)
+ sha256_ctx *const out)
 {
-  const size_t bufferLen = in->count & 0x3F;
-  if ( (datalen + bufferLen) < SHA256_BLOCK_SIZE) {
-    const size_t pos = sizeof(sha256_ctx) + bufferLen;
-    if (in != out) memcpy(out, in, pos);
-    if (data != NULL && datalen > 0) {
-      memcpy(out->buffer + bufferLen, data, datalen);
-      out->count = in->count + datalen;
-    }
+  const size_t bufferlen = in->count & 0x3F;
+  if ( data == NULL || datalen == 0 ) {
+    if (in != out) memcpy(out, in, sizeof(sha256_ctx) + bufferlen);
+  } else if ( datalen + bufferlen < SHA256_BLOCK_SIZE ) {
+    if (in != out) memcpy(out, in, sizeof(sha256_ctx) + bufferlen);
+    memcpy(out->buffer + bufferlen, data, datalen);
+    out->count += datalen;
+  } else if ( bufferlen == 0 ) {
+    const size_t processedLen = hs_sha256_update(in->state, data, datalen, out->state);
+    out->count += datalen;
+    memcpy(out->buffer, data + processedLen, datalen - processedLen);
   } else {
-    const uint64_t newCounter =
-      hs_sha256_update(in->state, in->count, in->buffer,
-                       data, datalen, out->state);
-    const size_t outLen = newCounter & 0x3F;
-    out->count = newCounter;
-    if (outLen > 0) memcpy(out->buffer, data + datalen - outLen, outLen);
+    // Don't assume the output has enough extra space for a full buffer
+    uint8_t mybuf[SHA256_BLOCK_SIZE] __attribute__ ((aligned (4)));
+    memcpy(mybuf, in->buffer, bufferlen);
+    size_t processedDataLen = SHA256_BLOCK_SIZE - bufferlen;
+    memcpy(mybuf + bufferlen, data, processedDataLen);
+    hs_sha256_update(in->state, mybuf, SHA256_BLOCK_SIZE, out->state);
+    processedDataLen += hs_sha256_update( out->state,
+					  data + processedDataLen,
+					  datalen - processedDataLen,
+					  out->state );
+    out->count = in->count + datalen;
+    memcpy(out->buffer, data + processedDataLen, datalen - processedDataLen );
   }
 }
 
@@ -244,10 +235,12 @@ hs_sha256_promote_to_ctx
  size_t const datalen,
  sha256_ctx *const out)
 {
-  uint64_t const count = hs_sha256_update(state, blockcount << 6, NULL, data, datalen, out->state);
-  out->count = count;
-  size_t const bufferlen = count & 0x3F;
-  memcpy(out->buffer, data + (datalen - bufferlen), bufferlen);
+  uint64_t const processedLen = hs_sha256_update(state, data, datalen, out->state);
+  out->count = (blockcount << 6) + datalen;
+  size_t const bufferlen = datalen & 0x3F;
+  if (data != NULL && bufferlen > 0) {
+    memcpy(out->buffer, data + (datalen - bufferlen), bufferlen);
+  }
 }
 
 void
@@ -305,191 +298,79 @@ hs_sha256_get_count
   return ctx->count;
 }
 
-// Oof, this function should actually be const-polymorphic.  This function has
-// two valid types, with const pointers on both input and output, and without
-// const..  I'm using the I'm using without, as haskell's FFI ignores this,
-// and we won't be using these functions from C.
-
-// Not likely to matter much one way or the other in C... but for the sake
-// of the C compiler we definitely do not want to mutate const pointers
-// from Haskell...
-
-uint8_t *
-hs_sha256_get_buffer
-(sha256_ctx *const ctx)
-{
-  return ctx->buffer;
-}
-
-uint32_t *
-hs_sha256_get_state
-(sha256_ctx *const ctx)
-{
-  return ctx->state;
-}
-
-void
-hs_sha256_cons
-(const uint32_t state[const SHA256_STATE_LEN],
- uint64_t const blockcount,
- const uint8_t *const buffer,
- size_t const bufferlen,
- sha256_ctx *const out)
-{
-  if (out == NULL) return;
-  memcpy(out->state, state, sizeof(*state) * SHA256_STATE_LEN);
-  if (buffer != NULL) {
-    memcpy(out->buffer, buffer, bufferlen);
-    out->count = blockcount << 6 + bufferlen;
-  } else {
-    out->count = blockcount << 6;
-  }
-}
-
 void
 hs_sha256_init_ctx
 (sha256_ctx *const out)
 {
-  hs_sha256_cons(hs_sha256_init, 0, NULL, 0, out);
-}
-
-void
-hs_sha256_finalize
-(const uint32_t state[const SHA256_STATE_LEN],
- uint64_t const count,
- const uint8_t *const buffer,
- const uint8_t *const data,
- size_t const datalen,
- uint8_t out[const SHA256_DIGEST_SIZE])
-{
-  uint8_t mybuffer[SHA256_BLOCK_SIZE] __attribute__ ((aligned (4)));
-  uint32_t mystate[SHA256_STATE_LEN];
-  uint64_t mycount;
-  size_t bufferLen = count & 0x3F;
-  size_t mybufferLen = 0;
-  if ( (bufferLen + datalen) < SHA256_BLOCK_SIZE) {
-    memcpy(mystate,state,sizeof(*state) * SHA256_STATE_LEN);
-    memcpy(mybuffer, buffer, bufferLen);
-    mybufferLen += bufferLen;
-    memcpy(mybuffer + bufferLen, data, datalen);
-    mybufferLen += datalen;
-    mycount = count + datalen;
-  } else {
-    mycount =
-      hs_sha256_update(state, count, buffer,
-                       data, datalen, mystate);
-    mybufferLen = mycount & 0x3F;
-    memcpy(mybuffer, data + (datalen - mybufferLen), mybufferLen);
-  }
-  if (mybufferLen < 56) {
-    memcpy(mybuffer + mybufferLen, hs_sha256_padding, 56 - mybufferLen);
-  } else {
-    memcpy(mybuffer + mybufferLen, hs_sha256_padding, 64 - mybufferLen);
-    sha256_do_chunk(mystate,mybuffer);
-    memset(mybuffer,0,56);
-  }
-
-  mybuffer[56] = (mycount >> 53) & 0xFF;
-  mybuffer[57] = (mycount >> 45) & 0xFF;
-  mybuffer[58] = (mycount >> 37) & 0xFF;
-  mybuffer[59] = (mycount >> 29) & 0xFF;
-  mybuffer[60] = (mycount >> 21) & 0xFF;
-  mybuffer[61] = (mycount >> 13) & 0xFF;
-  mybuffer[62] = (mycount >>  5) & 0xFF;
-  mybuffer[63] = (mycount <<  3) & 0xFF;
-
-  sha256_do_chunk(mystate, mybuffer);
-
-  hs_sha256_encode_state(mystate, out);
-
-  explicit_bzero(&mystate, sizeof(mystate));
-  explicit_bzero(&mybuffer, sizeof(mybuffer));
-}
-
-void
-hs_sha256_finalize_ctx
-(const sha256_ctx *const in,
- const uint8_t *const data,
- size_t const datalen,
- uint8_t out[const SHA256_DIGEST_SIZE])
-{
-  hs_sha256_finalize(in->state, in->count, in->buffer, data, datalen, out);
+  hs_sha256_promote_to_ctx(hs_sha256_init, 0, NULL, 0, out);
 }
 
 void
 hs_sha256_finalize_ctx_bits
 (const sha256_ctx *const in,
- const uint8_t *const bits,
- uint64_t const bitlen,
+ const uint8_t *const data,
+ uint64_t const datalenbits,
  uint8_t out[const SHA256_DIGEST_SIZE])
 {
-  hs_sha256_finalize_bits(in->state, in->count, in->buffer, bits, bitlen, out);
-}
-
-void
-hs_sha256_finalize_bits
-(const uint32_t state[const SHA256_STATE_LEN],
- uint64_t const count,
- const uint8_t *const buffer,
- const uint8_t *const bits,
- uint64_t const bitlen,
- uint8_t out[const SHA256_DIGEST_SIZE])
-{
-  uint8_t mybuffer[SHA256_BLOCK_SIZE] __attribute__ ((aligned (4)));
-  uint32_t mystate[SHA256_STATE_LEN];
-  uint64_t mycount;
-  size_t bufferLen = count & 0x3F;
-  size_t mybufferLen = 0;
-
-  // number of bytes in the final bits, rounded down
-  uint64_t byteLen = bitlen >> 3;
-  if ( (bufferLen + byteLen) < SHA256_BLOCK_SIZE) {
-    memcpy(mystate,state,sizeof(*state) * SHA256_STATE_LEN);
-    memcpy(mybuffer, buffer, bufferLen);
-    mybufferLen += bufferLen;
-    memcpy(mybuffer + bufferLen, bits, byteLen);
-    mybufferLen += byteLen;
-    mycount = count + byteLen;
+  uint8_t buffer[SHA256_BLOCK_SIZE] __attribute__ ((aligned (4)));
+  uint32_t state[SHA256_STATE_LEN];
+  size_t bufferPos = in->count & 0x3F;
+  size_t bufferLeft = SHA256_BLOCK_SIZE - bufferPos;
+  size_t dataLeft = datalenbits >> 3;
+  size_t dataPos;
+  memcpy(buffer, in->buffer, bufferPos);
+  if (data == NULL || datalenbits < 8) {
+    memcpy(state, in, SHA256_DIGEST_SIZE);
+  } else if (dataLeft < bufferLeft) {
+    memcpy(buffer + bufferPos, data, dataLeft);
+    memcpy(state, in, SHA256_DIGEST_SIZE);
+    bufferPos += dataLeft;
+    dataPos = dataLeft;
   } else {
-    mycount =
-      hs_sha256_update(state, count, buffer,
-                       bits, byteLen, mystate);
-    mybufferLen = mycount & 0x3F;
-    memcpy(mybuffer, bits + (byteLen - mybufferLen), mybufferLen);
+    memcpy(buffer + bufferPos, data, bufferLeft);
+    hs_sha256_update(in->state, buffer, SHA256_BLOCK_SIZE, state);
+    dataPos = bufferLeft;
+    dataLeft -= bufferLeft;
+    size_t processedLen = hs_sha256_update(state, data + dataPos, dataLeft, state);
+    dataPos += processedLen;
+    dataLeft -= processedLen;
+    memcpy(buffer, data + dataPos, dataLeft);
+    bufferPos = dataLeft;
   }
 
-  uint8_t bitsLeft = bitlen & 7;
+  uint8_t bitsLeft = datalenbits & 7;
 
-  // we need this conditional to avoid dereferencing past the end of "bits"
+  // we need this conditional to avoid dereferencing past the end of "data"
   uint8_t lastByte = bitsLeft == 0 ? 0x80
-    : (bits[byteLen + 1] & (0xFF << (8 - bitsLeft))) | 1 << (7 - bitsLeft);
+    : (data[dataPos] & (0xFF << (8 - bitsLeft))) | 1 << (7 - bitsLeft);
 
-  mybuffer[mybufferLen++] = lastByte;
-  if (mybufferLen <= 56) {
-    memset(mybuffer + mybufferLen, 0, 56 - mybufferLen);
+  buffer[bufferPos++] = lastByte;
+
+  if (bufferPos <= 56) {
+    memset(buffer + bufferPos, 0, 56 - bufferPos);
   } else {
-    memset(mybuffer + mybufferLen, 0, 64 - mybufferLen);
-    sha256_do_chunk(mystate,mybuffer);
-    memset(mybuffer,0,56);
+    memset(buffer + bufferPos, 0, 64 - bufferPos);
+    sha256_do_chunk(state,buffer);
+    memset(buffer, 0, 56);
   }
 
-  uint64_t finalBitLen = mycount << 3 + bitsLeft ;
+  uint64_t finalBitLen = (in->count << 3) + datalenbits ;
 
-  mybuffer[56] = (finalBitLen >> 56) & 0xFF;
-  mybuffer[57] = (finalBitLen >> 48) & 0xFF;
-  mybuffer[58] = (finalBitLen >> 40) & 0xFF;
-  mybuffer[59] = (finalBitLen >> 32) & 0xFF;
-  mybuffer[60] = (finalBitLen >> 24) & 0xFF;
-  mybuffer[61] = (finalBitLen >> 16) & 0xFF;
-  mybuffer[62] = (finalBitLen >>  8) & 0xFF;
-  mybuffer[63] = (finalBitLen      ) & 0xFF;
+  buffer[56] = (finalBitLen >> 56) & 0xFF;
+  buffer[57] = (finalBitLen >> 48) & 0xFF;
+  buffer[58] = (finalBitLen >> 40) & 0xFF;
+  buffer[59] = (finalBitLen >> 32) & 0xFF;
+  buffer[60] = (finalBitLen >> 24) & 0xFF;
+  buffer[61] = (finalBitLen >> 16) & 0xFF;
+  buffer[62] = (finalBitLen >>  8) & 0xFF;
+  buffer[63] = (finalBitLen      ) & 0xFF;
 
-  sha256_do_chunk(mystate, mybuffer);
+  sha256_do_chunk(state, buffer);
 
-  hs_sha256_encode_state(mystate, out);
+  hs_sha256_encode_state(state, out);
 
-  explicit_bzero(&mystate, sizeof(mystate));
-  explicit_bzero(&mybuffer, sizeof(mybuffer));
+  explicit_bzero(&state, sizeof(state));
+  explicit_bzero(&buffer, sizeof(buffer));
 }
 
 // memcmp that is supposed to run in constant time, i.e. time independent of
