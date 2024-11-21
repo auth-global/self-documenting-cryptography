@@ -65,7 +65,7 @@ sha256state_init :: Sha256State
 sha256state_init =
   unsafePerformIO . IO $ \st ->
     let (Ptr addr) = c_sha256_init
-        (# st0, a #) = newByteArray# 32# st
+        (# st0, a #) = newPinnedByteArray# 32# st
         st1 = copyAddrToByteArray# addr a 0# 32# st0
         -- FIXME?  Review this to ensure that 32# is the correct input above
         -- Problem is the documentation is ambiguous, and the source is magic.
@@ -81,7 +81,7 @@ sha256state_init =
 sha256state_feed :: ByteString -> Sha256State -> Sha256State
 sha256state_feed b (Sha256State p) =
   unsafePerformIO . unsafeUseAsCStringLen b $ \(bp, bl) -> IO $ \st ->
-    let (# st0, a #) = newByteArray# 32# st
+    let (# st0, a #) = newPinnedByteArray# 32# st
         (# st1, _ #) = unIO (c_sha256_update p 0 nullPtr bp (fromIntegral bl) a) st0
         (# st2, b #) = unsafeFreezeByteArray# a st1
      in (# st2, Sha256State b #)
@@ -101,7 +101,7 @@ sha256state_fromCtxInplace (Sha256Ctx a _) = Sha256State a
 sha256state_fromCtx :: Sha256Ctx -> Sha256State
 sha256state_fromCtx (Sha256Ctx ctx _) =
   unsafePerformIO . IO $ \st ->
-    let (# st0, a #) = newByteArray# 32# st
+    let (# st0, a #) = newPinnedByteArray# 32# st
         st1 = copyByteArray# ctx 0# a 0# 32# st0
         (# st2, b #) = unsafeFreezeByteArray# a st1
      in (# st2, Sha256State b #)
@@ -109,7 +109,7 @@ sha256state_fromCtx (Sha256Ctx ctx _) =
 sha256state_runWith :: Word64 -> ByteString -> Sha256State -> Sha256Ctx
 sha256state_runWith blocks bytes shast@(Sha256State p) =
     unsafePerformIO . unsafeUseAsCStringLen bytes $ \(bp, bl) -> IO $ \st ->
-      let (# st0, a #) = newByteArray# ctxLen# st
+      let (# st0, a #) = newPinnedByteArray# ctxLen# st
           (# st1, () #) = unIO (c_sha256_promote_to_ctx p blocks bp (fromIntegral bl) a) st0
           (# st2, b #) = unsafeFreezeByteArray# a st1
        in (# st2, Sha256Ctx b aux #)
@@ -128,7 +128,7 @@ sha256state_initAux blockCount (Sha256State state#) = SHA256.Ctx (run out)
 sha256state_encode :: Sha256State -> ShortByteString
 sha256state_encode (Sha256State x) =
     unsafePerformIO . IO $ \st ->
-      let (# st0, a #) = newByteArray# 32# st
+      let (# st0, a #) = newPinnedByteArray# 32# st
           (# st1, () #) = unIO (c_sha256_encode_state x a) st0
           (# st2, b #) = unsafeFreezeByteArray# a st1
        in (# st2, SBS b #)
@@ -136,7 +136,7 @@ sha256state_encode (Sha256State x) =
 sha256state_decode :: ShortByteString -> Sha256State
 sha256state_decode (SBS x) =
     unsafePerformIO . IO $ \st ->
-      let (# st0, a #) = newByteArray# 32# st
+      let (# st0, a #) = newPinnedByteArray# 32# st
           (# st1, () #) = unIO (c_sha256_decode_state x a) st0
           (# st2, b #) = unsafeFreezeByteArray# a st1
        in (# st2, Sha256State b #)

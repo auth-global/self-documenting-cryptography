@@ -31,6 +31,8 @@ library
   hs-source-dirs:    lib
   include-dirs:      csrc
   default-language:  Haskell2010
+--  cc-options:        -fsanitize=undefined
+--  ld-options:        -fsanitize=undefined  
   install-includes:  csrc/hs_sha256.h
   c-sources:         csrc/hs_sha256.c
 
@@ -40,7 +42,6 @@ test-suite test
   main-is:           Main.hs
 
   other-modules:     HMAC
-
   build-depends:     base
                    , base16
                    , bytestring

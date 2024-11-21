@@ -43,6 +43,8 @@ import System.IO.Unsafe
 import Crypto.Sha256.Subtle
 import qualified Crypto.Hash.SHA256 as SHA256
 
+import Debug.Trace
+
 newtype HashString = HashString { unHashString :: ShortByteString }
 
 instance Eq HashString where
@@ -88,7 +90,7 @@ hash x = sha256_init & sha256_finalizeBits x maxBound
 sha256_init :: Sha256Ctx
 sha256_init =
   unsafePerformIO . IO $ \st ->
-    let (# st0, a #) = newByteArray# 40# st
+    let (# st0, a #) = newPinnedByteArray# 40# st
         (# st1, _ #) = unIO (c_sha256_init_ctx a) st0
         (# st2, b #) = unsafeFreezeByteArray# a st1
      in (# st2, Sha256Ctx b SHA256.init #)
@@ -114,7 +116,7 @@ sha256_update ctx0@(Sha256Ctx ctx aux) bytes
       let count = c_sha256_get_count ctx + fromIntegral (B.length bytes)
       let (I# bufLen#) = 40 + fromIntegral (count .&. 0x3F)
       unsafeUseAsCStringLen bytes $ \(bp,bl) -> IO $ \st ->
-        let (# st'0, a #) = newByteArray# bufLen# st
+        let (# st'0, a #) = newPinnedByteArray# bufLen# st
             (# st'1, _ #) = unIO (c_sha256_update_ctx ctx bp (fromIntegral bl) a) st'0
             (# st'2, b #) = unsafeFreezeByteArray# a st'1
             aux' = SHA256.update aux bytes
@@ -137,15 +139,16 @@ sha256_feeds = flip sha256_updates
 
 sha256_finalize :: Sha256Ctx -> ByteString
 sha256_finalize = sha256_finalizeBits B.empty 0
-
+{--
 sha256_finalizeBits :: ByteString -> Word64 -> Sha256Ctx -> ByteString
-sha256_finalizeBits bits bitlen0 ctx0@(Sha256Ctx ctx aux)
-    | out == out' = out'
+sha256_finalizeBits bits bitlen0 ctx0@(Sha256Ctx ctx aux) 
+    | out == out' = trace ("\nout  " ++ enc out ++ "\nout' " ++ enc out') out  
     | otherwise = error (    "sha256_finalizeBits: output hashes not equal"
-                        ++ "\n  out  " ++ map w2c (B.unpack (extractBase16 (B.encodeBase16' out)))
-                        ++ "\n  out' " ++ map w2c (B.unpack (extractBase16 (B.encodeBase16' out')))
+                        ++ "\n  out  " ++ enc out
+                        ++ "\n  out' " ++ enc out'
                         ++ "\n")
   where
+    enc = map w2c . B.unpack . extractBase16 . B.encodeBase16'
     bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
 
     out = unsafePerformIO $ do
@@ -156,11 +159,15 @@ sha256_finalizeBits bits bitlen0 ctx0@(Sha256Ctx ctx aux)
           return result
 
     out' = SHA256.finalizeBits aux bits (fromIntegral bitlen0)
+--}
+
+sha256_finalizeBits :: ByteString -> Word64 -> Sha256Ctx -> ByteString
+sha256_finalizeBits bits bitlen0 ctx = hashString_toByteString (sha256_hashFinalBitString bits bitlen0 ctx)
 
 sha256_hashFinalBitString :: ByteString -> Word64 -> Sha256Ctx -> HashString
 sha256_hashFinalBitString bits bitlen0 (Sha256Ctx ctx _) =
     unsafePerformIO . unsafeUseAsCString bits $ \bp -> IO $ \st ->
-      let (# st0, a #) = newByteArray# 32# st
+      let (# st0, a #) = newPinnedByteArray# 32# st
           (# st1, () #) = unIO (c_sha256_finalize_ctx_bits_ba ctx bp bitlen a) st0
           (# st2, b #) = unsafeFreezeByteArray# a st1
        in (# st2, HashString (SBS b) #)
