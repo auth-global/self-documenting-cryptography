@@ -2,6 +2,12 @@
 
 * Add bindings for serializing/deserializing Sha256State and Sha256Ctx
 
+* HKDF Support
+
+* PBKDF2 Support
+
+* Better support for hashing things other than ByteStrings
+
 * Add tests
 
    * ensure that the comparison for Sha256State provides the same ordering
@@ -9,6 +15,8 @@
      on the result.
 
    * other tests regarding comparisons
+
+   * throughly exercise the buffer-handling code
 
    * Implement the NIST test suite
 

@@ -271,7 +271,7 @@ data G3PSalt = G3PSalt
     --   to ensure that the first 32 bytes are highly actionable, as these
     --   bytes are commonly used as filler padding.
     --
-    --   This parameter provides [domain separation](https://csrc.nist.gov/glossary/term/domain_separation).
+    --   This parameter provides [domain separation](https://en.wikipedia.org/wiki/Domain_separation). (also see the [NIST glossary](https://csrc.nist.gov/glossary/term/domain_separation))
     --   A suggested value is a ICANN domain name controlled by the deployment.
     --
     --   The name is also a bit of an homage to the "realm" parameter of HTTP
@@ -346,27 +346,21 @@ data G3PInputs = G3PInputs
   --   computed. Offering a server-side remote procedure call to perform
   --   this normalization is recommended.
   --
-  --   The G3P is intentionally designed to allow the plaintext of this
-  --   parameter to be hidden from a password cracker via a simple partial
-  --   evaluation, preventing the cracker from immediately logging in if
-  --   successful. However, this partial application doesn't apply any
-  --   key-stretching, meaning that guessable login names can be cracked
-  --   relatively quickly.
+  --   The G3P is intentionally designed to allow the plaintext username
+  --   to be hidden from a password cracker via partial evaluation, preventing
+  --   the cracker from immediately logging in if successful. However, this
+  --   partial application doesn't apply any key-stretching, meaning that
+  --   guessable login names can be cracked relatively quickly.
   --
-  --   Thus this approach is less a defensive line than more a "sand in
+  --   Thus this approach is less of a defensive line and more of a "sand in
   --   the gears" tactic. It might also be useful as a legal damages
   --   enhancement strategy against unauthorized password crackers who
   --   fail to take this step to help protect users' privacy.
   --
-  --   A simple mitigation on this count is to disconnect login names from
-  --   publicly-facing screen names, something that can benefit nearly any
-  --   approach. Also, one might add key-stretching to the username itself
-  --   by hashing the username first with a slow hash function.
-  --
-  --   The advantage to using plain login names is that in a client-side
-  --   prehashing scenario, it is simple and easy to ensure that the salting
-  --   process does not leak anything about the existence or non-existence
-  --   of accounts, and does not leak anything about recent account activity.
+  --   A simple mitigation is to disconnect login names from publicly-facing
+  --   screen names, something that can benefit nearly any approach. Also,
+  --   one could add key-stretching to the login name by hashing it first
+  --   with a slow hash function.
   --
   --   On the other hand, using a random salt per acccount has the potential
   --   to be a far more meaningful defensive line. This can serve both the
@@ -377,39 +371,37 @@ data G3PInputs = G3PInputs
   --
   --   The cost is that in typical client-side prehashing scenarios, your
   --   server will have to reveal the actual salt for arbitrary accounts
-  --   to arbitrary members of the public.
+  --   to arbitrary members of the public. This has the potential to leak
+  --   information about the (non-)existence of accounts and to leak
+  --   information about recent account activity.
   --
-  --   This has the potential to leak information about the (non-)existence
-  --   of accounts and to leak information about recent account activity.
-  --   Though I don't exactly understand how a public-facing service handing
-  --   out random salts for a given username could become a reidentifcation
-  --   hook for deanonymization attacks, it's also something that seems
+  --   Of particular concern is providing reidentification hooks that
+  --   enable deanonymization attacks.  Though I don't exactly understand
+  --   how a public-facing service handing out random salts for a given
+  --   username could become such a hook, it's also something that seems
   --   possible.
   --
-  --   It should be possible to largely mitigate these issues; for example,
-  --   one might generate consistent nonsense as the salt for non-existent
-  --   accounts by having the server normalize the username and hash it with
-  --   a secret key. While such a simple approach might not be perfect, it
-  --   would likely go a long way towards mitigation.
+  --   These issues can be mitigated by providing a salt lookup service
+  --   that is capable of handing out convincing nonsense that is consistent
+  --   over time. One need not even remember every fake salt you've ever
+  --   handed out, for example your server could generate a fake salt by
+  --   hashing a normalized version of the nonexistent login name with
+  --   a secret key.
   --
-  --   Using plaintext (or hashed) usernames seems decidedly better than
-  --   running a public salt lookup service that doesn't attempt to mitigate
-  --   account-existence attacks, which itself can be a very juicy
-  --   reidentification hook.
+  --   If you are running a sufficiently sensitive identity service to
+  --   justify the additional complexity and ongoing operational costs,
+  --   using a salt server to hand out random salts in order to completely
+  --   disconnect public salts from login names (except by talking to
+  --   or compromising the salt server) seems very much worthwhile.
   --
-  --   A random salt service that is capable of handing out convincing,
-  --   consistent nonsense might still be capable of being some kind of weird,
-  --   exotic reidentification hook, but plaintext usernames have the potential
-  --   of becoming a much more obviously interesting reidentification hook
-  --   if/when the password database is leaked or otherwise compromised.
-  --
-  --   Thus handing out random salts using a public-facing service that is
-  --   capable of generating convincing, consistent nonsense for nonexistant
-  --   accounts seems better than plaintext usernames, especially if one is
-  --   operating a sufficiently sensitive identity service and/or can justify
-  --   the additional ongoing complexity and sporadic ongoing IT labor expense
-  --   of managing and handing out random salts without inadvertently providing
-  --   an account-existence oracle available to the general public 24/7.
+  --   One reason is that when a password hash is stolen, having a login
+  --   name in its derivation can be a reidentification hook without even
+  --   needing to talk to a server.  On the other hand, this technique
+  --   still seems far preferable to a poorly implemented salt server that
+  --   becomes a security liability and/or reveals account existence to
+  --   arbitrary members of the public.  After all, account existance can
+  --   itself be an extremely juicy reidentification hook and doesn't
+  --   require stealing password hashes first.
   --
   --   In a few specialized cases it might be possible to hide a random salt
   --   from members of the general public by requiring pre-authentication
@@ -430,28 +422,26 @@ data G3PInputs = G3PInputs
   --
   --   I see this choice of plain usernames versus random salts or possibly
   --   even none at all as a fairly fundamental tradeoff in the design of G3P
-  --   deployments. I took the time to ensure that all are possible. Any can
-  --   be executed poorly, and any can be executed well.
+  --   deployments. I took the time to ensure that all are possible.
   --
   --   In my estimation, of these three approaches that I've started to
-  --   sketch, the hardest to mess up badly is to use the G3P to derive
-  --   a salt from plaintext login names, and then include that salt here
-  --   and the 'g3pSalt_contextTags' parameters for the actual password
-  --   attempt.
+  --   sketch,  directly deriving salts from login names is the hardest
+  --   to mess up badly.
   --
-  --   The other approaches do seem to offer potentially worthwhile rewards,
-  --   but they also create additional attack surfaces that specific
-  --   deployments could make vulnerable.
+  --   Implementing a salt server brings potentially signficant security
+  --   advantages, but also represents additional complexity, operational
+  --   expense, and creates additional attack surfaces and security risks.
   --
   --   This decision has significant strategic consequences. I don't think
   --   there exists a one-size-fits-all solution, and there are quite a few
-  --   ways to sensibly customize each approach. Pick your poison wisely.
+  --   ways to sensibly customize each approach. Any can be executed poorly,
+  --   and any can be executed well. Pick your poison wisely.
   , g3pInputs_password :: !ByteString
   -- ^ constant time on 0-293 bytes, or if any of the other conditions are met.
   , g3pInputs_credentials :: !(Vector ByteString)
-  -- ^ constant time on 0-282 encoded bytes. This includes a variable-length
-  --   field that encodes the bit length of each string; this field itself
-  --   requires two or more bytes per string.
+  -- ^ constant time on 0-282 encoded bytes. This includes variable-length
+  --   fields that encode the bit length of each string; these fields itself
+  --   require two or more bytes per string.
   } deriving (Eq)
 
 data G3PSeedInputs = G3PSeedInputs
