@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# Language OverloadedStrings #-}
 
 -- | The Password Hash Key Derivation Function (PHKDF) is a unification,
 --   synthesis, and distillation of PBKDF2, HKDF, and TupleHash. It was
@@ -251,33 +251,33 @@ phkdfSimple block args = echo
 
     secretKey =
         phkdfCtx seguid &
-        phkdfCtx_addArgs headerUsername &
+        phkdfCtx_feedArgs headerUsername &
         phkdfCtx_assertBufferPosition 32 &
-        phkdfCtx_addArg  password &
-        phkdfCtx_addArgs headerLongTag &
-        -- FIXME: fusing addArg and passwordPadding can save ~ 8 KiB RAM
-        phkdfCtx_addArg (passwordPadding headerUsername headerLongTag longTag domainTag password) &
+        phkdfCtx_feedArg  password &
+        phkdfCtx_feedArgs headerLongTag &
+        -- FIXME: fusing feedArg and passwordPadding can save ~ 8 KiB RAM
+        phkdfCtx_feedArg (passwordPadding headerUsername headerLongTag longTag domainTag password) &
         phkdfCtx_assertBufferPosition 32 &
-        phkdfCtx_addArgs credentials &
-        phkdfCtx_addArg (credentialsPadding credentials longTag domainTag) &
+        phkdfCtx_feedArgs credentials &
+        phkdfCtx_feedArg (credentialsPadding credentials longTag domainTag) &
         phkdfCtx_assertBufferPosition 29 &
-        phkdfCtx_addArgs tags &
-        phkdfCtx_addArg (bareEncode (V.length tags)) &
+        phkdfCtx_feedArgs tags &
+        phkdfCtx_feedArg (bareEncode (V.length tags)) &
         phkdfSlowCtx_extract
             (cycleByteStringWithNull domainTag)
             (word32 "go\x00\x00" + 2023) domainTag
             "phkdf-simple0 compact" rounds &
         phkdfSlowCtx_assertBufferPosition 32 &
-        phkdfSlowCtx_addArgs tags &
+        phkdfSlowCtx_feedArgs tags &
         phkdfSlowCtx_finalize (cycleByteStringWithNull domainTag)
 
     -- Harden the tags vector against length-based timing side-channels
     echoHeader = cycleByteStringWithNull "phkdf-simple0 expand echo" 30
 
     echo = phkdfCtx secretKey &
-           phkdfCtx_addArg echoHeader &
+           phkdfCtx_feedArg echoHeader &
            phkdfCtx_assertBufferPosition 32 &
-           phkdfCtx_addArgs tags &
+           phkdfCtx_feedArgs tags &
            phkdfCtx_toStream (cycleByteStringWithNull domainTag) (word32 "OUT\x00") domainTag
 
 -- | A tweakable, complete prehash protocol.   Note that this function is very
@@ -336,24 +336,24 @@ phkdfPass_seedInit block args =
 
     secret =
         phkdfCtx_init seguidKey &
-        phkdfCtx_addArgs headerUsername &
+        phkdfCtx_feedArgs headerUsername &
         phkdfCtx_assertBufferPosition 32 &
-        phkdfCtx_addArg  password &
-        -- FIXME: fusing addArg and longPadding can save ~ 8 KiB RAM
-        phkdfCtx_addArgs headerLongTag &
-        phkdfCtx_addArg  (passwordPadding headerUsername headerLongTag longTag domainTag password) &
+        phkdfCtx_feedArg  password &
+        -- FIXME: fusing feedArg and longPadding can save ~ 8 KiB RAM
+        phkdfCtx_feedArgs headerLongTag &
+        phkdfCtx_feedArg  (passwordPadding headerUsername headerLongTag longTag domainTag password) &
         phkdfCtx_assertBufferPosition 32 &
-        phkdfCtx_addArgs credentials &
-        phkdfCtx_addArg (credentialsPadding credentials longTag domainTag) &
+        phkdfCtx_feedArgs credentials &
+        phkdfCtx_feedArg (credentialsPadding credentials longTag domainTag) &
         phkdfCtx_assertBufferPosition 29 &
-        phkdfCtx_addArgs seedTags &
-        phkdfCtx_addArg (bareEncode (V.length seedTags)) &
+        phkdfCtx_feedArgs seedTags &
+        phkdfCtx_feedArg (bareEncode (V.length seedTags)) &
         phkdfSlowCtx_extract
             (cycleByteStringWithNull domainTag)
             (word32 "go\x00\x00" + 2023) domainTag
             "phkdf-pass-v0 compact" rounds &
         phkdfSlowCtx_assertBufferPosition 32 &
-        phkdfSlowCtx_addArgs seedTags &
+        phkdfSlowCtx_feedArgs seedTags &
         phkdfSlowCtx_finalize (cycleByteStringWithNull domainTag)
 
 -- | This consumes a seed and tweaks to produce the final output stream.
@@ -374,8 +374,8 @@ phkdfPass_seedFinalize seed tweak = echo
     headerCombine = B.concat ["phkdf-pass-v0 combine", secret]
     secretKey =
         phkdfCtx_init seguidKey &
-        phkdfCtx_addArg  headerCombine &
-        phkdfCtx_addArgs role &
+        phkdfCtx_feedArg  headerCombine &
+        phkdfCtx_feedArgs role &
         phkdfCtx_finalize (cycleByteStringWithNull domainTag) (word32 "KEY\x00") domainTag
 
     headerEcho = cycleByteString (domainTag <> "\x00phkdf-pass-v0 echo\x00") 32

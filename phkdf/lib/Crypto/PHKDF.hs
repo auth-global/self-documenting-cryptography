@@ -214,10 +214,10 @@ module Crypto.PHKDF
   , phkdfCtx_hmacKeyLike
   , phkdfCtx_toResetHmacCtx
   , phkdfCtx_reset
-  , phkdfCtx_addArg
-  , phkdfCtx_addArgs
-  , phkdfCtx_addArgsBy
-  , phkdfCtx_addArgConcat
+  , phkdfCtx_feedArg
+  , phkdfCtx_feedArgs
+  , phkdfCtx_feedArgsBy
+  , phkdfCtx_feedArgConcat
   , phkdfCtx_finalize
   , phkdfCtx_finalizeHmac
   , phkdfCtx_toHmacCtx
@@ -230,8 +230,8 @@ module Crypto.PHKDF
 {--
   , PhkdfSlowCtx()
   , phkdfSlowCtx_extract
-  , phkdfSlowCtx_addArg
-  , phkdfSlowCtx_addArgs
+  , phkdfSlowCtx_feedArg
+  , phkdfSlowCtx_feedArgs
   , phkdfSlowCtx_finalize
   , phkdfSlowCtx_toStream
 --}
@@ -349,22 +349,22 @@ phkdfCtx_toResetHmacCtx = hmacKeyLike_run . phkdfCtx_hmacKeyLike
 -- | append a single string onto the end of @phkdfStream@'s list of
 --   arguments.
 
-phkdfCtx_addArg :: ByteString -> PhkdfCtx -> PhkdfCtx
-phkdfCtx_addArg str = phkdfCtx_unsafeFeed [len, str]
+phkdfCtx_feedArg :: ByteString -> PhkdfCtx -> PhkdfCtx
+phkdfCtx_feedArg str = phkdfCtx_unsafeFeed [len, str]
   where
     len = leftEncodeFromBytes (B.length str)
 -- | append zero or more strings onto the end of @phkdfStream@'s list of
 --   arguments.
 
-phkdfCtx_addArgs :: Foldable f => f ByteString -> PhkdfCtx -> PhkdfCtx
-phkdfCtx_addArgs params ctx = foldl' (flip phkdfCtx_addArg) ctx params
+phkdfCtx_feedArgs :: Foldable f => f ByteString -> PhkdfCtx -> PhkdfCtx
+phkdfCtx_feedArgs params ctx = foldl' (flip phkdfCtx_feedArg) ctx params
 
-phkdfCtx_addArgsBy :: Foldable f => (a -> ByteString) -> f a -> PhkdfCtx -> PhkdfCtx
-phkdfCtx_addArgsBy f params ctx0 = foldl' delta ctx0 params
-  where delta ctx a = phkdfCtx_addArg (f a) ctx
+phkdfCtx_feedArgsBy :: Foldable f => (a -> ByteString) -> f a -> PhkdfCtx -> PhkdfCtx
+phkdfCtx_feedArgsBy f params ctx0 = foldl' delta ctx0 params
+  where delta ctx a = phkdfCtx_feedArg (f a) ctx
 
-phkdfCtx_addArgConcat :: Foldable f => f ByteString -> PhkdfCtx -> PhkdfCtx
-phkdfCtx_addArgConcat strs =
+phkdfCtx_feedArgConcat :: Foldable f => f ByteString -> PhkdfCtx -> PhkdfCtx
+phkdfCtx_feedArgConcat strs =
     phkdfCtx_unsafeFeed [len] >>>
     phkdfCtx_unsafeFeed strs
   where

@@ -62,7 +62,7 @@ import           Data.Word
 import           Network.ByteOrder(word32, bytestring32)
 
 import           Crypto.PHKDF.HMAC (HmacKeyPrefixed, hmacKeyPrefixed_feeds)
-import           Crypto.PHKDF (PhkdfCtx, phkdfCtx_initPrefixed, phkdfCtx_addArgsBy, phkdfCtx_addArg, phkdfCtx_finalize, phkdfCtx_byteCount, phkdfCtx_endPaddingLength)
+import           Crypto.PHKDF (PhkdfCtx, phkdfCtx_initPrefixed, phkdfCtx_feedArgsBy, phkdfCtx_feedArg, phkdfCtx_finalize, phkdfCtx_byteCount, phkdfCtx_endPaddingLength)
 import           Crypto.PHKDF.Assert
 
 import           Crypto.Encoding.PHKDF (chunkify, chunkifyCycle, takeBs, nullBuffer)
@@ -186,8 +186,8 @@ bcryptXsFree toString fnName creds longTag contextTags domainTag ctr0 = initRoun
           where
             n0 = phkdfCtx_byteCount ctx0 `mod` 64
             n1 = phkdfCtx_byteCount ctx1 `mod` 64
-            ctx1 = phkdfCtx_addArgsBy toString cs ctx0
-            ctx2 = phkdfCtx_addArg credsPad ctx1 &
+            ctx1 = phkdfCtx_feedArgsBy toString cs ctx0
+            ctx2 = phkdfCtx_feedArg credsPad ctx1 &
                    phkdfCtx_assertBufferPosition n0
             -- Length of PHKDF end-of-args padding
             endPadLen = phkdfCtx_endPaddingLength ctx0
@@ -205,14 +205,14 @@ bcryptXsFree toString fnName creds longTag contextTags domainTag ctr0 = initRoun
             credsPad = B.concat (takeBs credsPadLen (tagBytesFrom credsPadOffset))
 
         key0 = phkdfCtx_initPrefixed (penBytes !! 0) sha0 &
-               phkdfCtx_addArgsBy toString contextTags &
+               phkdfCtx_feedArgsBy toString contextTags &
                maybe id addCredentials mCreds &
                phkdfCtx_finalize endPad0 (word32 "KEY0") domainTag
 
         ("",sha1) = hmacKeyPrefixed_feeds [penBytes !! 1, key0] sha0
 
         key1 = phkdfCtx_initPrefixed (penBytes !! 2) sha1 &
-               phkdfCtx_addArgsBy toString contextTags &
+               phkdfCtx_feedArgsBy toString contextTags &
                phkdfCtx_finalize endPad1 (word32 "KEY1") domainTag
 
         args = BCryptXsCtr

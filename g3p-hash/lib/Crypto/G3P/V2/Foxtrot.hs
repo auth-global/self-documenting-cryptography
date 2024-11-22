@@ -69,8 +69,8 @@ g3pFoxtrot salt hash ikms = doTweak
 
     spark =
       phkdfCtx_init secretSalt &
-      phkdfCtx_addArg (foxtrot <> hash) &
-      phkdfCtx_addArgs ikms &
+      phkdfCtx_feedArg (foxtrot <> hash) &
+      phkdfCtx_feedArgs ikms &
       phkdfCtx_toHmacKeyPrefixed (B.concat . flip takeBs [domainTag, "\x00", longTag, nullBuffer] . fromIntegral)
 
     -- G3Pb2 foxtrot doesn't ever explicitly encode the length of the syntax
@@ -109,10 +109,10 @@ g3pFoxtrot salt hash ikms = doTweak
 
     sprout =
       phkdfCtx_initPrefixed (B.concat $ takeBs 32 [domainTag, "\x00", foxtrot, nullBuffer]) seed &
-      phkdfCtx_addArgs contextTags
+      phkdfCtx_feedArgs contextTags
 
     doTweak tweak counter =
-      phkdfCtx_addArgs tweak sprout &
+      phkdfCtx_feedArgs tweak sprout &
       phkdfCtx_toGen (B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral) counter domainTag
 
 g3pTango
@@ -126,8 +126,8 @@ g3pTango secretKey inputs domainTag = out
     tango = "G3Pb2 tango"
     out =
       phkdfCtx_init secretKey &
-      phkdfCtx_addArg tango &
-      phkdfCtx_addArgs inputs &
+      phkdfCtx_feedArg tango &
+      phkdfCtx_feedArgs inputs &
       phkdfCtx_finalize (B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral) (word32 "SALT") domainTag
 
 g3pTangoSalt

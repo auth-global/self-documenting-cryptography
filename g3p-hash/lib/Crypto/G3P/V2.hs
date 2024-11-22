@@ -850,17 +850,17 @@ g3pSpark salt inputs = spark
 
     (PairBS alfaSum alfaExt) =
         phkdfCtx_init seguid &
-        phkdfCtx_addArgs headerUsername &
+        phkdfCtx_feedArgs headerUsername &
         phkdfCtx_assertBufferPosition' 32 &
-        phkdfCtx_addArg  password &
-        phkdfCtx_addArgs headerLongTag &
-        phkdfCtx_addArgConcat longPadding &
+        phkdfCtx_feedArg  password &
+        phkdfCtx_feedArgs headerLongTag &
+        phkdfCtx_feedArgConcat longPadding &
         phkdfCtx_assertBufferPosition' 32 &
-        phkdfCtx_addArgs credentials &
-        phkdfCtx_addArgConcat credsPadding &
+        phkdfCtx_feedArgs credentials &
+        phkdfCtx_feedArgConcat credsPadding &
         phkdfCtx_assertBufferPosition' 29 &
-        phkdfCtx_addArgs contextTags &
-        phkdfCtx_addArg (bareEncode (V.length contextTags)) &
+        phkdfCtx_feedArgs contextTags &
+        phkdfCtx_feedArg (bareEncode (V.length contextTags)) &
         phkdfCtx_toStream endPadding
            (word32 "go\x00\x00" + 2024) domainTag &
         xorScan & myDrop' 1 & -- ensure that the sum is not filled with nulls
@@ -888,7 +888,7 @@ g3pSpark salt inputs = spark
         takeBs 31 [domainTag, "\x00", bravo, nullBuffer] ++ [b]
 
     keyB = phkdfCtx_initPrefixed (bravoKeyPad "B") prefixBravo &
-           phkdfCtx_addArgs contextTags &
+           phkdfCtx_feedArgs contextTags &
            phkdfCtx_finalize endPadding (word32 "KEYB") domainTag
 
     -- keyC, charlie's continuation control key
@@ -909,7 +909,7 @@ g3pSpark salt inputs = spark
     --   primary intended context of a client-side prehash function.
 
     keyC = phkdfCtx_initPrefixed (bravoKeyPad "C") prefixBravo &
-           phkdfCtx_addArgs contextTags &
+           phkdfCtx_feedArgs contextTags &
            phkdfCtx_finalize endPadding (word32 "KEYC") domainTag
 
     -- Note that the two keys above are derived to be independent of
@@ -997,7 +997,7 @@ g3pSpark_toSeed spark inputs = G3PSeed seed
     ("", endCont) = hmacKeyPrefixed_feeds [contPad, contKey] charlieCont
 
     seed = phkdfCtx_initPrefixed contPad endCont &
-           phkdfCtx_addArgs contextTags &
+           phkdfCtx_feedArgs contextTags &
            phkdfCtx_finalize endPadding (word32 "SEED") domainTag
 
     endPadding = B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral
@@ -1012,15 +1012,15 @@ g3pSeed_toSprout (G3PSeed seed) key = G3PSprout ctx
   where
     delta = "G3Pb2 delta"
     ctx = phkdfCtx_init key &
-          phkdfCtx_addArg (delta <> seed)
+          phkdfCtx_feedArg (delta <> seed)
 
--- | flipped version of 'g3pSprout_addArg'
+-- | flipped version of 'g3pSprout_feedArg'
 
 g3pSprout_feedArg :: ByteString -> G3PSprout -> G3PSprout -- ^ the middle of @G3Pb2 delta@
-g3pSprout_feedArg x = G3PSprout . phkdfCtx_addArg x . g3pSprout_phkdfCtx
+g3pSprout_feedArg x = G3PSprout . phkdfCtx_feedArg x . g3pSprout_phkdfCtx
 
 g3pSprout_feedArgs :: Foldable f => f ByteString -> G3PSprout -> G3PSprout -- ^ the middle of @G3Pb2 delta@
-g3pSprout_feedArgs xs = G3PSprout . phkdfCtx_addArgs xs . g3pSprout_phkdfCtx
+g3pSprout_feedArgs xs = G3PSprout . phkdfCtx_feedArgs xs . g3pSprout_phkdfCtx
 
 -- | The name of this function is a mnemonic for the argument order.  It adds
 --   a single argument to a 'G3PSprout', which represents a partial evaluation of @G3Pb2 delta@

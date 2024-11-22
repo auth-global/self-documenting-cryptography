@@ -447,25 +447,25 @@ g3pHash_seedInit block args =
 
     secretStream =
         phkdfCtx_init seguidKey &
-        phkdfCtx_addArgs headerUsername &
+        phkdfCtx_feedArgs headerUsername &
         phkdfCtx_assertBufferPosition' 32 &
-        phkdfCtx_addArg  password &
-        phkdfCtx_addArg  bcryptTag &
-        phkdfCtx_addArgs headerLongTag &
-        -- FIXME: fusing addArg and longPadding can save ~ 8 KiB RAM
-        phkdfCtx_addArg  longPadding &
+        phkdfCtx_feedArg  password &
+        phkdfCtx_feedArg  bcryptTag &
+        phkdfCtx_feedArgs headerLongTag &
+        -- FIXME: fusing feedArg and longPadding can save ~ 8 KiB RAM
+        phkdfCtx_feedArg  longPadding &
         phkdfCtx_assertBufferPosition' 32 &
-        phkdfCtx_addArgs credentials &
-        phkdfCtx_addArg  credsPadding &
+        phkdfCtx_feedArgs credentials &
+        phkdfCtx_feedArg  credsPadding &
         phkdfCtx_assertBufferPosition' 29 &
-        phkdfCtx_addArgs seedTags &
-        phkdfCtx_addArg (bareEncode (V.length seedTags)) &
+        phkdfCtx_feedArgs seedTags &
+        phkdfCtx_feedArg (bareEncode (V.length seedTags)) &
         phkdfSlowCtx_extract
             (cycleByteStringWithNull bcryptTag)
             (word32 "go\x00\x00" + 2024) domainTag
             "G3Pb1 bravo" phkdfRounds &
         phkdfSlowCtx_assertBufferPosition' 32 &
-        phkdfSlowCtx_addArgs seedTags &
+        phkdfSlowCtx_feedArgs seedTags &
         phkdfSlowCtx_toStream (cycleByteStringWithNull bcryptTag)
 
     (Cons phkdfHash (Cons bcryptInput _)) = secretStream
@@ -495,9 +495,9 @@ g3pHash_seedInit block args =
 
     secret =
         phkdfCtx_init seguidKey &
-        phkdfCtx_addArg headerCharlie &
+        phkdfCtx_feedArg headerCharlie &
         phkdfCtx_assertBufferPosition' 32 &
-        phkdfCtx_addArgs seedTags &
+        phkdfCtx_feedArgs seedTags &
         phkdfCtx_finalize (cycleByteStringWithNull bcryptTag) (word32 "SEED") domainTag
 
 -- | This applies the role vector to a computed G3P seed to arrive at
@@ -530,8 +530,8 @@ g3pHash_keyInit roleInput seed = G3PKey
 
     secretKey =
         phkdfCtx_init seguidKey &
-        phkdfCtx_addArg  headerDelta &
-        phkdfCtx_addArgs role &
+        phkdfCtx_feedArg  headerDelta &
+        phkdfCtx_feedArgs role &
         phkdfCtx_finalize (cycleByteStringWithNull domainTag) (word32 "KEY\x00") domainTag
 
 -- | Apply the echo tag parameter to a precomputed G3P key, obtaining a
