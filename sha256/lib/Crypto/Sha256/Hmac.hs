@@ -172,12 +172,6 @@ hmacKeyLike_toKey = \case
   HmacKeyLike_Hashed b -> Just $ HmacKey_Hashed b
   HmacKeyLike_Prefixed c -> HmacKey_Hashed <$> hmacKeyPrefixed_toHashed c
 
-hmacKeyLike_toPrefixed :: HmacKeyLike -> HmacKeyPrefixed
-hmacKeyLike_toPrefixed = \case
-  HmacKeyLike_Plain _ b -> hmacKeyPrefixed_initHashed b
-  HmacKeyLike_Hashed b -> hmacKeyPrefixed_initHashed b
-  HmacKeyLike_Prefixed b -> b
-
 hmacKeyLike_run :: HmacKeyLike -> HmacCtx
 hmacKeyLike_run = \case
   HmacKeyLike_Plain _ a -> hmacKeyHashed_run a
@@ -244,8 +238,6 @@ hmacKeyPrefixed = hmacKeyPrefixed_initHashed . hmacKeyHashed
 hmacKeyPrefixed_init :: HmacKey -> HmacKeyPrefixed
 hmacKeyPrefixed_init = hmacKeyPrefixed_initHashed . hmacKey_toHashed
 
-hmacKeyPrefixed_initHashed :: HmacKeyHashed -> HmacKeyPrefixed
-hmacKeyPrefixed_initHashed k = HmacKeyPrefixed (hmacKeyHashed_ipadCtx k) (hmacKeyHashed_opad k)
 hmacKeyPrefixed_initLike :: HmacKeyLike -> HmacKeyPrefixed
 hmacKeyPrefixed_initLike = hmacKeyLike_toPrefixed
 
@@ -285,9 +277,6 @@ hmacKeyPrefixed_run key = HmacCtx
 
 hmacKeyPrefixed_byteCount :: HmacKeyPrefixed -> Word64
 hmacKeyPrefixed_byteCount = sha256_byteCount . hmacKeyPrefixed_ipadCtx
-
-hmacKeyPrefixed_blockCount :: HmacKeyPrefixed -> Word64
-hmacKeyPrefixed_blockCount = sha256_blockCount . hmacKeyPrefixed_ipadCtx
 
 hmacKeyPrefixed_bufferLength :: HmacKeyPrefixed -> Word8
 hmacKeyPrefixed_bufferLength = const 0
@@ -342,7 +331,7 @@ hmacCtx_update ::  HmacCtx -> ByteString -> HmacCtx
 hmacCtx_update = flip hmacCtx_feed
 
 hmacCtx_feed :: ByteString -> HmacCtx -> HmacCtx
-hmacCtx_feed b (HmacCtx ic oc) = HmacCtx (sha256_update ic b) oc
+hmacCtx_feed b (HmacCtx oc ic) = HmacCtx oc (sha256_update ic b)
 
 -- | Append zero or more bytestrings onto the end of the message argument to
 --   HMAC.
@@ -351,7 +340,7 @@ hmacCtx_updates :: Foldable f => HmacCtx -> f ByteString -> HmacCtx
 hmacCtx_updates = flip hmacCtx_feeds
 
 hmacCtx_feeds :: Foldable f => f ByteString -> HmacCtx -> HmacCtx
-hmacCtx_feeds bs (HmacCtx ic oc) = HmacCtx (sha256_updates ic (toList bs)) oc
+hmacCtx_feeds bs (HmacCtx oc ic) = HmacCtx oc (sha256_updates ic (toList bs))
 
 -- | Finish computing the final 32-byte hash for an HMAC context.
 
@@ -362,7 +351,7 @@ hmacCtx_finalize = hmacCtx_finalizeBits B.empty 0
 --   finish computing the final 32-byte hash.
 
 hmacCtx_finalizeBits :: ByteString -> Word64 -> HmacCtx -> HashString
-hmacCtx_finalizeBits bits bitlen (HmacCtx ic oc) = outer
+hmacCtx_finalizeBits bits bitlen (HmacCtx oc ic) = outer
   where
     inner = sha256_finalizeBits_toByteString bits bitlen ic
     outer = sha256_finalize (sha256state_runWith 1 inner oc)
@@ -374,7 +363,7 @@ hmacCtx_finalize_toByteString = hmacCtx_finalizeBits_toByteString B.empty 0
 --   finish computing the final 32-byte hash.
 
 hmacCtx_finalizeBits_toByteString :: ByteString -> Word64 -> HmacCtx -> ByteString
-hmacCtx_finalizeBits_toByteString bits bitlen (HmacCtx ic oc) = outer
+hmacCtx_finalizeBits_toByteString bits bitlen (HmacCtx oc ic) = outer
   where
     inner = sha256_finalizeBits_toByteString bits bitlen ic
     outer = sha256_finalize_toByteString (sha256state_runWith 1 inner oc)

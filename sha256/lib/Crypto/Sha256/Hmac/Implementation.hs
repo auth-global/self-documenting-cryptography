@@ -4,6 +4,8 @@ module Crypto.Sha256.Hmac.Implementation where
 
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
+import           Data.Function(on)
+import           Data.Word
 
 import           Crypto.Sha256 as Sha256
 import           Crypto.Sha256.Subtle
@@ -24,10 +26,12 @@ data HmacKey
    = HmacKey_Plain  {-# UNPACK #-} !HmacKeyPlain HmacKeyHashed
    | HmacKey_Hashed {-# UNPACK #-} !HmacKeyHashed
 
-{--
 instance Eq HmacKey where
   (HmacKey_Plain a _) == (HmacKey_Plain b _)  =  hmacKeyPlain_eq a b
   a == b  =  hmacKey_toHashed a == hmacKey_toHashed b
+
+instance Ord HmacKey where
+  compare = compare `on` hmacKey_toHashed
 
 -- | This function can in theory return False, when converting both strings
 --   to a 'HmacKeyHashed' first and then comparing returns True. However,
@@ -63,7 +67,7 @@ hmacKeyPlain_eq a b =
     checkEq x (normalize -> y)
        | BS.length y > 32 || BS.length y <= 16 = False
        | otherwise = normalize (Sha256.hash x) == y
---}
+
 hmacKey_ipad :: HmacKey -> Sha256State
 hmacKey_ipad = hmacKeyHashed_ipad . hmacKey_toHashed
 
@@ -95,11 +99,10 @@ data HmacKeyLike
    | HmacKeyLike_Hashed {-# UNPACK #-} !HmacKeyHashed
    | HmacKeyLike_Prefixed {-# UNPACK #-} !HmacKeyPrefixed
 
-{--
 hmacKeyPrefixed_eqHashed :: HmacKeyPrefixed -> HmacKeyHashed -> Bool
 hmacKeyPrefixed_eqHashed a
   | hmacKeyPrefixed_blockCount a /= 1 = const False
-  | otherwise = \b -> hmacKeyPrefixed_ipad a == hmacKeyHashed_ipad b
+  | otherwise = \b -> hmacKeyPrefixed_ipadCtx a == hmacKeyHashed_ipadCtx b
                    && hmacKeyPrefixed_opad a == hmacKeyHashed_opad b
 
 instance Eq HmacKeyLike where
@@ -112,7 +115,19 @@ instance Eq HmacKeyLike where
   (HmacKeyLike_Prefixed a) == (HmacKeyLike_Plain _ b) = hmacKeyPrefixed_eqHashed a b
   (HmacKeyLike_Prefixed a) == (HmacKeyLike_Hashed b) = hmacKeyPrefixed_eqHashed a b
   (HmacKeyLike_Prefixed a) == (HmacKeyLike_Prefixed b) = a == b
---}
+
+instance Ord HmacKeyLike where
+  compare = compare `on` hmacKeyLike_toPrefixed
+
+hmacKeyLike_toPrefixed :: HmacKeyLike -> HmacKeyPrefixed
+hmacKeyLike_toPrefixed = \case
+  HmacKeyLike_Plain _ b -> hmacKeyPrefixed_initHashed b
+  HmacKeyLike_Hashed b -> hmacKeyPrefixed_initHashed b
+  HmacKeyLike_Prefixed b -> b
+
+hmacKeyPrefixed_initHashed :: HmacKeyHashed -> HmacKeyPrefixed
+hmacKeyPrefixed_initHashed k = HmacKeyPrefixed (hmacKeyHashed_opad k) (hmacKeyHashed_ipadCtx k)
+
 hmacKeyLike_ipadCtx :: HmacKeyLike -> Sha256Ctx
 hmacKeyLike_ipadCtx = \case
   HmacKeyLike_Plain _ x -> hmacKeyHashed_ipadCtx x
@@ -149,9 +164,9 @@ hmacKeyLike_runOpadCtx = \case
 --   bytestring without dealing with buffer boundaries.
 
 data HmacCtx = HmacCtx
-  { hmacCtx_ipadCtx :: {-# UNPACK #-} !Sha256Ctx
-  , hmacCtx_opad    :: {-# UNPACK #-} !Sha256State
-  }
+  { hmacCtx_opad    :: {-# UNPACK #-} !Sha256State
+  , hmacCtx_ipadCtx :: {-# UNPACK #-} !Sha256Ctx
+  } deriving (Eq, Ord)
 
 -- | A precomputed HMAC key. This structure is 64 bytes long, and consists of two
 --   SHA256 hashes.
@@ -179,9 +194,9 @@ data HmacCtx = HmacCtx
 -- TODO: Might it be a good idea to pack both states into one ByteArray?
 
 data HmacKeyHashed = HmacKeyHashed
-  { hmacKeyHashed_ipad :: {-# UNPACK #-} !Sha256State
-  , hmacKeyHashed_opad :: {-# UNPACK #-} !Sha256State
-  }
+  { hmacKeyHashed_opad :: {-# UNPACK #-} !Sha256State
+  , hmacKeyHashed_ipad :: {-# UNPACK #-} !Sha256State
+  } deriving (Eq, Ord)
 
 hmacKeyHashed_ipadCtx :: HmacKeyHashed -> Sha256Ctx
 hmacKeyHashed_ipadCtx = flip hmacKeyHashed_runIpadCtx BS.empty
@@ -201,9 +216,9 @@ hmacKeyHashed_runOpadCtx k b = sha256state_runWith 1 b (hmacKeyHashed_opad k)
 --   input data.
 
 data HmacKeyPrefixed = HmacKeyPrefixed
-  { hmacKeyPrefixed_ipadCtx :: {-# UNPACK #-} !Sha256Ctx
-  , hmacKeyPrefixed_opad    :: {-# UNPACK #-} !Sha256State
-  }
+  { hmacKeyPrefixed_opad    :: {-# UNPACK #-} !Sha256State
+  , hmacKeyPrefixed_ipadCtx :: {-# UNPACK #-} !Sha256Ctx
+  } deriving (Eq, Ord)
 
 hmacKeyPrefixed_runIpadCtx :: HmacKeyPrefixed -> ByteString -> Sha256Ctx
 hmacKeyPrefixed_runIpadCtx k b = sha256_feed b (hmacKeyPrefixed_ipadCtx k)
@@ -213,3 +228,6 @@ hmacKeyPrefixed_runOpadCtx k b = sha256state_runWith 1 b (hmacKeyPrefixed_opad k
 
 hmacKeyPrefixed_opadCtx :: HmacKeyPrefixed -> Sha256Ctx
 hmacKeyPrefixed_opadCtx = flip hmacKeyPrefixed_runOpadCtx BS.empty
+
+hmacKeyPrefixed_blockCount :: HmacKeyPrefixed -> Word64
+hmacKeyPrefixed_blockCount = sha256_blockCount . hmacKeyPrefixed_ipadCtx
