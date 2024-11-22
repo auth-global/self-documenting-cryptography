@@ -122,8 +122,9 @@ module Crypto.G3P.V2
   , g3pSeed_toStream
   , G3PSprout()
   , g3pSprout
-  , g3pSprout_addArg
-  , g3pSprout_addArgs
+  , g3pSprout_feedArg
+  , g3pSprout_feedArgs
+  , g3pSprout_arg
   , g3pSprout_args
   , g3pSprout_fromSpark
   , g3pSprout_fromSeed
@@ -298,7 +299,7 @@ data G3PSalt = G3PSalt
     --   Thus if you are tuning this parameter via empirical timing tests,
     --   the direct linear relationship between this parameter and time is
     --   approximate, not exact, due to a this reasonably large offset.
-  } -- deriving (Eq)
+  } deriving (Eq)
 
 -- | These parameters are grouped together because they are hashed once
 --   near the beginning of the protocol and then are no longer needed, unless
@@ -358,50 +359,54 @@ data G3PInputs = G3PInputs
   --   fail to take this step to help protect users' privacy.
   --
   --   A simple mitigation is to disconnect login names from publicly-facing
-  --   screen names, something that can benefit nearly any approach. Also,
-  --   one could add key-stretching to the login name by hashing it first
+  --   screen names, something that can benefit any approach. Also, one could
+  --   add key-stretching to the login name by hashing it first
   --   with a slow hash function.
   --
   --   On the other hand, using a random salt per acccount has the potential
-  --   to be a far more meaningful defensive line. This can serve both the
-  --   interests of legitimate deployments and the password hash thieves
-  --   that attack them. Some thieves will want to be able to outsource
-  --   password cracking work without giving successful crackers an
-  --   opportunity to log in, a rare alignment of interests.
+  --   to be a far more meaningful defensive line.  This brings the advantage
+  --   of completely disconnecting public salts from login names, except by
+  --   talking to (or compromising) a salt server.
   --
-  --   The cost is that in typical client-side prehashing scenarios, your
+  --   In a rare alignment of interests, this can serve both legitimate
+  --   deployments and the password hash thieves that attack them. Some thieves
+  --   will want to be able to outsource password cracking work without giving
+  --   successful crackers an opportunity to log in, and this makes it easier
+  --   for the thief to securely withhold the login name from the cracker.
+  --
+  --   The cost is that in typical client-side prehashing scenarios, a salt
   --   server will have to reveal the actual salt for arbitrary accounts
   --   to arbitrary members of the public. This has the potential to leak
   --   information about the (non-)existence of accounts and to leak
   --   information about recent account activity.
   --
   --   Of particular concern is providing reidentification hooks that
-  --   enable deanonymization attacks.  Though I don't exactly understand
-  --   how a public-facing service handing out random salts for a given
-  --   username could become such a hook, it's also something that seems
-  --   possible.
+  --   enable deanonymization attacks. Though I don't exactly understand
+  --   how a public-facing salt server could become such a hook, it's also
+  --   something that seems possible.
   --
-  --   These issues can be mitigated by providing a salt lookup service
-  --   that is capable of handing out convincing nonsense that is consistent
-  --   over time. One need not even remember every fake salt you've ever
-  --   handed out, for example your server could generate a fake salt by
-  --   hashing a normalized version of the nonexistent login name with
-  --   a secret key.
+  --   This issue could be largely mitigated by ensuring your salt server is
+  --   capable of handing out convincing nonsense that is consistent over time.
+  --   The server does not even need to remember every fake salt you've ever
+  --   handed out. For example, the server could generate a fake salt by
+  --   hashing a normalized version of the nonexistent login name with a
+  --   secret key.
   --
   --   If you are running a sufficiently sensitive identity service to
   --   justify the additional complexity and ongoing operational costs,
-  --   using a salt server to hand out random salts in order to completely
-  --   disconnect public salts from login names (except by talking to
-  --   or compromising the salt server) seems very much worthwhile.
+  --   running a salt server seems very much worthwhile.
   --
   --   One reason is that when a password hash is stolen, having a login
   --   name in its derivation can be a reidentification hook without even
   --   needing to talk to a server.  On the other hand, this technique
-  --   still seems far preferable to a poorly implemented salt server that
-  --   becomes a security liability and/or reveals account existence to
-  --   arbitrary members of the public.  After all, account existance can
-  --   itself be an extremely juicy reidentification hook and doesn't
-  --   require stealing password hashes first.
+  --   still seems far preferable to a poorly implemented salt server.
+  --
+  --   A poorly implemented server can become a toehold for attackers to
+  --   get inside your infrastructure, and has the potential to leak
+  --   whether or not an account exists, possibly even to the general public.
+  --   Account existence can itself be an extremely juicy reidentification
+  --   hook, and querying a public server doesn't require stealing password
+  --   hashes first.
   --
   --   In a few specialized cases it might be possible to hide a random salt
   --   from members of the general public by requiring pre-authentication
@@ -410,7 +415,7 @@ data G3PInputs = G3PInputs
   --   solutions to the problem of key management, and key management is
   --   the fundamental problem behind authentication.
   --
-  --   One might alsos supplement or replace any salt applied here with an
+  --   One might also supplement or replace any salt applied here with an
   --   oblivious pseudorandom function (OPRF) in your authentication flow,
   --   especially if password-authenticated key agreement (PAKE) is used.
   --
@@ -424,13 +429,19 @@ data G3PInputs = G3PInputs
   --   even none at all as a fairly fundamental tradeoff in the design of G3P
   --   deployments. I took the time to ensure that all are possible.
   --
-  --   In my estimation, of these three approaches that I've started to
-  --   sketch,  directly deriving salts from login names is the hardest
-  --   to mess up badly.
+  --   In my estimation, of the approaches that I've started to sketch,
+  --   deriving salts directly from plaintext login names in a public,
+  --   non-secret way is the hardest to mess up badly.
   --
-  --   Implementing a salt server brings potentially signficant security
+  --   Ideally, apply key-stretching to the plaintext login name, possibly
+  --   via another call to the G3P, and duplicate that derived salt in the
+  --   'g3pInputs_username' and 'g3pSalt_contextTags' parameters, and
+  --   possibly also inside the role parameter of 'G3PSprout'.
+  --
+  --   Implementing a salt server potentially brings signficant security
   --   advantages, but also represents additional complexity, operational
-  --   expense, and creates additional attack surfaces and security risks.
+  --   expense, and itself creates additional attack surfaces and security
+  --   risks.
   --
   --   This decision has significant strategic consequences. I don't think
   --   there exists a one-size-fits-all solution, and there are quite a few
@@ -689,8 +700,8 @@ data G3PSeedInputs = G3PSeedInputs
 --
 --   Another possibility is to use filler padding to control the context
 --   buffer position; I suggest using 32-95 or more bytes, as this ensures
---   the encoded length is 3 additional bytes long and thus ensures that
---   any relative buffer position can be reached.
+--   the encoded length is 3 bytes long and thus ensures that your desired
+--   buffer position can be reached from any starting point.
 --
 --   In the case that you want or need to persist or serialize the
 --   intermediate structures, then the plain-old-datatypes 'G3PSpark',
@@ -749,21 +760,25 @@ g3pHash
 g3pHash = ( fmap . fmap . fmap . fmap . fmap
           . fmap . fmap . fmap . fmap . fmap $ g3pSource_head) g3pSource
 
--- | All 8 parameters get unambiguously encoded into the initial call to HMAC.
---   7 of them can be unambiguously parsed out of the input message, thus
---   proving that all collisions over them are cryptographically non-trivial.
---   The eighth is used as the HMAC key.
+-- | 'g3pSpark' encompasses calls to @G3Pb2 alfa@ and @G3Pb2 bravo@, which
+--   provides the PHKDF-based key-stretching phase.
+--
+--   All 8 parameters get unambiguously encoded into @G3Pb2 alfa@, which is
+--   the initial call to HMAC. 7 of them can be unambiguously parsed out of
+--   the input message, thus proving that all collisions over them are
+--   cryptographically non-trivial. The eighth is used as the HMAC key.
 --
 --   Moreover, the G3P's syntax generators never examine the content of any
---   input, only length. Thus by parametricity, any vaguely reasonable
---   attempt to implement the G3P cannot be directly responsible for
---   introducing a data-dependent side channel.
+--   input, only length. Thus by [parametricity](https://en.wikipedia.org/wiki/Parametricity),
+--   any vaguely reasonable attempt to implement the G3P cannot be directly
+--   responsible for introducing a data-dependent side channel.
 --
 --   The hash resulting from this initial HMAC-Extract, in addition to the
 --   'G3PSalt' parameters, determine the exact size, shape, and content of the
 --   Merkle tree that describes the resulting spark. At this point in time
 --   every computation is fully determined all the way to the end of the
---   PHKDF key-stretching phase.
+--   PHKDF key-stretching phase.  The next opportunity to make a choice is
+--   the bcrypt key-stretching phase.
 --
 --   This results in two cryptographically independent keys: keyB which
 --   begins bcrypt, and keyC which is the continuation control key. The
@@ -771,7 +786,7 @@ g3pHash = ( fmap . fmap . fmap . fmap . fmap
 --   to be outsourced to another semi-trusted device, without giving that
 --   device the ability to compute the final seed.
 
-g3pSpark :: G3PSalt -> G3PInputs -> G3PSpark
+g3pSpark :: G3PSalt -> G3PInputs -> G3PSpark -- ^ the end of @G3Pb2 bravo@, the beginning of @G3P charlie@
 g3pSpark salt inputs = spark
   where
     -- Explicitly unpack everything for the unused variable warnings.
@@ -920,7 +935,7 @@ g3pSpark salt inputs = spark
     -- operation or the other, and I don't understand why it might matter
     -- too much one way or the other.
 
-    spark = G3PSpark
+    spark = G3PSpark -- ^ the end of @G3Pb2 bravo@, the beginning of @G3P charlie@
        { g3pSpark_beginKey = keyB
        , g3pSpark_contKey  = keyC
        , g3pSpark_contextTags = contextTags
@@ -945,7 +960,7 @@ xorScan = Stream.tail . Stream.scan' f (PairBS blankChunk blankChunk)
 
 -- | The bcrypt key-stretching phase.
 
-g3pSpark_toSeed :: G3PSpark -> G3PSeedInputs -> G3PSeed
+g3pSpark_toSeed :: G3PSpark -> G3PSeedInputs -> G3PSeed -- ^ the end of @G3Pb2 charlie@, the beginning of @G3Pb2 delta@
 g3pSpark_toSeed spark inputs = G3PSeed seed
   where
     beginKey = g3pSpark_beginKey spark
@@ -987,32 +1002,53 @@ g3pSpark_toSeed spark inputs = G3PSeed seed
 
     endPadding = B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral
 
-g3pSeed_toSprout :: G3PSeed -> HmacKey -> G3PSprout
+-- | Start a call to @G3Pb2 delta@, starting with the Sprout's Seguid.
+
+g3pSeed_toSprout
+  :: G3PSeed -- ^ the end of @G3Pb2 charlie@, the beginning of @G3Pb2 delta@
+  -> HmacKey -- ^ Sprout Seguid
+  -> G3PSprout -- ^ the middle of @G3Pb2 delta@
 g3pSeed_toSprout (G3PSeed seed) key = G3PSprout ctx
   where
     delta = "G3Pb2 delta"
     ctx = phkdfCtx_init key &
           phkdfCtx_addArg (delta <> seed)
 
-g3pSprout_addArg :: ByteString -> G3PSprout -> G3PSprout
-g3pSprout_addArg x = G3PSprout . phkdfCtx_addArg x . g3pSprout_phkdfCtx
+-- | flipped version of 'g3pSprout_addArg'
 
-g3pSprout_addArgs :: Foldable f => f ByteString -> G3PSprout -> G3PSprout
-g3pSprout_addArgs xs = G3PSprout . phkdfCtx_addArgs xs . g3pSprout_phkdfCtx
+g3pSprout_feedArg :: ByteString -> G3PSprout -> G3PSprout -- ^ the middle of @G3Pb2 delta@
+g3pSprout_feedArg x = G3PSprout . phkdfCtx_addArg x . g3pSprout_phkdfCtx
 
-g3pSprout_args :: Foldable f => G3PSprout -> f ByteString -> G3PSprout
-g3pSprout_args = flip g3pSprout_addArgs
+g3pSprout_feedArgs :: Foldable f => f ByteString -> G3PSprout -> G3PSprout -- ^ the middle of @G3Pb2 delta@
+g3pSprout_feedArgs xs = G3PSprout . phkdfCtx_addArgs xs . g3pSprout_phkdfCtx
 
-g3pSprout_toTree :: G3PSprout -> ByteString -> G3PTree
+-- | The name of this function is a mnemonic for the argument order.  It adds
+--   a single argument to a 'G3PSprout', which represents a partial evaluation of @G3Pb2 delta@
+--   is length-delimited, so collisions cannot be trivially found by shifting
+--   data out of one arg and into another.
+
+g3pSprout_arg
+  :: G3PSprout -- ^ the middle of @G3Pb2 delta@
+  -> ByteString  -- ^ arg
+  -> G3PSprout -- ^ ready for more args, or grow into a @G3PTree@
+g3pSprout_arg = flip g3pSprout_feedArg
+
+g3pSprout_args :: Foldable f => G3PSprout -> f ByteString -> G3PSprout -- ^ the middle of @G3Pb2 delta@
+g3pSprout_args = flip g3pSprout_feedArgs
+
+g3pSprout_toTree
+   :: G3PSprout -- ^ the middle of @G3Pb2 delta@
+   -> ByteString  -- ^ Sprout Domain Tag
+   -> G3PTree -- the end of @G3Pb2 delta@, the beginning of @G3Pb2 echo@
 g3pSprout_toTree (G3PSprout ctx) domainTag = G3PTree key
   where
     key = phkdfCtx_finalize endPadding (word32 "KEYL") domainTag ctx
     endPadding = B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral
 
 g3pTree_toKey
-  :: G3PTree
+  :: G3PTree -- the end of @G3Pb2 delta@, the beginning of @G3Pb2 echo@
   -> ByteString -- ^ echo key right
-  -> G3PKey
+  -> G3PKey -- ^ the middle of @G3Pb2 echo@
 g3pTree_toKey (G3PTree echoKeyL) echoKeyR = G3PKey (hmacKeyHashed key)
   where
     keyR = takeBs 32 [echoKeyR, "\x00", "G3Pb2 echo key right padding", nullBuffer]
@@ -1023,7 +1059,7 @@ g3pTree_toKey (G3PTree echoKeyL) echoKeyR = G3PKey (hmacKeyHashed key)
 -- | Variant of 'g3pKey_toStream' that returns plain old data.
 
 g3pKey_toSource
-  :: G3PKey
+  :: G3PKey -- ^ the middle of @G3Pb2 echo@
   -> ByteString -- ^ echo header
   -> Word32 -- ^ echo counter
   -> ByteString -- ^ echo tag
@@ -1052,8 +1088,8 @@ type G3PSource = PhkdfGen
 --   stream of 32-byte output blocks.
 
 g3pKey_toStream
-  :: G3PKey
-  -> ByteString
+  :: G3PKey -- ^ the middle of @G3Pb2 echo@
+  -> ByteString -- ^ echo header
   -> Word32
   -- ^ The @echo counter@, functionally a bonus HKDF info parameter.  The test suite defaults to (word32 "OUT\x00")
   -> ByteString
@@ -1063,7 +1099,7 @@ g3pKey_toStream key hdr ctr tag =
   phkdfGen_toStream (g3pKey_toSource key hdr ctr tag)
 
 g3pTree_toStream
-  :: G3PTree
+  :: G3PTree -- ^ the end of @G3Pb2 delta@, the beginning of @G3Pb2 echo@
   -> ByteString -- ^ echo key right
   -> ByteString -- ^ echo header
   -> Word32 -- ^ echo counter
@@ -1073,7 +1109,7 @@ g3pTree_toStream = fmap g3pKey_toStream . g3pTree_toKey
 
 g3pSprout_toStream
   :: Foldable f
-  => G3PSprout
+  => G3PSprout -- ^ the middle of @G3Pb2 delta@
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
   -> ByteString -- ^ echo key right
@@ -1086,7 +1122,7 @@ g3pSprout_toStream =
 
 g3pSeed_toStream
   :: Foldable f
-  => G3PSeed
+  => G3PSeed -- ^ the end of @G3Pb2 charlie@, the beginning of @G3Pb2 delta@
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
@@ -1099,8 +1135,8 @@ g3pSeed_toStream = fmap g3pSprout_toStream . g3pSeed_toSprout
 
 g3pSpark_toStream
   :: Foldable f
-  => G3PSpark
-  -> G3PSeedInputs
+  => G3PSpark -- ^ a partial evaluation of @G3Pb2 bravo@
+  -> G3PSeedInputs -- ^ bcrypt parameters
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
@@ -1113,37 +1149,37 @@ g3pSpark_toStream = fmap g3pSeed_toStream . g3pSpark_toSeed
 
 
 g3pSpark_toSprout
-  :: G3PSpark
-  -> G3PSeedInputs
+  :: G3PSpark -- ^ a partial evaluation of @G3Pb2 bravo@
+  -> G3PSeedInputs -- ^ bcrypt parameters
   -> HmacKey -- ^ sprout seguid
-  -> G3PSprout
+  -> G3PSprout -- ^ the middle of @G3Pb2 delta@
 g3pSpark_toSprout = fmap g3pSeed_toSprout . g3pSpark_toSeed
 
 g3pSpark_toTree
   :: Foldable f
-  => G3PSpark
+  => G3PSpark -- ^ a partial evaluation of @G3Pb2 bravo@
   -> G3PSeedInputs
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
-  -> G3PTree
+  -> G3PTree -- ^ the end of @G3Pb2 delta@, the beginning of @G3Pb2 echo@
 g3pSpark_toTree = fmap g3pSeed_toTree . g3pSpark_toSeed
 
 g3pSpark_toKey
   :: Foldable f
-  => G3PSpark
-  -> G3PSeedInputs
+  => G3PSpark -- ^ a partial evaluation of @G3Pb2 bravo@
+  -> G3PSeedInputs -- ^ bcrypt parameters
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
   -> ByteString -- ^ echo key right
-  -> G3PKey
+  -> G3PKey -- ^ the middle of @G3Pb2 echo@
 g3pSpark_toKey = fmap g3pSeed_toKey . g3pSpark_toSeed
 
 g3pSpark_toSource
   :: Foldable f
-  => G3PSpark
-  -> G3PSeedInputs
+  => G3PSpark -- ^ a partial evaluation of @G3Pb2 bravo@
+  -> G3PSeedInputs -- ^ bcrypt parameters
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
@@ -1154,34 +1190,37 @@ g3pSpark_toSource
   -> G3PSource
 g3pSpark_toSource = fmap g3pSeed_toSource . g3pSpark_toSeed
 
-g3pSeed :: G3PSalt -> G3PInputs -> G3PSeedInputs -> G3PSeed
+g3pSeed :: G3PSalt -> G3PInputs -> G3PSeedInputs -> G3PSeed -- ^ the end of @G3Pb2 charlie@, the beginning of @G3Pb2 delta@
 g3pSeed = (fmap . fmap $ g3pSpark_toSeed) g3pSpark
 
-g3pSeed_fromSpark :: G3PSeedInputs -> G3PSpark -> G3PSeed
+g3pSeed_fromSpark
+  :: G3PSeedInputs -- ^ bcrypt parameters
+  -> G3PSpark -- ^ a partial evaluation of @G3Pb2 bravo@
+  -> G3PSeed -- ^ the end of @G3Pb2 charlie@, the beginning of @G3Pb2 delta@
 g3pSeed_fromSpark = flip g3pSpark_toSeed
 
 g3pSeed_toTree
   :: Foldable f
-  => G3PSeed
+  => G3PSeed -- ^ the end of @G3Pb2 charlie@, the beginning of @G3Pb2 delta@
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
-  -> G3PTree
+  -> G3PTree -- ^ the end of @G3Pb2 delta@, the beginning of @G3Pb2 echo@
 g3pSeed_toTree = fmap (fmap g3pSprout_toTree . g3pSprout_args) . g3pSeed_toSprout
 
 g3pSeed_toKey
   :: Foldable f
-  => G3PSeed
+  => G3PSeed -- ^ the end of @G3Pb2 charlie@, the beginning of @G3Pb2 delta@
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
   -> ByteString -- ^ echo key right
-  -> G3PKey
+  -> G3PKey -- ^ the middle of @G3Pb2 echo@
 g3pSeed_toKey = fmap g3pSprout_toKey . g3pSeed_toSprout
 
 g3pSeed_toSource
   :: Foldable f
-  => G3PSeed
+  => G3PSeed -- ^ the end of @G3Pb2 charlie@, the beginning of @G3Pb2 delta@
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
@@ -1195,9 +1234,9 @@ g3pSeed_toSource = fmap g3pSprout_toSource . g3pSeed_toSprout
 g3pSprout
   :: G3PSalt
   -> G3PInputs
-  -> G3PSeedInputs
+  -> G3PSeedInputs -- ^ bcrypt parameters
   -> HmacKey -- ^ sprout seguid
-  -> G3PSprout
+  -> G3PSprout -- ^ the middle of @G3Pb2 delta@
 g3pSprout = fmap g3pSpark_toSprout . g3pSpark
 
 -- There is no need to use the point-free style on the "from" variants, as the
@@ -1205,27 +1244,28 @@ g3pSprout = fmap g3pSpark_toSprout . g3pSpark
 g3pSprout_fromSpark
   :: G3PSeedInputs
   -> HmacKey -- ^ sprout seguid
-  -> G3PSpark -> G3PSprout
+  -> G3PSpark -- ^ the end of @G3Pb2 bravo@, the beginning of @G3P charlie@
+  -> G3PSprout -- ^ the middle of @G3Pb2 delta@
 g3pSprout_fromSpark inputs key spark =
   g3pSpark_toSprout spark inputs key
 
 g3pSprout_fromSeed
   :: HmacKey -- ^ sprout seguid
-  -> G3PSeed -> G3PSprout
+  -> G3PSeed -> G3PSprout -- ^ the middle of @G3Pb2 delta@
 g3pSprout_fromSeed = flip g3pSeed_toSprout
 
 g3pSprout_toKey
   :: Foldable f
-  => G3PSprout
+  => G3PSprout -- ^ a partial evaluation of @G3Pb2 delta@
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
   -> ByteString -- ^ echo key right
-  -> G3PKey
+  -> G3PKey -- ^ the beginning of @G3P echo@
 g3pSprout_toKey = fmap (fmap g3pTree_toKey . g3pSprout_toTree) . g3pSprout_args
 
 g3pSprout_toSource
   :: Foldable f
-  => G3PSprout
+  => G3PSprout -- ^ the middle of @G3Pb2 delta@
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
   -> ByteString -- ^ echo key right
@@ -1244,7 +1284,7 @@ g3pTree
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
-  -> G3PTree
+  -> G3PTree -- ^ the end of @G3Pb2 delta@, the beginning of @G3Pb2 echo@
 g3pTree = fmap g3pSpark_toTree . g3pSpark
 
 g3pTree_fromSpark
@@ -1253,7 +1293,8 @@ g3pTree_fromSpark
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
-  -> G3PSpark -> G3PTree
+  -> G3PSpark -- ^ the end of @G3Pb2 bravo@, the beginning of @G3Pb2 charlie@
+  -> G3PTree -- ^ the end of @G3Pb2 delta@, the beginning of @G3Pb2 echo@
 g3pTree_fromSpark inputs key role tag spark =
   g3pSpark_toTree spark inputs key role tag
 
@@ -1262,17 +1303,18 @@ g3pTree_fromSeed
   => HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
-  -> G3PSeed -> G3PTree
+  -> G3PSeed -- ^ the end of @G3Pb2 charlie@, the beginning of @G3Pb2 delta@
+  -> G3PTree -- ^ the end of @G3Pb2 delta@, the beginning of @G3Pb2 echo@
 g3pTree_fromSeed key role tag seed =
   g3pSeed_toTree seed key role tag
 
 g3pTree_fromSprout
   :: ByteString -- ^ sprout tag
-  -> G3PSprout -> G3PTree
+  -> G3PSprout -> G3PTree -- ^  the end of @G3Pb2 delta@, the beginning of @G3Pb2 echo@
 g3pTree_fromSprout = flip g3pSprout_toTree
 
 g3pTree_toSource
-  :: G3PTree
+  :: G3PTree -- ^ the end of @G3Pb2 delta@, the beginning of @G3Pb2 echo@
   -> ByteString -- ^ echo key right
   -> ByteString -- ^ echo header
   -> Word32 -- ^ echo counter
@@ -1284,22 +1326,23 @@ g3pKey
   :: Foldable f
   => G3PSalt
   -> G3PInputs
-  -> G3PSeedInputs
+  -> G3PSeedInputs -- ^ bcrypt parameters
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
   -> ByteString -- ^ echo key right
-  -> G3PKey
+  -> G3PKey -- ^ the beginning of @G3P echo@
 g3pKey = fmap g3pSpark_toKey . g3pSpark
 
 g3pKey_fromSpark
   :: Foldable f
-  => G3PSeedInputs
+  => G3PSeedInputs -- ^ bcrypt parameters
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
   -> ByteString -- ^ echo key right
-  -> G3PSpark -> G3PKey
+  -> G3PSpark -- ^ a partial evaluation of @G3P bravo@
+  -> G3PKey -- ^ the beginning of @G3P echo@
 g3pKey_fromSpark inputs key role tag ekey spark =
   g3pSpark_toKey spark inputs key role tag ekey
 
@@ -1309,7 +1352,8 @@ g3pKey_fromSeed
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
   -> ByteString -- ^ echo key right
-  -> G3PSeed -> G3PKey
+  -> G3PSeed -- ^ the end of @G3Pb2 charlie@, the beginning of @G3Pb2 delta@
+  -> G3PKey -- ^ the middle of @G3Pb2 echo@
 g3pKey_fromSeed key role tag ekey seed =
   g3pSeed_toKey seed key role tag ekey
 
@@ -1318,20 +1362,22 @@ g3pKey_fromSprout
   => f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
   -> ByteString -- ^ echo key right
-  -> G3PSprout -> G3PKey
+  -> G3PSprout -- ^ the middle of @G3Pb2 delta@
+  -> G3PKey -- ^ the middle of @G3Pb2 echo@
 g3pKey_fromSprout role tag key sprout =
   g3pSprout_toKey sprout role tag key
 
 g3pKey_fromTree
   :: ByteString -- ^ echo key right
-  -> G3PTree -> G3PKey
+  -> G3PTree -- ^ the end of @G3Pb2 delta@, the beginning of @G3Pb2 echo@
+  -> G3PKey -- ^ the middle of @G3Pb2 echo@
 g3pKey_fromTree = flip g3pTree_toKey
 
 g3pSource
   :: Foldable f
   => G3PSalt
   -> G3PInputs
-  -> G3PSeedInputs
+  -> G3PSeedInputs -- ^ bcrypt parameters
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
@@ -1344,7 +1390,7 @@ g3pSource = fmap g3pSpark_toSource . g3pSpark
 
 g3pSource_fromSpark
   :: Foldable f
-  => G3PSeedInputs
+  => G3PSeedInputs -- ^ bcrypt parameters
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
@@ -1365,7 +1411,8 @@ g3pSource_fromSeed
   -> ByteString -- ^ echo header
   -> Word32 -- ^ echo counter
   -> ByteString -- ^ echo tag
-  -> G3PSeed -> G3PSource
+  -> G3PSeed -- ^ bcrypt parameters
+  -> G3PSource
 g3pSource_fromSeed key role tag ekey ehdr ectr etag seed =
   g3pSeed_toSource seed key role tag ekey ehdr ectr etag
 
@@ -1417,7 +1464,7 @@ g3pStream
   :: Foldable f
   => G3PSalt
   -> G3PInputs
-  -> G3PSeedInputs
+  -> G3PSeedInputs -- ^ bcrypt parameters
   -> HmacKey -- ^ sprout seguid
   -> f ByteString -- ^ sprout role
   -> ByteString -- ^ sprout tag
@@ -1451,7 +1498,8 @@ g3pStream_fromSeed
   -> ByteString -- ^ echo header
   -> Word32 -- ^ echo counter
   -> ByteString -- ^ echo tag
-  -> G3PSeed -> Stream ByteString
+  -> G3PSeed -- ^ bcrypt parameters
+  -> Stream ByteString
 g3pStream_fromSeed key role tag ekey ehdr ectr etag seed =
   g3pSeed_toStream seed key role tag ekey ehdr ectr etag
 

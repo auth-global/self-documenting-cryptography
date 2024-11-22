@@ -373,7 +373,7 @@ phkdfCtx_toHmacCtx ctx =
 --   of @phkdfStream@, though with a TupleHash message encoding.
 
 phkdfCtx_finalizeHmac :: PhkdfCtx -> ByteString
-phkdfCtx_finalizeHmac = hmacCtx_finalize . phkdfCtx_toHmacCtx
+phkdfCtx_finalizeHmac = hmacCtx_finalize_toByteString . phkdfCtx_toHmacCtx
 
 -- | close out a @phkdfStream@ context with a given counter and tag
 
@@ -469,7 +469,7 @@ phkdfGen_read gen = (state', gen')
       hmacCtx_feeds [ bytestring32 (phkdfGen_counter gen)
                    , phkdfGen_extTag gen
                    ] &
-      hmacCtx_finalize
+      hmacCtx_finalize_toByteString
 
     key = phkdfGen_hmacKeyLike gen
 
