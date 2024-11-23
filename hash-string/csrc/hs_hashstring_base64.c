@@ -20,8 +20,8 @@
 	SOFTWARE.
 */
 
-#include "base64.h"
 #include <stdint.h>
+#include "hs_hashstring_base64.h"
 
 // ************************
 // *** Helper Functions ***
@@ -31,7 +31,7 @@
 // [A-Z]      [a-z]      [0-9]      +     /
 // 0x41-0x5a, 0x61-0x7a, 0x30-0x39, 0x2b, 0x2f
 
-inline int base64Decode6Bits(char src)
+static inline int base64Decode6Bits(char src)
 {
 	int ch  = (unsigned char) src;
 	int ret = -1;
@@ -54,7 +54,7 @@ inline int base64Decode6Bits(char src)
 	return ret;
 }
 
-inline int base64Decode3Bytes(uint8_t dest[3], const char src[4])
+static inline int base64Decode3Bytes(uint8_t dest[3], const char src[4])
 {
 	int c0 = base64Decode6Bits(src[0]);
 	int c1 = base64Decode6Bits(src[1]);
@@ -67,7 +67,7 @@ inline int base64Decode3Bytes(uint8_t dest[3], const char src[4])
 	return ((c0 | c1 | c2 | c3) >> 8) & 1;
 }
 
-inline char base64Encode6Bits(unsigned int src)
+static inline char base64Encode6Bits(unsigned int src)
 {
 	int diff = 0x41;
 
@@ -86,7 +86,7 @@ inline char base64Encode6Bits(unsigned int src)
 	return (char) (src + diff);
 }
 
-inline void base64Encode3Bytes(char dest[4], const uint8_t src[3])
+static inline void base64Encode3Bytes(char dest[4], const uint8_t src[3])
 {
 	unsigned int b0 = src[0];
 	unsigned int b1 = src[1];
@@ -103,7 +103,7 @@ inline void base64Encode3Bytes(char dest[4], const uint8_t src[3])
 // ./         [A-Z]      [a-z]     [0-9]
 // 0x2e-0x2f, 0x41-0x5a, 0x61-0x7a, 0x30-0x39
 
-inline int base64Decode6BitsDotSlash(char src)
+static inline int base64Decode6BitsDotSlash(char src)
 {
 	int ch  = (unsigned char) src;
 	int ret = -1;
@@ -123,7 +123,7 @@ inline int base64Decode6BitsDotSlash(char src)
 	return ret;
 }
 
-inline int base64Decode3BytesDotSlash(uint8_t dest[3], const char src[4])
+static inline int base64Decode3BytesDotSlash(uint8_t dest[3], const char src[4])
 {
 	int c0 = base64Decode6BitsDotSlash(src[0]);
 	int c1 = base64Decode6BitsDotSlash(src[1]);
@@ -136,7 +136,7 @@ inline int base64Decode3BytesDotSlash(uint8_t dest[3], const char src[4])
 	return ((c0 | c1 | c2 | c3) >> 8) & 1;
 }
 
-inline char base64Encode6BitsDotSlash(unsigned int src)
+static inline char base64Encode6BitsDotSlash(unsigned int src)
 {
 	src += 0x2e;
 
@@ -152,7 +152,7 @@ inline char base64Encode6BitsDotSlash(unsigned int src)
 	return (char) src;
 }
 
-inline void base64Encode3BytesDotSlash(char dest[4], const uint8_t src[3])
+static inline void base64Encode3BytesDotSlash(char dest[4], const uint8_t src[3])
 {
 	unsigned int b0 = src[0];
 	unsigned int b1 = src[1];
@@ -169,7 +169,7 @@ inline void base64Encode3BytesDotSlash(char dest[4], const uint8_t src[3])
 // [.-9]      [A-Z]      [a-z]
 // 0x2e-0x39, 0x41-0x5a, 0x61-0x7a
 
-inline int base64Decode6BitsDotSlashOrdered(char src)
+static inline int base64Decode6BitsDotSlashOrdered(char src)
 {
 	int ch  = (unsigned char) src;
 	int ret = -1;
@@ -186,7 +186,7 @@ inline int base64Decode6BitsDotSlashOrdered(char src)
 	return ret;
 }
 
-inline int base64Decode3BytesDotSlashOrdered(uint8_t dest[3], const char src[4])
+static inline int base64Decode3BytesDotSlashOrdered(uint8_t dest[3], const char src[4])
 {
 	int c0 = base64Decode6BitsDotSlashOrdered(src[0]);
 	int c1 = base64Decode6BitsDotSlashOrdered(src[1]);
@@ -199,7 +199,7 @@ inline int base64Decode3BytesDotSlashOrdered(uint8_t dest[3], const char src[4])
 	return ((c0 | c1 | c2 | c3) >> 8) & 1;
 }
 
-inline char base64Encode6BitsDotSlashOrdered(unsigned int src)
+static inline char base64Encode6BitsDotSlashOrdered(unsigned int src)
 {
 	src += 0x2e;
 
@@ -212,7 +212,7 @@ inline char base64Encode6BitsDotSlashOrdered(unsigned int src)
 	return (char) src;
 }
 
-inline void base64Encode3BytesDotSlashOrdered(char dest[4], const uint8_t src[3])
+static inline void base64Encode3BytesDotSlashOrdered(char dest[4], const uint8_t src[3])
 {
 	unsigned int b0 = src[0];
 	unsigned int b1 = src[1];

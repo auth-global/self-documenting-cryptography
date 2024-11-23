@@ -1,3 +1,4 @@
+#pragma once
 /*
 	Copyright (c) 2014 Steve "Sc00bz" Thomas (steve at tobtu dot com)
 
@@ -20,13 +21,10 @@
 	SOFTWARE.
 */
 
-#ifndef CONST_TIME_HEX_H
-#define CONST_TIME_HEX_H
+#include <stddef.h>
 
-int  hexDecode     (void *dest, const char *src, size_t srcLen);
-int  hexDecodeLower(void *dest, const char *src, size_t srcLen);
-int  hexDecodeUpper(void *dest, const char *src, size_t srcLen);
-void hexEncode     (char *dest, const void *src, size_t srcLen);
-void hexEncodeUpper(char *dest, const void *src, size_t srcLen);
-
-#endif
+int  hs_hashstring_hexDecode     (void *dest, const char *src, size_t srcLen);
+int  hs_hashstring_hexDecodeLower(void *dest, const char *src, size_t srcLen);
+int  hs_hashstring_hexDecodeUpper(void *dest, const char *src, size_t srcLen);
+void hs_hashstring_hexEncode     (char *dest, const void *src, size_t srcLen);
+void hs_hashstring_hexEncodeUpper(char *dest, const void *src, size_t srcLen);

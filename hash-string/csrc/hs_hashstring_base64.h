@@ -1,3 +1,4 @@
+#pragma once
 /*
 	Copyright (c) 2014 Steve "Sc00bz" Thomas (steve at tobtu dot com)
 
@@ -19,15 +20,11 @@
 	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 	SOFTWARE.
 */
+#include <stddef.h>
 
-#ifndef CONST_TIME_BASE64_H
-#define CONST_TIME_BASE64_H
-
-void base64Encode               (char *dest, const void *src, size_t srcLen);
-int  base64Decode               (void *dest, const char *src, size_t srcLen);
-void base64EncodeDotSlash       (char *dest, const void *src, size_t srcLen);
-int  base64DecodeDotSlash       (void *dest, const char *src, size_t srcLen);
-void base64EncodeDotSlashOrdered(char *dest, const void *src, size_t srcLen);
-int  base64DecodeDotSlashOrdered(void *dest, const char *src, size_t srcLen);
-
-#endif
+void hs_hashstring_base64Encode               (char *dest, const void *src, size_t srcLen);
+int  hs_hashstring_base64Decode               (void *dest, const char *src, size_t srcLen);
+void hs_hashstring_base64EncodeDotSlash       (char *dest, const void *src, size_t srcLen);
+int  hs_hashstring_base64DecodeDotSlash       (void *dest, const char *src, size_t srcLen);
+void hs_hashstring_base64EncodeDotSlashOrdered(char *dest, const void *src, size_t srcLen);
+int  hs_hashstring_base64DecodeDotSlashOrdered(void *dest, const char *src, size_t srcLen);

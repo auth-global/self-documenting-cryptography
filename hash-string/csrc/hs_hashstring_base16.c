@@ -20,14 +20,14 @@
 	SOFTWARE.
 */
 
-#include "hex.h"
+#include "hs_hashstring_base16.h"
 #include <stdint.h>
 
 // ************************
 // *** Helper Functions ***
 // ************************
 
-inline int hexDecodeNibble(char src)
+static inline int hexDecodeNibble(char src)
 {
 	// 0-9  0x30-0x39
 	// A-F  0x41-0x46 or a-f  0x61-0x66
@@ -45,7 +45,7 @@ inline int hexDecodeNibble(char src)
 	return ret;
 }
 
-inline int hexDecodeNibbleLower(char src)
+static inline int hexDecodeNibbleLower(char src)
 {
 	// 0-9  0x30-0x39
 	// a-f  0x61-0x66
@@ -61,7 +61,7 @@ inline int hexDecodeNibbleLower(char src)
 	return ret;
 }
 
-inline int hexDecodeNibbleUpper(char src)
+static inline int hexDecodeNibbleUpper(char src)
 {
 	// 0-9  0x30-0x39
 	// A-F  0x41-0x46
@@ -77,22 +77,22 @@ inline int hexDecodeNibbleUpper(char src)
 	return ret;
 }
 
-inline int hexDecodeByte(const char src[2])
+static inline int hexDecodeByte(const char src[2])
 {
 	return (hexDecodeNibble(src[0]) << 4) | hexDecodeNibble(src[1]);
 }
 
-inline int hexDecodeByteLower(const char src[2])
+static inline int hexDecodeByteLower(const char src[2])
 {
 	return (hexDecodeNibbleLower(src[0]) << 4) | hexDecodeNibbleLower(src[1]);
 }
 
-inline int hexDecodeByteUpper(const char src[2])
+static inline int hexDecodeByteUpper(const char src[2])
 {
 	return (hexDecodeNibbleUpper(src[0]) << 4) | hexDecodeNibbleUpper(src[1]);
 }
 
-inline char hexEncodeNibbleLower(unsigned int src)
+static inline char hexEncodeNibbleLower(unsigned int src)
 {
 	// 0-9  0x30-0x39
 	// a-f  0x61-0x66
@@ -104,7 +104,7 @@ inline char hexEncodeNibbleLower(unsigned int src)
 	return (char) src;
 }
 
-inline char hexEncodeNibbleUpper(unsigned int src)
+static inline char hexEncodeNibbleUpper(unsigned int src)
 {
 	// 0-9  0x30-0x39
 	// A-F  0x41-0x46
@@ -116,13 +116,13 @@ inline char hexEncodeNibbleUpper(unsigned int src)
 	return (char) src;
 }
 
-inline void hexEncodeByteLower(char dest[2], uint8_t src)
+static inline void hexEncodeByteLower(char dest[2], uint8_t src)
 {
 	dest[0] = hexEncodeNibbleLower(src >> 4);
 	dest[1] = hexEncodeNibbleLower(src & 0x0f);
 }
 
-inline void hexEncodeByteUpper(char dest[2], uint8_t src)
+static inline void hexEncodeByteUpper(char dest[2], uint8_t src)
 {
 	dest[0] = hexEncodeNibbleUpper(src >> 4);
 	dest[1] = hexEncodeNibbleUpper(src & 0x0f);
@@ -133,7 +133,7 @@ inline void hexEncodeByteUpper(char dest[2], uint8_t src)
 // *** Main Functions ***
 // **********************
 
-int hexDecode(void *dest, const char *src, size_t srcLen)
+int hs_hashstring_hexDecode(void *dest, const char *src, size_t srcLen)
 {
 	int err = 0;
 
@@ -152,7 +152,7 @@ int hexDecode(void *dest, const char *src, size_t srcLen)
 	return err != 0;
 }
 
-int hexDecodeLower(void *dest, const char *src, size_t srcLen)
+int hs_hashstring_hexDecodeLower(void *dest, const char *src, size_t srcLen)
 {
 	int err = 0;
 
@@ -171,7 +171,7 @@ int hexDecodeLower(void *dest, const char *src, size_t srcLen)
 	return err != 0;
 }
 
-int hexDecodeUpper(void *dest, const char *src, size_t srcLen)
+int hs_hashstring_hexDecodeUpper(void *dest, const char *src, size_t srcLen)
 {
 	int err = 0;
 
@@ -190,7 +190,7 @@ int hexDecodeUpper(void *dest, const char *src, size_t srcLen)
 	return err != 0;
 }
 
-void hexEncode(char *dest, const void *src, size_t srcLen)
+void hs_hashstring_hexEncode(char *dest, const void *src, size_t srcLen)
 {
 	for (size_t i = 0; i < srcLen; i++)
 	{
@@ -199,7 +199,7 @@ void hexEncode(char *dest, const void *src, size_t srcLen)
 	dest[2 * srcLen] = 0;
 }
 
-void hexEncodeUpper(char *dest, const void *src, size_t srcLen)
+void hs_hashstring_hexEncodeUpper(char *dest, const void *src, size_t srcLen)
 {
 	for (size_t i = 0; i < srcLen; i++)
 	{
