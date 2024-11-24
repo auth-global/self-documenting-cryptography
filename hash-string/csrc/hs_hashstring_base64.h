@@ -22,5 +22,6 @@
 */
 #include <stddef.h>
 
-void hs_hashstring_base64Encode               (char *dest, const void *src, size_t srcLen);
-int  hs_hashstring_base64Decode               (void *dest, const char *src, size_t srcLen);
+void hs_hashstring_base64Encode(char *dest, const void *src, size_t srcLen);
+int  hs_hashstring_base64Decode(void *dest, const char *src, size_t srcLen);
+int  hs_hashstring_base64PadLength(const char *src, size_t srcLen);

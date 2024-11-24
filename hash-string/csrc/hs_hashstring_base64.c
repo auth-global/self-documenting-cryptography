@@ -123,7 +123,7 @@ void hs_hashstring_base64Encode(char *dest, const void *src, size_t srcLen)
 			tmpIn[i] = ((const uint8_t*) src)[i];
 		}
 		base64Encode3Bytes(tmpOut, tmpIn);
-	        memcpy(dest, tmpOut, srcLen + 1);
+		memcpy(dest, tmpOut, srcLen + 1);
 		explicit_bzero(&tmpIn, sizeof(tmpIn));
 		explicit_bzero(&tmpOut, sizeof(tmpOut));
 	}
@@ -161,4 +161,18 @@ int hs_hashstring_base64Decode(void *dest, const char *src, size_t srcLen)
 		}
 	}
 	return err;
+}
+
+int
+hs_hashstring_base64PadLength(const char *src, size_t srclen) {
+  // I suppose I could validate that the padding brings the overall length to a
+  // multiple of four, but I think I'm just going to simply check for up to two '=' at
+  // the end.  Implemented in C because Haskell's SmallByteString interface is sparse.
+  if (src == NULL || srclen == 0)
+    return 0;
+  if (srclen == 1)
+    return (src[0] == '=');
+  return
+    (src[srclen-1] != '=') ? 0 :
+    (src[srclen-2] != '=') ? 1 : 2;
 }

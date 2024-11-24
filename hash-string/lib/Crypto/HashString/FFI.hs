@@ -2,11 +2,14 @@
 
 module Crypto.HashString.FFI where
 
-import Data.Word
-import Foreign.C
-import Foreign.Ptr
-import GHC.Exts
-import GHC.IO
+import           Data.ByteString (ByteString)
+import qualified Data.ByteString as B
+import           Data.ByteString.Internal (c2w)
+import           Data.Word
+import           Foreign.C
+import           Foreign.Ptr
+import           GHC.Exts
+import           GHC.IO
 
 -- | Given the length of some binary blob of data, how long will the base64 encoded
 --   version be, without padding?
@@ -58,7 +61,7 @@ foreign import capi unsafe "hs_hashstring_base16.h hs_hashstring_hexDecode"
 foreign import capi unsafe "hs_hashstring_base16.h hs_hashstring_hexDecode"
   c_hexDecode_mba_bs
     :: MutableByteArray# RealWorld
-    -> Ptr Word8
+    -> CString
     -> CSize
     -> IO CInt
 
@@ -104,3 +107,11 @@ foreign import capi unsafe "hs_hashstring_base64.h hs_hashstring_base64Encode"
     -> CSize
     -> IO ()
 
+foreign import capi unsafe "hs_hashstring_base64.h hs_hashstring_base64PadLength"
+  c_base64PadLength_ba
+    :: ByteArray#
+    -> CSize
+    -> CInt
+
+base64PadLength_bs :: ByteString -> Int
+base64PadLength_bs xs = min 2 (B.length (B.takeWhileEnd ((==) (c2w '=')) xs))

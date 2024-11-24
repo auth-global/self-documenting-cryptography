@@ -112,7 +112,8 @@ fromShortBase64 str@(SBS ptr) =
             then (# st2, Nothing #)
             else (# st2, Just (HashString (SBS b)) #)
   where
-    ptrlen = SB.length str
+    ptrlen0 = SB.length str
+    ptrlen  = ptrlen0 - fromIntegral (c_base64PadLength_ba ptr (fromIntegral ptrlen0))
 
 toShortBase64 :: HashString -> ShortByteString
 toShortBase64 (HashString str@(SBS ptr)) =
@@ -158,7 +159,7 @@ fromBase16 str =
     Just !(I# outlen) ->
       unsafePerformIO . unsafeUseAsCString str $ \ptr -> IO $ \st ->
         let !(# st0, a #) = newByteArray# outlen st
-            !(# st1, err #) = unIO (c_base64Decode_mba_bs a ptr (fromIntegral ptrlen)) st0
+            !(# st1, err #) = unIO (c_hexDecode_mba_bs a ptr (fromIntegral ptrlen)) st0
             !(# st2, b #) = unsafeFreezeByteArray# a st1
          in if err /= 0
             then (# st2, Nothing #)
@@ -179,4 +180,4 @@ fromBase64 str =
             then (# st2, Nothing #)
             else (# st2, Just (HashString (SBS b)) #)
   where
-    ptrlen = B.length str
+    ptrlen = B.length str - base64PadLength_bs str
