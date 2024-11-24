@@ -24,7 +24,3 @@
 
 void hs_hashstring_base64Encode               (char *dest, const void *src, size_t srcLen);
 int  hs_hashstring_base64Decode               (void *dest, const char *src, size_t srcLen);
-void hs_hashstring_base64EncodeDotSlash       (char *dest, const void *src, size_t srcLen);
-int  hs_hashstring_base64DecodeDotSlash       (void *dest, const char *src, size_t srcLen);
-void hs_hashstring_base64EncodeDotSlashOrdered(char *dest, const void *src, size_t srcLen);
-int  hs_hashstring_base64DecodeDotSlashOrdered(void *dest, const char *src, size_t srcLen);
