@@ -18,16 +18,16 @@ library
 
     build-depends:    base,
                       bytestring,
-		      ghc-prim
+                      ghc-prim
     hs-source-dirs:   lib
     include-dirs:     csrc
-    
+
     install-includes:  csrc/hs_hashstring_memcmp.h
                        csrc/hs_hashstring_base16.h
-		       csrc/hs_hashstring_base64.h
+                       csrc/hs_hashstring_base64.h
     c-sources:         csrc/hs_hashstring_memcmp.c
                        csrc/hs_hashstring_base16.c
-		       csrc/hs_hashstring_base64.c
+                       csrc/hs_hashstring_base64.c
 
     default-language: Haskell2010
 
@@ -51,6 +51,12 @@ test-suite hash-string-test
     main-is:          Main.hs
 
     -- Test dependencies.
-    build-depends:
-        base >=4.18 && <4.19,
-        hash-string
+    build-depends:    base
+                    , base16 >= 1
+    --                , base64 >= 1
+                    , bytestring
+                    , hash-string
+                    , quickcheck-instances
+                    , tasty
+                    , tasty-quickcheck
+		    , text

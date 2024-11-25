@@ -3,3 +3,4 @@ packages:
   phkdf/
   g3p-hash/
   tuplehash-utils/
+  hash-string/

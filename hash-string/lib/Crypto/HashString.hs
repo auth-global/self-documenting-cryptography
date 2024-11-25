@@ -75,7 +75,7 @@ instance Show HashString where
 
 fromShortBase16 :: ShortByteString -> Maybe HashString
 fromShortBase16 str@(SBS ptr) =
-  case base64DecodeLength ptrlen of
+  case base16DecodeLength ptrlen of
     Nothing -> Nothing
     Just !(I# outlen) ->
       unsafePerformIO . IO $ \st ->
@@ -181,3 +181,9 @@ fromBase64 str =
             else (# st2, Just (HashString (SBS b)) #)
   where
     ptrlen = B.length str - base64PadLength_bs str
+
+-- TODO: implement these functions:
+
+-- toBase16Builder :: HashString -> Builder
+
+-- toBase64Builder :: HashString -> Builder
