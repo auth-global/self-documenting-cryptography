@@ -14,11 +14,14 @@ module Crypto.HashString
      , toByteString
      , toBase16
      , toBase64
+     , toBase16Builder
+     , toBase64Builder
      ) where
 
 import           Data.Bits((.&.))
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
+import           Data.ByteString.Builder (Builder, shortByteString)
 import           Data.ByteString.Internal(c2w, w2c, unsafeCreate)
 import           Data.ByteString.Unsafe (unsafeUseAsCString, unsafeUseAsCStringLen)
 import           Data.ByteString.Short.Internal (ShortByteString(..))
@@ -182,8 +185,10 @@ fromBase64 str =
   where
     ptrlen = B.length str - base64PadLength_bs str
 
--- TODO: implement these functions:
+-- TODO: implement these functions better
 
--- toBase16Builder :: HashString -> Builder
+toBase16Builder :: HashString -> Builder
+toBase16Builder = shortByteString . toShortBase16
 
--- toBase64Builder :: HashString -> Builder
+toBase64Builder :: HashString -> Builder
+toBase64Builder = shortByteString . toShortBase64
