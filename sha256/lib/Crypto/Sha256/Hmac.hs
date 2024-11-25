@@ -209,7 +209,7 @@ hmacKey_run :: HmacKey -> HmacCtx
 hmacKey_run = hmacCtx_init
 
 hmacKeyHashed :: HmacKeyPlain -> HmacKeyHashed
-hmacKeyHashed key = HmacKeyHashed ipad opad
+hmacKeyHashed key = HmacKeyHashed opad ipad
   where
     ipad = tweak 0x36
     opad = tweak 0x5c
