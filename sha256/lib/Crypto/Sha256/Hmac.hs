@@ -74,6 +74,7 @@ import           Data.Foldable(Foldable, toList)
 import           Data.Int
 import           Data.Word
 
+import           Crypto.HashString
 import           Crypto.Sha256 as Sha256
 import           Crypto.Sha256.Subtle
 import           Crypto.Sha256.Hmac.Implementation

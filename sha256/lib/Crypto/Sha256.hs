@@ -4,13 +4,6 @@
 module Crypto.Sha256
   ( hash
   , hash'
-  , HashString(..)
-  , hashString_toShort
-  , hashString_toShortBase16
-  , hashString_fromShort
-  , hashString_toByteString
-  , hashString_fromByteString
-  , hashString_toBase16
   , Sha256Ctx()
   , sha256_init
   , sha256_update,  sha256_feed
@@ -23,70 +16,20 @@ module Crypto.Sha256
   , sha256_finalizeBits, sha256_finalizeBits_toByteString
   ) where
 
-import           Data.Base16.Types
 import           Data.Bits((.&.), shiftR)
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as B8
-import qualified Data.ByteString.Base16 as B
-import           Data.ByteString.Internal (w2c, c2w, unsafeCreate)
+import           Data.ByteString.Internal (unsafeCreate)
 import           Data.ByteString.Short.Internal(ShortByteString(..))
-import qualified Data.ByteString.Short as SB
-import qualified Data.ByteString.Short.Base16 as SB
 import           Data.ByteString.Unsafe(unsafeUseAsCString, unsafeUseAsCStringLen)
-import qualified Data.Char as Char
 import           Data.Foldable(foldl')
 import           Data.Function((&))
-import           Data.Monoid
-import           Data.String
 import           Data.Word
 import           GHC.Exts
 import           GHC.IO
 
+import           Crypto.HashString
 import           Crypto.Sha256.Subtle
-
-hashString_toShort :: HashString -> ShortByteString
-hashString_toShort = unHashString
-
-hashString_fromShort :: ShortByteString -> HashString
-hashString_fromShort = HashString
-
-hashString_toByteString :: HashString -> ByteString
-hashString_toByteString = SB.fromShort . unHashString
-
-hashString_fromByteString :: ByteString -> HashString
-hashString_fromByteString = HashString . SB.toShort
-
--- FIXME! replace this with algorithms that are constant time independent of content
--- Perhaps this would be a reasonable option:
-
--- https://github.com/Sc00bz/ConstTimeEncoding
-
--- TODO: add decoding, and support for Base64
-
--- TODO: add instance IsString HashString
-
-hashString_toShortBase16 :: HashString -> ShortByteString
-hashString_toShortBase16 = extractBase16 . SB.encodeBase16' . hashString_toShort
-
-hashString_toBase16 :: HashString -> ByteString
-hashString_toBase16 = SB.fromShort . hashString_toShortBase16
-
--- | e.g. "0x0123456789abcdef", arbitrary-length hexadecmial literals prefixed with "0x"
-
-instance IsString HashString where
-  fromString = \case
-      ( '0' : 'x' : xs )
-        | all Char.isHexDigit xs ->
-	    HashString (SB.decodeBase16Lenient (SB.pack (map c2w xs)))
-        | otherwise ->
-	    error "fromString :: HashString -> String  --  base16 syntax error"
-      _ ->  error "fromString :: HashString -> String  --  no valid syntax found"
-
-instance Show HashString where
-  show (HashString xs) = '"':'\\':'x': enc xs ++ ['"']
-    where
-      enc = map w2c . SB.unpack . extractBase16 . SB.encodeBase16'
 
 -- TODO: there are a number of magic literals scattered throughout that
 -- really ought to refer to a symbolic constant of some sort
@@ -113,9 +56,6 @@ sha256_blockCount ctx = sha256_byteCount ctx `shiftR` 6
 
 sha256_bufferLength :: Sha256Ctx -> Word8
 sha256_bufferLength ctx = fromIntegral (sha256_byteCount ctx .&. 0x3F)
-
-encodeB16 :: ShortByteString -> String
-encodeB16 = map w2c . SB.unpack . extractBase16 . SB.encodeBase16'
 
 sha256_state :: Sha256Ctx -> HashString
 sha256_state = sha256state_encode . sha256state_fromCtxInplace

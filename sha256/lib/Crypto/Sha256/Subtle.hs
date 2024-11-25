@@ -2,39 +2,22 @@
 
 module Crypto.Sha256.Subtle where
 
+import           Data.Bits((.&.))
 import           Data.ByteString (ByteString)
+import qualified Data.ByteString as B
 import           Data.ByteString.Unsafe(unsafeUseAsCStringLen)
 import           Data.ByteString.Short.Internal (ShortByteString(..))
 import qualified Data.ByteString.Short as SB
+import           Data.Word
+import           Foreign.C
+import           Foreign.Ptr
+import           GHC.Exts
+import           GHC.IO
 
--- import Data.Array.Byte
-import Data.Bits((.&.))
-import Data.Word
-import qualified Data.ByteString as B
-import Foreign.C
-import Foreign.Ptr
-import GHC.Exts
-import GHC.IO
+import           Crypto.HashString
 
 nullBuffer :: ByteString
 nullBuffer = B.replicate 64 0
-
--- | A binary-encoded string. Supports constant-time comparisons, for
---   both equality and ordering.
-
-newtype HashString = HashString { unHashString :: ShortByteString }
-
-instance Eq HashString where
-  x == y = compare x y == EQ
-
-instance Ord HashString where
-  compare (HashString xsbs@(SBS x)) (HashString ysbs@(SBS y)) =
-      compare (c_const_memcmp x y minlen) 0
-        <> compare xlen ylen
-    where
-      xlen = SB.length xsbs
-      ylen = SB.length ysbs
-      minlen = fromIntegral (min xlen ylen)
 
 type Sha256MutableState# = MutableByteArray#
 

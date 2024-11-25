@@ -23,8 +23,8 @@ library
                      Crypto.Sha256.Hmac.Implementation
 
   build-depends:     base
-                   , base16
                    , bytestring
+		   , hash-string
 		   , ghc-prim
 
   hs-source-dirs:    lib
