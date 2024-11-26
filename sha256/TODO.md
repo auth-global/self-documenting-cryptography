@@ -1,5 +1,7 @@
 * Improve Instances
 
+* Clean up warnings
+
 * Rewrite top-level HKDF functions into a (relatively) point-free style, a la G3Pb2
 
    * We want to ensure that a reused partial application is as efficient as possible,

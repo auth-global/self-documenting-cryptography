@@ -38,7 +38,7 @@ takeHS = go
       | len b < n = HashString b : go (n - len b) bs
       | otherwise = [HashString (SB.take n b)]
 
--- TODO: write these functions in a point-free style
+-- TODO: write pbkdf2 and pbkdf2_index functions in a point-free style
 
 pbkdf2
   :: HmacKey -- ^ nominally the "password"
@@ -46,9 +46,7 @@ pbkdf2
   -> Word64 -- ^ number of rounds
   -> Int -- ^ desired length of output
   -> HashString
-pbkdf2 password0 salt rounds len
-  | rounds == 0 = error "pbkdf2: rounds must be greater than zero"
-  | otherwise = mconcat (takeHS len (map gen [1..maxBound]))
+pbkdf2 password0 salt rounds len = out
   where
      password = hmacKey_toHashed password0
      saltCtx =
@@ -58,6 +56,7 @@ pbkdf2 password0 salt rounds len
        pbkdf2Ctx_finalize index saltCtx &
        pbkdf2Gen_iterate ((max rounds 1) - 1) &
        pbkdf2Gen_finalize
+     out = mconcat (takeHS len (map gen [1..maxBound]))
 
 pbkdf2_index
   :: HmacKey -- ^ nominally the "password"
@@ -65,9 +64,7 @@ pbkdf2_index
   -> Word32 -- ^ the "index", returns the i-th block of output. The first index is 1, thus the result consists of bytes starting at 32*(i-1) and ending before 32*i.  This is appended as 4 more bytes after the salt.
   -> Word64 -- ^ number of rounds
   -> HashString -- ^ 32-byte output"
-pbkdf2_index password0 salt index rounds
-  | rounds == 0 = error "pbkdf2: rounds must be greater than zero"
-  | otherwise = out
+pbkdf2_index password0 salt index rounds = out
   where
      password = hmacKey_toHashed password0
      saltCtx =
