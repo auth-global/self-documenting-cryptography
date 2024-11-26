@@ -12,8 +12,9 @@ module Crypto.Sha256
   , sha256_blockCount
   , sha256_bufferLength
   , sha256_state
-  , sha256_finalize    , sha256_finalize_toByteString
-  , sha256_finalizeBits, sha256_finalizeBits_toByteString
+  , sha256_finalize     , sha256_finalize_toByteString
+  , sha256_finalizeBits , sha256_finalizeBits_toByteString
+  , sha256_finalizeBytes, sha256_finalizeBytes_toByteString
   ) where
 
 import           Data.Bits((.&.), shiftR)
@@ -105,3 +106,9 @@ sha256_finalizeBits_toByteString bits bitlen0 (Sha256Ctx ctx) =
         c_sha256_finalize_ctx_bits ctx bp bitlen rp
   where
     bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
+
+sha256_finalizeBytes :: ByteString -> Sha256Ctx -> HashString
+sha256_finalizeBytes = flip sha256_finalizeBits maxBound
+
+sha256_finalizeBytes_toByteString :: ByteString -> Sha256Ctx -> ByteString
+sha256_finalizeBytes_toByteString = flip sha256_finalizeBits_toByteString maxBound

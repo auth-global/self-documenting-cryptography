@@ -25,9 +25,11 @@ library
     install-includes:  csrc/hs_hashstring_memcmp.h
                        csrc/hs_hashstring_base16.h
                        csrc/hs_hashstring_base64.h
+		       csrc/hs_hashstring_xor.h
     c-sources:         csrc/hs_hashstring_memcmp.c
                        csrc/hs_hashstring_base16.c
                        csrc/hs_hashstring_base64.c
+		       csrc/hs_hashstring_xor.c
 
     default-language: Haskell2010
 

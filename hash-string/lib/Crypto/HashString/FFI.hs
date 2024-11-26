@@ -113,5 +113,14 @@ foreign import capi unsafe "hs_hashstring_base64.h hs_hashstring_base64PadLength
     -> CSize
     -> CInt
 
+foreign import capi unsafe "hs_hashstring_xor.h hs_hashstring_xorleft"
+  c_xorleft_ba
+    :: ByteArray#
+    -> CSize
+    -> ByteArray#
+    -> CSize
+    -> MutableByteArray# RealWorld
+    -> IO ()
+
 base64PadLength_bs :: ByteString -> Int
 base64PadLength_bs xs = min 2 (B.length (B.takeWhileEnd ((==) (c2w '=')) xs))

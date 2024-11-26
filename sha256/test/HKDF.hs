@@ -1,4 +1,4 @@
--- Test Vectors for HMAC-SHA256
+-- Test Vectors for HKDF-SHA256
 
 {-# LANGUAGE OverloadedStrings #-}
 

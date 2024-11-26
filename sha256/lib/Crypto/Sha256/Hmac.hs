@@ -37,6 +37,8 @@ module Crypto.Sha256.Hmac
   , HmacKeyHashed()
   , hmacKeyHashed
   , hmacKeyHashed_toKey
+  , hmacKeyHashed_run
+  , hmacKeyHashed_runWith
   , HmacKeyPrefixed()
   , hmacKeyPrefixed
   , hmacKeyPrefixed_init
@@ -57,8 +59,9 @@ module Crypto.Sha256.Hmac
   , hmacCtx_initWith
   , hmacCtx_update,  hmacCtx_feed
   , hmacCtx_updates, hmacCtx_feeds
-  , hmacCtx_finalize,     hmacCtx_finalize_toByteString
-  , hmacCtx_finalizeBits, hmacCtx_finalizeBits_toByteString
+  , hmacCtx_finalize     , hmacCtx_finalize_toByteString
+  , hmacCtx_finalizeBits , hmacCtx_finalizeBits_toByteString
+  , hmacCtx_finalizeBytes, hmacCtx_finalizeBytes_toByteString
   , hmacCtx_byteCount
   , hmacCtx_blockCount
   , hmacCtx_bufferLength
@@ -368,6 +371,12 @@ hmacCtx_finalizeBits_toByteString bits bitlen (HmacCtx oc ic) = outer
   where
     inner = sha256_finalizeBits_toByteString bits bitlen ic
     outer = sha256_finalize_toByteString (sha256state_runWith 1 inner oc)
+
+hmacCtx_finalizeBytes :: ByteString -> HmacCtx -> HashString
+hmacCtx_finalizeBytes = flip hmacCtx_finalizeBits maxBound
+
+hmacCtx_finalizeBytes_toByteString :: ByteString -> HmacCtx -> ByteString
+hmacCtx_finalizeBytes_toByteString = flip hmacCtx_finalizeBits_toByteString maxBound
 
 hmacCtx_byteCount :: HmacCtx -> Word64
 hmacCtx_byteCount = sha256_byteCount . hmacCtx_ipadCtx

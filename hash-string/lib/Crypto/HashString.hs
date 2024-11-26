@@ -16,6 +16,7 @@ module Crypto.HashString
      , toBase64
      , toBase16Builder
      , toBase64Builder
+     , xorStringLeft
      ) where
 
 import           Data.Bits((.&.))
@@ -32,6 +33,7 @@ import           Data.Monoid
 import           Data.Word
 import           Foreign.C
 import           Foreign.Ptr
+import           GHC.Base
 import           GHC.Exts
 import           GHC.IO
 
@@ -76,6 +78,21 @@ instance Show HashString where
   show xs = '"': enc xs ++ ['"']
     where
       enc = map w2c . SB.unpack . toShortBase16
+
+-- | Xor two hashstrings.  The length of the result is always the same as the length
+--   of the left element.
+
+xorStringLeft :: HashString -> HashString -> HashString
+xorStringLeft (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
+  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) == EQ = HashString (SB.replicate (SB.length strl) 0)
+  | otherwise =
+    unsafePerformIO . IO $ \st ->
+      let !lenl0@(I# lenl) = SB.length strl
+          !lenr0@(I# lenr) = SB.length strr
+          !(# st0, a #) = newByteArray# lenl st
+          !(# st1, () #) = unIO (c_xorleft_ba ptrl (fromIntegral lenl0) ptrr (fromIntegral lenr0) a) st0
+          !(# st2, b #) = unsafeFreezeByteArray# a st1
+       in  (# st2, HashString (SBS b) #)
 
 fromShortBase16 :: ShortByteString -> Maybe HashString
 fromShortBase16 str@(SBS ptr) =

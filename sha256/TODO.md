@@ -1,20 +1,22 @@
 * Improve Instances
 
-* Add bindings for serializing/deserializing Sha256State and Sha256Ctx
+* Rewrite top-level HKDF functions into a (relatively) point-free style, a la G3Pb2
 
-* HKDF Support
+   * We want to ensure that a reused partial application is as efficient as possible,
+     so at least 1 point (i.e. named argument) per function should be "acceptable", and
+     sometimes more.
 
 * PBKDF2 Support
+
+* Support for Mutable Contexts and States
+
+   * Modify the sha256_updates and sha256_feeds functions to make use of this
+
+   * Modify the PBKDF2 binding to make use of this.
 
 * Better support for hashing things other than ByteStrings
 
 * Add tests
-
-   * ensure that the comparison for Sha256State provides the same ordering
-     as serializing the states and then doing an normal lexicographic comparison
-     on the result.
-
-   * other tests regarding comparisons
 
    * throughly exercise the buffer-handling code
 

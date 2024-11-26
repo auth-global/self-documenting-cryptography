@@ -20,6 +20,8 @@ library
                      Crypto.Sha256.Hmac.Subtle
                      Crypto.Sha256.Hkdf
                      Crypto.Sha256.Hkdf.Subtle
+		     Crypto.Sha256.Pbkdf2
+		     Crypto.Sha256.Pbkdf2.Subtle
 
   other-modules:
                      Crypto.Sha256.Hmac.Implementation
@@ -27,6 +29,7 @@ library
   build-depends:     base
                    , bytestring
                    , hash-string
+		   , network-byte-order
                    , ghc-prim
                    , Stream
 
@@ -46,7 +49,8 @@ test-suite test
   main-is:           Main.hs
 
   other-modules:     HMAC,
-                     HKDF
+                     HKDF,
+		     PBKDF2
   build-depends:     base
                    , base16
                    , bytestring
