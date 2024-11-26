@@ -7,7 +7,6 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.ByteString.Unsafe(unsafeUseAsCStringLen)
 import           Data.ByteString.Short.Internal (ShortByteString(..))
-import qualified Data.ByteString.Short as SB
 import           Data.Word
 import           Foreign.C
 import           Foreign.Ptr

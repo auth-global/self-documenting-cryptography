@@ -18,14 +18,17 @@ library
                      Crypto.Sha256.Subtle
                      Crypto.Sha256.Hmac
                      Crypto.Sha256.Hmac.Subtle
+                     Crypto.Sha256.Hkdf
+                     Crypto.Sha256.Hkdf.Subtle
 
   other-modules:
                      Crypto.Sha256.Hmac.Implementation
 
   build-depends:     base
                    , bytestring
-		   , hash-string
-		   , ghc-prim
+                   , hash-string
+                   , ghc-prim
+                   , Stream
 
   hs-source-dirs:    lib
   include-dirs:      csrc
@@ -42,11 +45,13 @@ test-suite test
   hs-source-dirs:    test
   main-is:           Main.hs
 
-  other-modules:     HMAC
+  other-modules:     HMAC,
+                     HKDF
   build-depends:     base
                    , base16
                    , bytestring
-		   , sha256
+		   , hash-string
+                   , sha256
                    , tasty
                    , tasty-hunit
   default-language:  Haskell2010

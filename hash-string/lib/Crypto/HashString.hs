@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, CApiFFI, UnliftedFFITypes, BangPatterns, LambdaCase #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, CApiFFI, UnliftedFFITypes, BangPatterns, LambdaCase, GeneralizedNewtypeDeriving #-}
 
 module Crypto.HashString
      ( HashString(..)
@@ -28,6 +28,7 @@ import           Data.ByteString.Short.Internal (ShortByteString(..))
 import qualified Data.ByteString.Short as SB
 import qualified Data.Char as Char
 import           Data.Maybe
+import           Data.Monoid
 import           Data.Word
 import           Foreign.C
 import           Foreign.Ptr
@@ -41,7 +42,7 @@ import           Crypto.HashString.FFI
 --   is otherwise independent of content), as well as constant-time base16 and base64
 --   conversions.
 
-newtype HashString = HashString { unHashString :: ShortByteString }
+newtype HashString = HashString { unHashString :: ShortByteString } deriving (Semigroup, Monoid)
 
 instance Eq HashString where
   x == y = compare x y == EQ

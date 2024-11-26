@@ -8,6 +8,7 @@ import           Test.Tasty.HUnit
 
 import Crypto.Sha256
 import qualified HMAC
+import qualified HKDF
 
 d :: ByteString -> ByteString
 d = B.decodeBase16Lenient
@@ -18,7 +19,8 @@ main = do
         [ testCase ("sha256-" ++ show n) (run x)
         | (n,x) <- zip [1..] testVectors
         ],
-      testGroup "hmac" HMAC.tests
+      testGroup "hmac" HMAC.tests,
+      testGroup "hkdf" HKDF.tests
      ]
   where
     run :: SHA256TestVector -> Assertion
