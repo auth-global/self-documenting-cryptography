@@ -101,7 +101,7 @@ testCase7 = TestVector
 
 testCase8 = TestVector
   { password = "Password"
-  , salt = "NaCL"
+  , salt = "NaCl"
   , rounds = 80000
   , out = d "4ddcd8f60b98be21830cee5ef22701f9641a4418d04c0414aeff08876b34ab56a1d425a1225833549adb841b51c9b3176a272bdebba1d078478f62b397f33c8d62aae85a11cdde829d89cb6ffd1ab0e63a981f8747d2f2f9fe5874165c83c168d2eed1d2d5ca4052dec2be5715623da019b8c0ec87dc36aa751c38f9893d15c3"
   }

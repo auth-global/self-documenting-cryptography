@@ -84,7 +84,7 @@ instance Show HashString where
 
 xorStringLeft :: HashString -> HashString -> HashString
 xorStringLeft (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
-  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) == EQ = HashString (SB.replicate (SB.length strl) 0)
+  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = HashString (SB.replicate (SB.length strl) 0)
   | otherwise =
     unsafePerformIO . IO $ \st ->
       let !lenl0@(I# lenl) = SB.length strl
