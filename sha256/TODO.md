@@ -6,7 +6,7 @@
      so at least 1 point (i.e. named argument) per function should be "acceptable", and
      sometimes more.
 
-* PBKDF2 Support
+* Rewrite top-level PBKDF2 functions into a (relatively) point-free style, a la G3Pb2
 
 * Support for Mutable Contexts and States
 
@@ -39,6 +39,6 @@
 
    * Add support for web browsers via web assembly
 
-   * Ensure reasonable-to-excellent support for vectorization.
+   * Ensure reasonable-to-excellent support for vector instructions.
 
    * Support native SHA256 instructions when available.
