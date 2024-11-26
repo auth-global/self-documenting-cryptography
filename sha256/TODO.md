@@ -2,6 +2,14 @@
 
 * Clean up warnings
 
+* Clean up magic constants, replace with symbolic references
+
+* Prepare for Release
+
+    * Headers on all files
+
+    * Fill in at least some of the missing documentation
+
 * Rewrite top-level HKDF functions into a (relatively) point-free style, a la G3Pb2
 
    * We want to ensure that a reused partial application is as efficient as possible,
