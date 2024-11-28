@@ -32,19 +32,19 @@ hkdf :: HmacKey -- ^ salt
      -> ByteString -- ^ initial keying material
      -> ByteString -- ^ info
      -> [HashString]
-hkdf salt ikm info = hkdfExpand (hkdfExtract salt ikm) info
+hkdf salt = hkdfExpand . hkdfExtract salt
 
 hkdfExtract
     :: HmacKey -- ^ salt
     -> ByteString -- ^ initial keying material
     -> HmacKey -- ^ pseudorandom key
-hkdfExtract salt ikm = hkdfCtx_finalize (hkdfCtx_feed ikm (hkdfCtx_init salt))
+hkdfExtract salt = hkdfCtx_finalize . hkdfCtx_update (hkdfCtx_init salt)
 
 hkdfExpand
     :: HmacKey -- ^ pseudorandom key
     -> ByteString -- ^ info
     -> [HashString]
-hkdfExpand prk info = Stream.take 255 (hkdfExpand_toStream prk info)
+hkdfExpand prk = Stream.take 255 . hkdfExpand_toStream prk
 
 hkdfExpand_toGen
     :: HmacKey -- ^ pseudorandom key
@@ -56,7 +56,7 @@ hkdfExpand_toStream
     :: HmacKey -- ^ pseudorandom key
     -> ByteString -- ^ info
     -> Stream HashString
-hkdfExpand_toStream prk info = hkdfGen_toStream (hkdfExpand_toGen prk info)
+hkdfExpand_toStream prk = hkdfGen_toStream . hkdfExpand_toGen prk
 
 hkdfCtx_init :: HmacKey -> HkdfCtx
 hkdfCtx_init key = HkdfCtx (hmacCtx_init key)
