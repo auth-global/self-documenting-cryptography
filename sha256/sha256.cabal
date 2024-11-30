@@ -20,8 +20,8 @@ library
                      Crypto.Sha256.Hmac.Subtle
                      Crypto.Sha256.Hkdf
                      Crypto.Sha256.Hkdf.Subtle
-		     Crypto.Sha256.Pbkdf2
-		     Crypto.Sha256.Pbkdf2.Subtle
+                     Crypto.Sha256.Pbkdf2
+                     Crypto.Sha256.Pbkdf2.Subtle
 
   other-modules:
                      Crypto.Sha256.Hmac.Implementation
@@ -29,7 +29,7 @@ library
   build-depends:     base
                    , bytestring
                    , hash-string
-		   , network-byte-order
+                   , network-byte-order
                    , ghc-prim
                    , Stream
 
@@ -37,9 +37,7 @@ library
   include-dirs:      csrc
   default-language:  Haskell2010
   ghc-options:       -Wall
-  -- Enable these to see an accurate memory-use analysis in the warnings,
-  -- but unfortunately this doesn't seem to play nice with flexible array members
-  cc-options:        -Wall -Wno-stringop-overread -Wno-stringop-overflow  
+  cc-options:        -Wall  
   install-includes:  csrc/hs_sha256.h
   c-sources:         csrc/hs_sha256.c
 
@@ -50,11 +48,11 @@ test-suite test
 
   other-modules:     HMAC,
                      HKDF,
-		     PBKDF2
+                     PBKDF2
   build-depends:     base
                    , base16
                    , bytestring
-		   , hash-string
+                   , hash-string
                    , sha256
                    , tasty
                    , tasty-hunit

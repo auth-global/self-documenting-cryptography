@@ -18,17 +18,17 @@ typedef struct sha256_ctx
 
 size_t
 hs_sha256_update
-(const uint32_t state[static const SHA256_STATE_LEN],
+(const uint32_t state[const SHA256_STATE_LEN],
  const uint8_t *const data,
  size_t const datalen,
- uint32_t out[static const SHA256_STATE_LEN]);
+ uint32_t out[const SHA256_STATE_LEN]);
 
 void
 hs_sha256_update_ctx
-(const sha256_ctx in[static const 1],
+(const sha256_ctx *const in,
  const uint8_t *const data,
  const size_t datalen,
- sha256_ctx out[static const 1]);
+ sha256_ctx *const out);
 
 void
 hs_sha256_promote_to_ctx
@@ -70,12 +70,6 @@ hs_sha256_get_state
 void
 hs_sha256_init_ctx
 (sha256_ctx *const out);
-
-int
-hs_sha256_const_memcmp
-( const uint8_t *const a,
-  const uint8_t *const b,
-  size_t const n );
 
 int
 hs_sha256_const_memcmp_ctx

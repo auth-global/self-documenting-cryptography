@@ -18,11 +18,11 @@ import           Crypto.HashString
 nullBuffer :: ByteString
 nullBuffer = B.replicate 64 0
 
-type Sha256MutableState# = MutableByteArray#
+type MutableSha256State# = MutableByteArray#
 
 type Sha256State# = ByteArray#
 
-type Sha256MutableCtx# = MutableByteArray#
+type MutableSha256Ctx# = MutableByteArray#
 
 type Sha256Ctx# = ByteArray#
 
@@ -43,8 +43,6 @@ instance Eq Sha256Ctx where
 instance Ord Sha256Ctx where
   compare (Sha256Ctx x) (Sha256Ctx y) =
     compare (c_const_memcmp_ctx x y) 0
-
-data Sha256MutableCtx a = Sha256MutableCtx { unSha256MutableCtx :: !(Sha256MutableCtx# a) }
 
 sha256state_init :: Sha256State
 sha256state_init =
@@ -134,7 +132,7 @@ foreign import ccall unsafe "hs_sha256.h &hs_sha256_init"
     c_sha256_init :: Ptr Word32
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_init_ctx"
-    c_sha256_init_ctx :: Sha256MutableCtx# RealWorld -> IO ()
+    c_sha256_init_ctx :: MutableSha256Ctx# RealWorld -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_promote_to_ctx"
   c_sha256_promote_to_ctx
@@ -142,7 +140,7 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_promote_to_ctx"
     -> Word64 -- ^ @blockCount@, the number of blocks that a sha256 context has processed
     -> CString -- ^ pointer to the constant data to process
     -> CSize -- ^ length of the data to process
-    -> Sha256MutableCtx# RealWorld -- ^ output pointer
+    -> MutableSha256Ctx# RealWorld -- ^ output pointer
     -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_update"
@@ -150,7 +148,7 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_update"
     :: Sha256State# -- ^ @state@, a pointer to an constant array of eight Word32
     -> CString -- ^ pointer to the constant data to process
     -> CSize -- ^ length of the data to process
-    -> Sha256MutableState# RealWorld -- ^ output pointer
+    -> MutableSha256State# RealWorld -- ^ output pointer
     -> IO Word64 -- ^ the new @count@
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_update_ctx"
@@ -158,15 +156,15 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_update_ctx"
     :: Sha256Ctx# -- ^ @ctx@, a pointer to a constant sha256 context
     -> CString -- ^ pointer to the constant data to process
     -> CSize -- ^ length of the data to process
-    -> Sha256MutableCtx# RealWorld -- ^ output pointer
+    -> MutableSha256Ctx# RealWorld -- ^ output pointer
     -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_update_ctx"
   c_sha256_mutate_ctx
-    :: Sha256MutableCtx# RealWorld -- ^ @ctx@, a pointer to a constant sha256 context
+    :: MutableSha256Ctx# RealWorld -- ^ @ctx@, a pointer to a constant sha256 context
     -> CString -- ^ pointer to the constant data to process
     -> CSize -- ^ length of the data to process
-    -> Sha256MutableCtx# RealWorld -- ^ output pointer, can be same as the input context
+    -> MutableSha256Ctx# RealWorld -- ^ output pointer, can be same as the input context
     -> IO ()
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_get_count"
@@ -192,7 +190,7 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_finalize_ctx_bits"
   c_sha256_finalize_mutable_ctx_bits
-    :: Sha256MutableCtx# RealWorld
+    :: MutableSha256Ctx# RealWorld
     -> CString
     -> Word64
     -> CString
@@ -207,15 +205,8 @@ foreign import capi unsafe "hs_sha256.h hs_sha256_encode_state"
 foreign import capi unsafe "hs_sha256.h hs_sha256_decode_state"
   c_sha256_decode_state
     :: ByteArray#
-    -> Sha256MutableState# RealWorld
+    -> MutableSha256State# RealWorld
     -> IO ()
-
-foreign import capi unsafe "hs_sha256.h hs_sha256_const_memcmp"
-  c_const_memcmp
-    :: ByteArray#
-    -> ByteArray#
-    -> CSize
-    -> CInt
 
 foreign import capi unsafe "hs_sha256.h hs_sha256_const_memcmp_uint32be"
   c_const_memcmp_uint32be

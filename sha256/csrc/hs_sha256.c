@@ -30,6 +30,7 @@
 #include <string.h>
 #include <ghcautoconf.h>
 
+#include "hs_hashstring_memcmp.h"
 #include "hs_sha256.h"
 
 #define ptr_uint32_aligned(ptr) (!((uintptr_t)(ptr) & 0x3))
@@ -251,7 +252,7 @@ hs_sha256_promote_to_ctx
  size_t const datalen,
  sha256_ctx *const out)
 {
-  uint64_t const processedLen = hs_sha256_update(state, data, datalen, out->state);
+  hs_sha256_update(state, data, datalen, out->state);
   out->count = (blockcount << 6) + datalen;
   size_t const bufferlen = datalen & 0x3F;
   if (data != NULL && bufferlen > 0) {
@@ -390,24 +391,6 @@ hs_sha256_finalize_ctx_bits
   explicit_bzero(&buffer, sizeof(buffer));
 }
 
-// memcmp that is supposed to run in constant time, i.e. time independent of
-// the content of the input
-int
-hs_sha256_const_memcmp
-( const uint8_t *const a,
-  const uint8_t *const b,
-  size_t const n )
-{
-  int d, out = 0;
-  size_t i = n;
-  while (i > 0) {
-    i--;
-    d = a[i] - b[i];
-    out = d == 0 ? out : d;
-  }
-  return out;
-}
-
 int
 hs_sha256_const_memcmp_uint32be
 (const uint32_t *const a,
@@ -419,7 +402,7 @@ hs_sha256_const_memcmp_uint32be
   while (i > 0) {
     i--;
     for (int j = 0; j < 32; j += 8 ) {
-      d = (a[i] >> j) & 0xFF - (b[i] >> j) & 0xFF;
+      d = ((a[i] >> j) & 0xFF) - ((b[i] >> j) & 0xFF);
       out = d == 0 ? out : d;
     }
   }
@@ -434,12 +417,12 @@ hs_sha256_const_memcmp_ctx
  const sha256_ctx *const b )
 {
   int d;
-  if (d = hs_sha256_const_memcmp_uint32be(a->state, b->state, SHA256_STATE_LEN)) return d;
+  if ( (d = hs_sha256_const_memcmp_uint32be(a->state, b->state, SHA256_STATE_LEN)) ) return d;
   int x = a->count & 0x3F;
   int y = b->count & 0x3F;
   int n = (x < y) ? x : y;
-  if (d = hs_sha256_const_memcmp(a->buffer, b->buffer, n)) return d;
-  if (d = x - y) return d;
+  if ( (d = hs_hashstring_const_memcmp(a->buffer, b->buffer, n)) ) return d;
+  if ( (d = x - y) ) return d;
   // does this last comparison even matter in practice?
   if (a->count == b->count) return 0;
   if (a->count < b->count) return -1;
