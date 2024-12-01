@@ -17,6 +17,8 @@ module Crypto.HashString
      , toBase16Builder
      , toBase64Builder
      , xorStringLeft
+     , xorStringMin
+     , xorStringMax
      ) where
 
 import           Data.Bits((.&.))
@@ -79,8 +81,9 @@ instance Show HashString where
     where
       enc = map w2c . SB.unpack . toShortBase16
 
--- | Xor two hashstrings.  The length of the result is always the same as the length
---   of the left element.
+-- | Xor two hashstrings. The length of the result is always the same as the length
+--   of the left argument; bytes are either removed from or added to the end of
+--   the right argument as needed to match length.
 
 xorStringLeft :: HashString -> HashString -> HashString
 xorStringLeft (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
@@ -91,6 +94,36 @@ xorStringLeft (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
           !lenr0@(I# lenr) = SB.length strr
           !(# st0, a #) = newByteArray# lenl st
           !(# st1, () #) = unIO (c_xorleft_ba ptrl (fromIntegral lenl0) ptrr (fromIntegral lenr0) a) st0
+          !(# st2, b #) = unsafeFreezeByteArray# a st1
+       in  (# st2, HashString (SBS b) #)
+
+-- | Xor two hashstrings. The length of the result is always the same as the length
+--   of the shorter argument, removing bytes from the end of the longer string.
+
+xorStringMin :: HashString -> HashString -> HashString
+xorStringMin (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
+  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = HashString (SB.replicate (SB.length strl) 0)
+  | otherwise =
+    unsafePerformIO . IO $ \st ->
+      let !minlen0@(I# minlen) = min (SB.length strl) (SB.length strr)
+          !(# st0, a #) = newByteArray# minlen st
+          !(# st1, () #) = unIO (c_xormin_ba ptrl ptrr (fromIntegral minlen0) a) st0
+          !(# st2, b #) = unsafeFreezeByteArray# a st1
+       in  (# st2, HashString (SBS b) #)
+
+-- | Xor two hashstrings.  The length of the result is always the same as the length
+--   of the longer argument, adding null bytes onto the end of the shorter string.
+
+xorStringMax :: HashString -> HashString -> HashString
+xorStringMax (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
+  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = HashString (SB.replicate (SB.length strl) 0)
+  | otherwise =
+    unsafePerformIO . IO $ \st ->
+      let !lenl = SB.length strl
+          !lenr = SB.length strr
+          !(I# maxlen) = max lenl lenr
+          !(# st0, a #) = newByteArray# maxlen st
+          !(# st1, () #) = unIO (c_xormax_ba ptrl (fromIntegral lenl) ptrr (fromIntegral lenr) a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
        in  (# st2, HashString (SBS b) #)
 

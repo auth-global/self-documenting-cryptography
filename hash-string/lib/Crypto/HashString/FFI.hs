@@ -122,5 +122,22 @@ foreign import capi unsafe "hs_hashstring_xor.h hs_hashstring_xorleft"
     -> MutableByteArray# RealWorld
     -> IO ()
 
+foreign import capi unsafe "hs_hashstring_xor.h hs_hashstring_xormin"
+  c_xormin_ba
+    :: ByteArray#
+    -> ByteArray#
+    -> CSize
+    -> MutableByteArray# RealWorld
+    -> IO ()
+
+foreign import capi unsafe "hs_hashstring_xor.h hs_hashstring_xormax"
+  c_xormax_ba
+    :: ByteArray#
+    -> CSize
+    -> ByteArray#
+    -> CSize
+    -> MutableByteArray# RealWorld
+    -> IO ()
+
 base64PadLength_bs :: ByteString -> Int
 base64PadLength_bs xs = min 2 (B.length (B.takeWhileEnd ((==) (c2w '=')) xs))
