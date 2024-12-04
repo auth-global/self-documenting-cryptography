@@ -135,5 +135,5 @@ pbkdf2Gen_iterate n0 ctx = go n0 xorSum0 state0
       | otherwise =
         let !state' = hmacKeyHashed_run password &
                       hmacCtx_finalizeBytes (HS.toByteString state)
-            !xorSum' = HS.xorStringLeft state' xorSum
+            !xorSum' = HS.xorLeft state' xorSum
          in go (n-1) xorSum' state'

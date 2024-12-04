@@ -16,9 +16,9 @@ module Crypto.HashString
      , toBase64
      , toBase16Builder
      , toBase64Builder
-     , xorStringLeft
-     , xorStringMin
-     , xorStringMax
+     , xorLeft
+     , xorMin
+     , xorMax
      ) where
 
 import           Data.Bits((.&.))
@@ -41,10 +41,10 @@ import           GHC.IO
 
 import           Crypto.HashString.FFI
 
--- | Type intended to represent short-ish cryptographic values, say up to 128 bytes or so.
---   Supports constant-time comparisons (i.e. run time depends on length of the inputs but
---   is otherwise independent of content), as well as constant-time base16 and base64
---   conversions.
+-- | Type intended to represent short-ish cryptographic values, say up to 128
+--   bytes or so. Supports constant-time comparisons (i.e. run time depends on
+--   length of the inputs but is otherwise independent of content), as well as
+--   constant-time base16 and base64 conversions.
 
 newtype HashString = HashString { unHashString :: ShortByteString } deriving (Semigroup, Monoid)
 
@@ -81,12 +81,12 @@ instance Show HashString where
     where
       enc = map w2c . SB.unpack . toShortBase16
 
--- | Xor two hashstrings. The length of the result is always the same as the length
---   of the left argument; bytes are either removed from or added to the end of
---   the right argument as needed to match length.
+-- | Xor two hashstrings. The length of the result is always the same as the
+--   length of the left argument; bytes are either removed from or added to the
+--   end of the right argument as needed to match length.
 
-xorStringLeft :: HashString -> HashString -> HashString
-xorStringLeft (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
+xorLeft :: HashString -> HashString -> HashString
+xorLeft (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
   | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = HashString (SB.replicate (SB.length strl) 0)
   | otherwise =
     unsafePerformIO . IO $ \st ->
@@ -97,11 +97,12 @@ xorStringLeft (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
           !(# st2, b #) = unsafeFreezeByteArray# a st1
        in  (# st2, HashString (SBS b) #)
 
--- | Xor two hashstrings. The length of the result is always the same as the length
---   of the shorter argument, removing bytes from the end of the longer string.
+-- | Xor two hashstrings. The length of the result is always the same as the
+--   length of the shorter argument, removing bytes from the end of the longer
+--   string as needed to match length.
 
-xorStringMin :: HashString -> HashString -> HashString
-xorStringMin (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
+xorMin :: HashString -> HashString -> HashString
+xorMin (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
   | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = HashString (SB.replicate (SB.length strl) 0)
   | otherwise =
     unsafePerformIO . IO $ \st ->
@@ -111,11 +112,12 @@ xorStringMin (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
           !(# st2, b #) = unsafeFreezeByteArray# a st1
        in  (# st2, HashString (SBS b) #)
 
--- | Xor two hashstrings.  The length of the result is always the same as the length
---   of the longer argument, adding null bytes onto the end of the shorter string.
+-- | Xor two hashstrings.  The length of the result is always the same as the
+--   length of the longer argument, adding null bytes onto the end of the
+--   shorter string as needed to match length.
 
-xorStringMax :: HashString -> HashString -> HashString
-xorStringMax (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
+xorMax :: HashString -> HashString -> HashString
+xorMax (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
   | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = HashString (SB.replicate (SB.length strl) 0)
   | otherwise =
     unsafePerformIO . IO $ \st ->
