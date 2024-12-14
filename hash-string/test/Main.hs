@@ -33,28 +33,28 @@ main = defaultMain $ testGroup "toplevel"
 -- this should mostly exercise LT/GT, but not likely to exercise EQ or LT/GT determined by length, which we'll write other test cases for
 
 prop_compare :: ShortByteString -> ShortByteString -> Bool
-prop_compare as bs = compare as bs == (compare `on` HashString) as bs
+prop_compare as bs = compare as bs == (compare `on` HS.fromShort) as bs
 
 prop_eq_refl :: ShortByteString -> Bool
-prop_eq_refl (HashString -> bs) = bs == bs
+prop_eq_refl (HS.fromShort -> bs) = bs == bs
 
 prop_compare_len :: ShortByteString -> ShortByteString -> Bool
 prop_compare_len as bs =
     SB.null bs
-     || (   (compare `on` HashString) as abs == LT
-         && (compare `on` HashString) abs as == GT )
+     || (   (compare `on` HS.fromShort) as abs == LT
+         && (compare `on` HS.fromShort) abs as == GT )
   where
     abs = as <> bs
 
 prop_toShortBase16 :: ShortByteString -> Bool
 prop_toShortBase16 as = roundtrip as == Right as
   where
-    roundtrip = SB.decodeBase16Untyped . HS.toShortBase16 . HashString
+    roundtrip = SB.decodeBase16Untyped . HS.toShortBase16 . HS.fromShort
 
 prop_fromShortBase16 :: ShortByteString -> Bool
 prop_fromShortBase16 as = roundtrip as == Just as
   where
-    roundtrip = fmap unHashString . HS.fromShortBase16 . extractBase16 . SB.encodeBase16'
+    roundtrip = fmap HS.toShort . HS.fromShortBase16 . extractBase16 . SB.encodeBase16'
 
 prop_toBase16 :: ByteString -> Bool
 prop_toBase16 as = roundtrip as == Right as

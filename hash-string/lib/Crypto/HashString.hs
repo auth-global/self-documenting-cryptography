@@ -21,6 +21,7 @@ module Crypto.HashString
      , xorMax
      ) where
 
+import           Data.Array.Byte
 import           Data.Bits((.&.))
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
@@ -46,18 +47,18 @@ import           Crypto.HashString.FFI
 --   length of the inputs but is otherwise independent of content), as well as
 --   constant-time base16 and base64 conversions.
 
-newtype HashString = HashString { unHashString :: ShortByteString } deriving (Semigroup, Monoid)
+newtype HashString = HashString { unHashString :: ByteArray } deriving (Semigroup, Monoid)
 
 instance Eq HashString where
   x == y = compare x y == EQ
 
 instance Ord HashString where
-  compare (HashString xsbs@(SBS x)) (HashString ysbs@(SBS y)) =
+  compare (HashString (ByteArray x)) (HashString (ByteArray y)) =
       compare (c_const_memcmp_ba x y minlen) 0
         <> compare xlen ylen
     where
-      xlen = SB.length xsbs
-      ylen = SB.length ysbs
+      xlen = SB.length (SBS x)
+      ylen = SB.length (SBS y)
       minlen = fromIntegral (min xlen ylen)
 
 instance IsString HashString where
@@ -86,48 +87,48 @@ instance Show HashString where
 --   end of the right argument as needed to match length.
 
 xorLeft :: HashString -> HashString -> HashString
-xorLeft (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
-  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = HashString (SB.replicate (SB.length strl) 0)
+xorLeft (HashString strl@(ByteArray ptrl)) (HashString strr@(ByteArray ptrr))
+  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = fromShort (SB.replicate (SB.length (SBS ptrl)) 0)
   | otherwise =
     unsafePerformIO . IO $ \st ->
-      let !lenl0@(I# lenl) = SB.length strl
-          !lenr0@(I# lenr) = SB.length strr
+      let !lenl0@(I# lenl) = SB.length (SBS ptrl)
+          !lenr0@(I# lenr) = SB.length (SBS ptrr)
           !(# st0, a #) = newByteArray# lenl st
           !(# st1, () #) = unIO (c_xorleft_ba ptrl (fromIntegral lenl0) ptrr (fromIntegral lenr0) a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
-       in  (# st2, HashString (SBS b) #)
+       in  (# st2, HashString (ByteArray b) #)
 
 -- | Xor two hashstrings. The length of the result is always the same as the
 --   length of the shorter argument, removing bytes from the end of the longer
 --   string as needed to match length.
 
 xorMin :: HashString -> HashString -> HashString
-xorMin (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
-  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = HashString (SB.replicate (SB.length strl) 0)
+xorMin (HashString strl@(ByteArray ptrl)) (HashString strr@(ByteArray ptrr))
+  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = fromShort (SB.replicate (SB.length (SBS ptrl)) 0)
   | otherwise =
     unsafePerformIO . IO $ \st ->
-      let !minlen0@(I# minlen) = min (SB.length strl) (SB.length strr)
+      let !minlen0@(I# minlen) = min (SB.length (SBS ptrl)) (SB.length (SBS ptrr))
           !(# st0, a #) = newByteArray# minlen st
           !(# st1, () #) = unIO (c_xormin_ba ptrl ptrr (fromIntegral minlen0) a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
-       in  (# st2, HashString (SBS b) #)
+       in  (# st2, HashString (ByteArray b) #)
 
 -- | Xor two hashstrings.  The length of the result is always the same as the
 --   length of the longer argument, adding null bytes onto the end of the
 --   shorter string as needed to match length.
 
 xorMax :: HashString -> HashString -> HashString
-xorMax (HashString strl@(SBS ptrl)) (HashString strr@(SBS ptrr))
-  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = HashString (SB.replicate (SB.length strl) 0)
+xorMax (HashString strl@(ByteArray ptrl)) (HashString strr@(ByteArray ptrr))
+  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = fromShort (SB.replicate (SB.length (SBS ptrl)) 0)
   | otherwise =
     unsafePerformIO . IO $ \st ->
-      let !lenl = SB.length strl
-          !lenr = SB.length strr
+      let !lenl = SB.length (SBS ptrl)
+          !lenr = SB.length (SBS ptrr)
           !(I# maxlen) = max lenl lenr
           !(# st0, a #) = newByteArray# maxlen st
           !(# st1, () #) = unIO (c_xormax_ba ptrl (fromIntegral lenl) ptrr (fromIntegral lenr) a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
-       in  (# st2, HashString (SBS b) #)
+       in  (# st2, HashString (ByteArray b) #)
 
 fromShortBase16 :: ShortByteString -> Maybe HashString
 fromShortBase16 str@(SBS ptr) =
@@ -140,12 +141,12 @@ fromShortBase16 str@(SBS ptr) =
             !(# st2, b #) = unsafeFreezeByteArray# a st1
          in if err /= 0
             then (# st2, Nothing #)
-            else (# st2, Just (HashString (SBS b)) #)
+            else (# st2, Just (HashString (ByteArray b)) #)
   where
     ptrlen = SB.length str
 
 toShortBase16 :: HashString -> ShortByteString
-toShortBase16 (HashString str@(SBS ptr)) =
+toShortBase16 (HashString str@(ByteArray ptr)) =
     unsafePerformIO . IO $ \st ->
       let !(I# outlen) = ptrlen * 2
           !(# st0, a #) = newByteArray# outlen st
@@ -153,7 +154,7 @@ toShortBase16 (HashString str@(SBS ptr)) =
           !(# st2, b #) = unsafeFreezeByteArray# a st1
        in  (# st2, SBS b #)
   where
-    ptrlen = SB.length str
+    ptrlen = SB.length (SBS ptr)
 
 fromShortBase64 :: ShortByteString -> Maybe HashString
 fromShortBase64 str@(SBS ptr) =
@@ -166,13 +167,13 @@ fromShortBase64 str@(SBS ptr) =
             !(# st2, b #) = unsafeFreezeByteArray# a st1
          in if err /= 0
             then (# st2, Nothing #)
-            else (# st2, Just (HashString (SBS b)) #)
+            else (# st2, Just (HashString (ByteArray b)) #)
   where
     ptrlen0 = SB.length str
     ptrlen  = ptrlen0 - fromIntegral (c_base64PadLength_ba ptr (fromIntegral ptrlen0))
 
 toShortBase64 :: HashString -> ShortByteString
-toShortBase64 (HashString str@(SBS ptr)) =
+toShortBase64 (HashString str@(ByteArray ptr)) =
     unsafePerformIO . IO $ \st ->
       let !(I# outlen) = base64EncodeLength ptrlen
           !(# st0, a #) = newByteArray# outlen st
@@ -180,33 +181,33 @@ toShortBase64 (HashString str@(SBS ptr)) =
           !(# st2, b #) = unsafeFreezeByteArray# a st1
        in  (# st2, SBS b #)
   where
-    ptrlen = SB.length str
+    ptrlen = SB.length (SBS ptr)
 
 toShort :: HashString -> ShortByteString
-toShort = unHashString
+toShort (HashString (ByteArray x)) = SBS x
 
 fromShort :: ShortByteString -> HashString
-fromShort = HashString
+fromShort (SBS x) = HashString (ByteArray x)
 
 toByteString :: HashString -> ByteString
-toByteString = SB.fromShort . unHashString
+toByteString = SB.fromShort . toShort
 
 fromByteString :: ByteString -> HashString
-fromByteString = HashString . SB.toShort
+fromByteString = fromShort . SB.toShort
 
 toBase16 :: HashString -> ByteString
-toBase16 (HashString str@(SBS ptr)) =
+toBase16 (HashString str@(ByteArray ptr)) =
     unsafeCreate (base16EncodeLength ptrlen) $ \out ->
       c_hexEncode_bs_ba out ptr (fromIntegral ptrlen)
   where
-    ptrlen = SB.length str
+    ptrlen = SB.length (SBS ptr)
 
 toBase64 :: HashString -> ByteString
-toBase64 (HashString str@(SBS ptr)) =
+toBase64 (HashString str@(ByteArray ptr)) =
     unsafeCreate (base64EncodeLength ptrlen) $ \out ->
       c_base64Encode_bs_ba out ptr (fromIntegral ptrlen)
   where
-    ptrlen = SB.length str
+    ptrlen = SB.length (SBS ptr)
 
 fromBase16 :: ByteString -> Maybe HashString
 fromBase16 str =
@@ -219,7 +220,7 @@ fromBase16 str =
             !(# st2, b #) = unsafeFreezeByteArray# a st1
          in if err /= 0
             then (# st2, Nothing #)
-            else (# st2, Just (HashString (SBS b)) #)
+            else (# st2, Just (HashString (ByteArray b)) #)
   where
     ptrlen = B.length str
 
@@ -234,7 +235,7 @@ fromBase64 str =
             !(# st2, b #) = unsafeFreezeByteArray# a st1
          in if err /= 0
             then (# st2, Nothing #)
-            else (# st2, Just (HashString (SBS b)) #)
+            else (# st2, Just (HashString (ByteArray b)) #)
   where
     ptrlen = B.length str - base64PadLength_bs str
 
