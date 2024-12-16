@@ -23,7 +23,7 @@ import qualified Data.ByteString.Short as SB
 import           Data.Function((&))
 import           Data.Stream (Stream(..))
 import qualified Data.Stream as Stream
-import           Crypto.HashString (HashString(..))
+import           Crypto.HashString.Subtle (HashString(..))
 import qualified Crypto.HashString as HS
 import           Crypto.Sha256.Hmac
 import           Crypto.Sha256.Hkdf.Subtle
@@ -81,7 +81,7 @@ hkdfGen_init key info = HkdfGen
    { hkdfGen_info = info
    , hkdfGen_key = key
    , hkdfGen_counter = 1
-   , hkdfGen_state = HashString SB.empty
+   , hkdfGen_state = HS.fromShort SB.empty
    }
 
 hkdfGen_read :: HkdfGen -> (HashString, HkdfGen)
@@ -105,7 +105,7 @@ hkdfGen_read gen = (state',gen')
 
 hkdfGen_peek :: HkdfGen -> Maybe HashString
 hkdfGen_peek gen =
-    if (SB.null (unHashString st))
+    if (SB.null (HS.toShort st))
     then Nothing
     else Just st
   where

@@ -22,8 +22,8 @@ library
                      Crypto.Sha256.Hkdf.Subtle
                      Crypto.Sha256.Pbkdf2
                      Crypto.Sha256.Pbkdf2.Subtle
-                     Crypto.Sha256.ST
-                     Crypto.Sha256.ST.Subtle
+                     -- Crypto.Sha256.ST
+                     -- Crypto.Sha256.ST.Subtle
 
   other-modules:
                      Crypto.Sha256.Hmac.Implementation

@@ -17,11 +17,11 @@ module Crypto.Sha256
   , sha256_finalizeBytes, sha256_finalizeBytes_toByteString
   ) where
 
+import           Data.Array.Byte
 import           Data.Bits((.&.), shiftR)
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString as B
 import           Data.ByteString.Internal (unsafeCreate)
-import           Data.ByteString.Short.Internal(ShortByteString(..))
 import           Data.ByteString.Unsafe(unsafeUseAsCString, unsafeUseAsCStringLen)
 import           Data.Foldable(foldl')
 import           Data.Function((&))
@@ -30,6 +30,7 @@ import           GHC.Exts
 import           GHC.IO
 
 import           Crypto.HashString
+import           Crypto.HashString.Subtle
 import           Crypto.Sha256.Subtle
 
 -- TODO: there are a number of magic literals scattered throughout that
@@ -47,10 +48,10 @@ sha256_init =
     let !(# st0, a #) = newByteArray# 40# st
         !(# st1, _ #) = unIO (c_sha256_init_ctx a) st0
         !(# st2, b #) = unsafeFreezeByteArray# a st1
-     in (# st2, Sha256Ctx b #)
+     in (# st2, Sha256Ctx (ByteArray b) #)
 
 sha256_byteCount :: Sha256Ctx -> Word64
-sha256_byteCount (Sha256Ctx ctx) = c_sha256_get_count ctx
+sha256_byteCount (Sha256Ctx (ByteArray ctx)) = c_sha256_get_count ctx
 
 sha256_blockCount :: Sha256Ctx -> Word64
 sha256_blockCount ctx = sha256_byteCount ctx `shiftR` 6
@@ -62,7 +63,7 @@ sha256_state :: Sha256Ctx -> HashString
 sha256_state = sha256state_encode . sha256state_fromCtxInplace
 
 sha256_update :: Sha256Ctx -> ByteString -> Sha256Ctx
-sha256_update ctx0@(Sha256Ctx ctx) bytes
+sha256_update ctx0@(Sha256Ctx (ByteArray ctx)) bytes
   | B.null bytes = ctx0
   | otherwise =
     unsafePerformIO $ do
@@ -72,7 +73,7 @@ sha256_update ctx0@(Sha256Ctx ctx) bytes
         let !(# st0, a #) = newByteArray# bufLen# st
             !(# st1, _ #) = unIO (c_sha256_update_ctx ctx bp (fromIntegral bl) a) st0
             !(# st2, b #) = unsafeFreezeByteArray# a st1
-         in  (# st2, Sha256Ctx b #)
+         in  (# st2, Sha256Ctx (ByteArray b) #)
 
 sha256_updates :: Foldable f => Sha256Ctx -> f ByteString -> Sha256Ctx
 sha256_updates = foldl' sha256_update
@@ -90,17 +91,17 @@ sha256_finalize_toByteString :: Sha256Ctx -> ByteString
 sha256_finalize_toByteString = sha256_finalizeBits_toByteString B.empty 0
 
 sha256_finalizeBits :: ByteString -> Word64 -> Sha256Ctx -> HashString
-sha256_finalizeBits bits bitlen0 (Sha256Ctx ctx) =
+sha256_finalizeBits bits bitlen0 (Sha256Ctx (ByteArray ctx)) =
     unsafePerformIO . unsafeUseAsCString bits $ \bp -> IO $ \st ->
       let !(# st0, a #) = newByteArray# 32# st
           !(# st1, () #) = unIO (c_sha256_finalize_ctx_bits_ba ctx bp bitlen a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
-       in (# st2, HashString (SBS b) #)
+       in (# st2, HashString (ByteArray b) #)
   where
     bitlen = min (fromIntegral (B.length bits) * 8) bitlen0
 
 sha256_finalizeBits_toByteString :: ByteString -> Word64 -> Sha256Ctx -> ByteString
-sha256_finalizeBits_toByteString bits bitlen0 (Sha256Ctx ctx) =
+sha256_finalizeBits_toByteString bits bitlen0 (Sha256Ctx (ByteArray ctx)) =
     unsafeCreate 32 $ \rp ->
       unsafeUseAsCString bits $ \bp ->
         c_sha256_finalize_ctx_bits ctx bp bitlen rp

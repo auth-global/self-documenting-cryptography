@@ -16,11 +16,12 @@ module Crypto.Sha256.Pbkdf2
      )
      where
 
+import           Data.Array.Byte
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString.Short as SB
 import           Data.Function((&))
 import           Data.Word
-import           Crypto.HashString (HashString(..))
+import           Crypto.HashString.Subtle (HashString(..))
 import qualified Crypto.HashString as HS
 import           Crypto.Sha256
 import           Crypto.Sha256.Hmac
@@ -31,12 +32,12 @@ import qualified Network.ByteOrder as NB
 takeHS :: Int -> [ HashString ] -> [ HashString ]
 takeHS = go
   where
-    len = SB.length
+    len = SB.length . HS.toShort
     go _ [] = []
-    go n (HashString b:bs)
+    go n (b:bs)
       | n <= 0 = []
-      | len b < n = HashString b : go (n - len b) bs
-      | otherwise = [HashString (SB.take n b)]
+      | len b < n = b : go (n - len b) bs
+      | otherwise = [HS.fromShort (SB.take n (HS.toShort b))]
 
 -- TODO: write pbkdf2 and pbkdf2_index functions in a point-free style
 

@@ -2,6 +2,7 @@
 
 module Crypto.Sha256.Subtle where
 
+import           Data.Array.Byte
 import           Data.Bits((.&.))
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
@@ -14,6 +15,7 @@ import           GHC.Exts
 import           GHC.IO
 
 import           Crypto.HashString
+import           Crypto.HashString.Subtle
 
 nullBuffer :: ByteString
 nullBuffer = B.replicate 64 0
@@ -26,22 +28,22 @@ type MutableSha256Ctx# = MutableByteArray#
 
 type Sha256Ctx# = ByteArray#
 
-data Sha256State = Sha256State { unSha256State :: !Sha256State# }
+newtype Sha256State = Sha256State { unSha256State :: ByteArray }
 
 instance Eq Sha256State where
   x == y = compare x y == EQ
 
 instance Ord Sha256State where
-  compare (Sha256State x) (Sha256State y) =
+  compare (Sha256State (ByteArray x)) (Sha256State (ByteArray y)) =
     compare (c_const_memcmp_uint32be x y 8) 0
 
-data Sha256Ctx = Sha256Ctx { unSha256Ctx :: !Sha256Ctx# }
+newtype Sha256Ctx = Sha256Ctx { unSha256Ctx :: ByteArray }
 
 instance Eq Sha256Ctx where
   x == y = compare x y == EQ
 
 instance Ord Sha256Ctx where
-  compare (Sha256Ctx x) (Sha256Ctx y) =
+  compare (Sha256Ctx (ByteArray x)) (Sha256Ctx (ByteArray y)) =
     compare (c_const_memcmp_ctx x y) 0
 
 sha256state_init :: Sha256State
@@ -54,7 +56,7 @@ sha256state_init =
         -- Problem is the documentation is ambiguous, and the source is magic.
         -- I'm assuming copyAddrToByteArray# works similarly as copyByteArray#.
         !(# st2, b #) = unsafeFreezeByteArray# a st1
-     in (# st2, (Sha256State b) #)
+     in (# st2, (Sha256State (ByteArray b)) #)
 
 -- | Note that this function only processes as many 64-byte blocks as possible,
 --   then discards the remainder of the input.  Also note that this function does
@@ -62,12 +64,12 @@ sha256state_init =
 --   will have to be done externally.
 
 sha256state_feed :: ByteString -> Sha256State -> Sha256State
-sha256state_feed bytes (Sha256State p) =
+sha256state_feed bytes (Sha256State (ByteArray p)) =
   unsafePerformIO . unsafeUseAsCStringLen bytes $ \(bp, bl) -> IO $ \st ->
     let !(# st0, a #) = newByteArray# 32# st
         !(# st1, _ #) = unIO (c_sha256_update p bp (fromIntegral bl) a) st0
         !(# st2, b #) = unsafeFreezeByteArray# a st1
-     in (# st2, Sha256State b #)
+     in (# st2, Sha256State (ByteArray b) #)
 
 -- | Cast a Sha256Ctx to a Sha256State, without (much, if any) copying.
 --   This has the disadvantage that the result will retain at least 8, and up to
@@ -82,38 +84,38 @@ sha256state_fromCtxInplace (Sha256Ctx a) = Sha256State a
 --   Sha256Ctx structure, so the result is always as small as possible.
 
 sha256state_fromCtx :: Sha256Ctx -> Sha256State
-sha256state_fromCtx (Sha256Ctx ctx) =
+sha256state_fromCtx (Sha256Ctx (ByteArray ctx)) =
   unsafePerformIO . IO $ \st ->
     let !(# st0, a #) = newByteArray# 32# st
         st1 = copyByteArray# ctx 0# a 0# 32# st0
         !(# st2, b #) = unsafeFreezeByteArray# a st1
-     in (# st2, Sha256State b #)
+     in (# st2, Sha256State (ByteArray b) #)
 
 sha256state_runWith :: Word64 -> ByteString -> Sha256State -> Sha256Ctx
-sha256state_runWith blocks bytes (Sha256State p) =
+sha256state_runWith blocks bytes (Sha256State (ByteArray p)) =
     unsafePerformIO . unsafeUseAsCStringLen bytes $ \(bp, bl) -> IO $ \st ->
       let !(# st0, a #) = newByteArray# ctxLen# st
           !(# st1, () #) = unIO (c_sha256_promote_to_ctx p blocks bp (fromIntegral bl) a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
-       in (# st2, Sha256Ctx b #)
+       in (# st2, Sha256Ctx (ByteArray b) #)
   where
     !(I# ctxLen#) = 40 + B.length bytes .&. 0x3F
 
 sha256state_encode :: Sha256State -> HashString
-sha256state_encode (Sha256State x) =
+sha256state_encode (Sha256State (ByteArray x)) =
     unsafePerformIO . IO $ \st ->
       let !(# st0, a #) = newByteArray# 32# st
           !(# st1, () #) = unIO (c_sha256_encode_state x a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
-       in (# st2, HashString (SBS b) #)
+       in (# st2, HashString (ByteArray b) #)
 
 sha256state_decode :: HashString -> Sha256State
-sha256state_decode (HashString (SBS x)) =
+sha256state_decode (HashString (ByteArray x)) =
     unsafePerformIO . IO $ \st ->
       let !(# st0, a #) = newByteArray# 32# st
           !(# st1, () #) = unIO (c_sha256_decode_state x a) st0
           !(# st2, b #) = unsafeFreezeByteArray# a st1
-       in (# st2, Sha256State b #)
+       in (# st2, Sha256State (ByteArray b) #)
 
 -- these calls must be labelled "unsafe", because the datastructures
 -- we will be passing in are unpinned... keep that in mind when selecting

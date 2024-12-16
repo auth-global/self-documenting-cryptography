@@ -25,12 +25,12 @@ d = B.decodeBase16Lenient
 takeHS :: Int -> [ HashString ] -> [ HashString ]
 takeHS = go
   where
-    len = SB.length
+    len = SB.length . HS.toShort
     go _ [] = []
-    go n (HashString b:bs)
+    go n (b:bs)
       | n <= 0 = []
-      | len b < n = HashString b : go (n - len b) bs
-      | otherwise = [HashString (SB.take n b)]
+      | len b < n = b : go (n - len b) bs
+      | otherwise = [HS.fromShort (SB.take n (HS.toShort b))]
 
 tests :: [TestTree]
 tests =
