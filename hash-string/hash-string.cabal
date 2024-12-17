@@ -1,13 +1,13 @@
 cabal-version:      1.24
 name:               hash-string
 version:            0.1.0.0
-synopsis:           bytestring newtypes supporting constant-time base16, base64, and comparisons.
+synopsis:           bytestring newtypes supporting constant-time base16 and comparisons.
 -- description:
 license:            Apache-2.0
 license-file:       LICENSE
 author:             Steve "Sc00bz" Thomas, Leon P Smith
--- maintainer:
--- copyright:
+maintainer:         Auth Global
+copyright:          2024 Auth Global
 category:           Cryptography
 build-type:         Simple
 extra-doc-files:    CHANGELOG.md
@@ -15,7 +15,7 @@ extra-doc-files:    CHANGELOG.md
 library
     exposed-modules:  Crypto.HashString
                       Crypto.HashString.FFI
-		      Crypto.HashString.Subtle
+                      Crypto.HashString.Subtle
 
     other-modules:    Crypto.HashString.Implementation
 
@@ -27,35 +27,20 @@ library
 
     install-includes:  csrc/hs_hashstring_memcmp.h
                        csrc/hs_hashstring_base16.h
-                       csrc/hs_hashstring_base64.h
-		       csrc/hs_hashstring_xor.h
+                       -- csrc/hs_hashstring_base64.h
+                       csrc/hs_hashstring_xor.h
     c-sources:         csrc/hs_hashstring_memcmp.c
                        csrc/hs_hashstring_base16.c
-                       csrc/hs_hashstring_base64.c
-		       csrc/hs_hashstring_xor.c
+                       -- csrc/hs_hashstring_base64.c
+                       csrc/hs_hashstring_xor.c
 
     default-language: Haskell2010
 
-test-suite hash-string-test
-    -- Base language which the package is written in.
+test-suite test
     default-language: Haskell2010
-
-    -- Modules included in this executable, other than Main.
-    -- other-modules:
-
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
-
-    -- The interface type and version of the test suite.
     type:             exitcode-stdio-1.0
-
-    -- Directories containing source files.
     hs-source-dirs:   test
-
-    -- The entrypoint to the test suite.
     main-is:          Main.hs
-
-    -- Test dependencies.
     build-depends:    base
                     , base16 >= 1
     --                , base64 >= 1
@@ -64,4 +49,4 @@ test-suite hash-string-test
                     , quickcheck-instances
                     , tasty
                     , tasty-quickcheck
-		    , text
+                    , text

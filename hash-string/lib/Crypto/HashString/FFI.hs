@@ -11,6 +11,7 @@ import           Foreign.Ptr
 import           GHC.Exts
 import           GHC.IO
 
+{--
 -- | Given the length of some binary blob of data, how long will the base64 encoded
 --   version be, without padding?
 
@@ -33,6 +34,7 @@ base64DecodeLength n
     | otherwise = Just ((3 * q) + (r - 1))
   where
     (q,r) = n `divMod` 4
+--}
 
 base16EncodeLength :: Int -> Int
 base16EncodeLength = (*) 2
@@ -79,6 +81,7 @@ foreign import capi unsafe "hs_hashstring_base16.h hs_hashstring_hexEncode"
     -> CSize
     -> IO ()
 
+{--
 foreign import capi unsafe "hs_hashstring_base64.h hs_hashstring_base64Decode"
   c_base64Decode_ba
     :: MutableByteArray# RealWorld
@@ -112,6 +115,7 @@ foreign import capi unsafe "hs_hashstring_base64.h hs_hashstring_base64PadLength
     :: ByteArray#
     -> CSize
     -> CInt
+--}
 
 foreign import capi unsafe "hs_hashstring_xor.h hs_hashstring_xorleft"
   c_xorleft_ba
@@ -139,5 +143,7 @@ foreign import capi unsafe "hs_hashstring_xor.h hs_hashstring_xormax"
     -> MutableByteArray# RealWorld
     -> IO ()
 
+{--
 base64PadLength_bs :: ByteString -> Int
 base64PadLength_bs xs = min 2 (B.length (B.takeWhileEnd ((==) (c2w '=')) xs))
+--}

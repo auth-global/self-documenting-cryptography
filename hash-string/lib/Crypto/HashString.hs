@@ -2,18 +2,18 @@ module Crypto.HashString
      ( HashString
      , fromShort
      , fromShortBase16
-     , fromShortBase64
+     -- , fromShortBase64
      , toShort
      , toShortBase16
-     , toShortBase64
+     -- , toShortBase64
      , fromByteString
      , fromBase16
-     , fromBase64
+     -- , fromBase64
      , toByteString
      , toBase16
-     , toBase64
+     -- , toBase64
      , toBase16Builder
-     , toBase64Builder
+     -- , toBase64Builder
      , xorLeft
      , xorMin
      , xorMax

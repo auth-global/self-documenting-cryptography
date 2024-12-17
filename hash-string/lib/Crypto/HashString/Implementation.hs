@@ -45,18 +45,19 @@ instance Ord HashString where
 instance IsString HashString where
   fromString = \case
       ( 'b' : '1' : '6' : ' ' : xs ) -> doBase16 xs
-      ( 'b' : '6' : '4' : ' ' : xs ) -> doBase64 xs
+--      ( 'b' : '6' : '4' : ' ' : xs ) -> doBase64 xs
       xs -> doBase16 xs
     where
       doBase16 = fromMaybe err . fromShortBase16 . SB.pack . map myConv
         where
           err = error "fromString :: String -> HashString  --  base16 syntax error"
           myConv x = if Char.isHexDigit x then c2w x else err
-
+{--
       doBase64 = fromMaybe err . fromShortBase64 . SB.pack . map myConv
         where
           err = error "fromString :: String -> HashString  --  base64 syntax error"
           myConv x = if Char.isAscii x then c2w x else err
+--}
 
 instance Show HashString where
   show xs = '"': enc xs ++ ['"']
@@ -137,6 +138,7 @@ toShortBase16 (HashString str@(ByteArray ptr)) =
   where
     ptrlen = SB.length (SBS ptr)
 
+{--
 fromShortBase64 :: ShortByteString -> Maybe HashString
 fromShortBase64 str@(SBS ptr) =
   case base64DecodeLength ptrlen of
@@ -163,6 +165,7 @@ toShortBase64 (HashString str@(ByteArray ptr)) =
        in  (# st2, SBS b #)
   where
     ptrlen = SB.length (SBS ptr)
+--}
 
 toShort :: HashString -> ShortByteString
 toShort (HashString (ByteArray x)) = SBS x
@@ -183,12 +186,14 @@ toBase16 (HashString str@(ByteArray ptr)) =
   where
     ptrlen = SB.length (SBS ptr)
 
+{--
 toBase64 :: HashString -> ByteString
 toBase64 (HashString str@(ByteArray ptr)) =
     unsafeCreate (base64EncodeLength ptrlen) $ \out ->
       c_base64Encode_bs_ba out ptr (fromIntegral ptrlen)
   where
     ptrlen = SB.length (SBS ptr)
+--}
 
 fromBase16 :: ByteString -> Maybe HashString
 fromBase16 str =
@@ -205,6 +210,7 @@ fromBase16 str =
   where
     ptrlen = B.length str
 
+{--
 fromBase64 :: ByteString -> Maybe HashString
 fromBase64 str =
   case base64DecodeLength ptrlen of
@@ -219,11 +225,14 @@ fromBase64 str =
             else (# st2, Just (HashString (ByteArray b)) #)
   where
     ptrlen = B.length str - base64PadLength_bs str
+--}
 
 -- TODO: implement these functions better
 
 toBase16Builder :: HashString -> Builder
 toBase16Builder = shortByteString . toShortBase16
 
+{--
 toBase64Builder :: HashString -> Builder
 toBase64Builder = shortByteString . toShortBase64
+--}
