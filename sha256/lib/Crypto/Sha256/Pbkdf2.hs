@@ -16,12 +16,11 @@ module Crypto.Sha256.Pbkdf2
      )
      where
 
-import           Data.Array.Byte
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString.Short as SB
 import           Data.Function((&))
 import           Data.Word
-import           Crypto.HashString.Subtle (HashString(..))
+import           Crypto.HashString ( HashString )
 import qualified Crypto.HashString as HS
 import           Crypto.Sha256
 import           Crypto.Sha256.Hmac

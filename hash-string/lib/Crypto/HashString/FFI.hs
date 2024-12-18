@@ -1,15 +1,18 @@
-{-# LANGUAGE MagicHash, CApiFFI, UnliftedFFITypes #-}
+module Crypto.HashString.FFI
+    ( HashString(..)
+    , base16EncodeLength
+    , base16DecodeLength
+    , c_const_memcmp_ba
+    , c_hexDecode_ba
+    , c_hexDecode_mba_bs
+    , c_hexEncode_ba
+    , c_hexEncode_bs_ba
+    , c_xorleft_ba
+    , c_xormin_ba
+    , c_xormax_ba
+    ) where
 
-module Crypto.HashString.FFI where
-
-import           Data.ByteString (ByteString)
-import qualified Data.ByteString as B
-import           Data.ByteString.Internal (c2w)
-import           Data.Word
-import           Foreign.C
-import           Foreign.Ptr
-import           GHC.Exts
-import           GHC.IO
+import           Crypto.HashString.Implementation
 
 {--
 -- | Given the length of some binary blob of data, how long will the base64 encoded
@@ -36,50 +39,6 @@ base64DecodeLength n
     (q,r) = n `divMod` 4
 --}
 
-base16EncodeLength :: Int -> Int
-base16EncodeLength = (*) 2
-
-base16DecodeLength :: Int -> Maybe Int
-base16DecodeLength n
-    | r == 0 = Just q
-    | otherwise = Nothing
-  where
-    (q,r) = n `divMod` 2
-
-foreign import capi unsafe "hs_hashstring_memcmp.h hs_hashstring_const_memcmp"
-  c_const_memcmp_ba
-    :: ByteArray#
-    -> ByteArray#
-    -> CSize
-    -> CInt
-
-foreign import capi unsafe "hs_hashstring_base16.h hs_hashstring_hexDecode"
-  c_hexDecode_ba
-    :: MutableByteArray# RealWorld
-    -> ByteArray#
-    -> CSize
-    -> IO CInt
-
-foreign import capi unsafe "hs_hashstring_base16.h hs_hashstring_hexDecode"
-  c_hexDecode_mba_bs
-    :: MutableByteArray# RealWorld
-    -> CString
-    -> CSize
-    -> IO CInt
-
-foreign import capi unsafe "hs_hashstring_base16.h hs_hashstring_hexEncode"
-  c_hexEncode_ba
-    :: MutableByteArray# RealWorld
-    -> ByteArray#
-    -> CSize
-    -> IO ()
-
-foreign import capi unsafe "hs_hashstring_base16.h hs_hashstring_hexEncode"
-  c_hexEncode_bs_ba
-    :: Ptr Word8
-    -> ByteArray#
-    -> CSize
-    -> IO ()
 
 {--
 foreign import capi unsafe "hs_hashstring_base64.h hs_hashstring_base64Decode"
@@ -116,32 +75,6 @@ foreign import capi unsafe "hs_hashstring_base64.h hs_hashstring_base64PadLength
     -> CSize
     -> CInt
 --}
-
-foreign import capi unsafe "hs_hashstring_xor.h hs_hashstring_xorleft"
-  c_xorleft_ba
-    :: ByteArray#
-    -> CSize
-    -> ByteArray#
-    -> CSize
-    -> MutableByteArray# RealWorld
-    -> IO ()
-
-foreign import capi unsafe "hs_hashstring_xor.h hs_hashstring_xormin"
-  c_xormin_ba
-    :: ByteArray#
-    -> ByteArray#
-    -> CSize
-    -> MutableByteArray# RealWorld
-    -> IO ()
-
-foreign import capi unsafe "hs_hashstring_xor.h hs_hashstring_xormax"
-  c_xormax_ba
-    :: ByteArray#
-    -> CSize
-    -> ByteArray#
-    -> CSize
-    -> MutableByteArray# RealWorld
-    -> IO ()
 
 {--
 base64PadLength_bs :: ByteString -> Int

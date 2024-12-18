@@ -7,7 +7,6 @@ import           Data.Bits((.&.))
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.ByteString.Unsafe(unsafeUseAsCStringLen)
-import           Data.ByteString.Short.Internal (ShortByteString(..))
 import           Data.Word
 import           Foreign.C
 import           Foreign.Ptr
@@ -15,7 +14,7 @@ import           GHC.Exts
 import           GHC.IO
 
 import           Crypto.HashString
-import           Crypto.HashString.Subtle
+import           Crypto.HashString.FFI(HashString(..))
 
 nullBuffer :: ByteString
 nullBuffer = B.replicate 64 0

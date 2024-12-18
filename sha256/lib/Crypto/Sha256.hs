@@ -30,7 +30,7 @@ import           GHC.Exts
 import           GHC.IO
 
 import           Crypto.HashString
-import           Crypto.HashString.Subtle
+import           Crypto.HashString.FFI (HashString(..))
 import           Crypto.Sha256.Subtle
 
 -- TODO: there are a number of magic literals scattered throughout that

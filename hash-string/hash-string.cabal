@@ -15,7 +15,6 @@ extra-doc-files:    CHANGELOG.md
 library
     exposed-modules:  Crypto.HashString
                       Crypto.HashString.FFI
-                      Crypto.HashString.Subtle
 
     other-modules:    Crypto.HashString.Implementation
 

@@ -23,7 +23,7 @@ import qualified Data.ByteString.Short as SB
 import           Data.Function((&))
 import           Data.Stream (Stream(..))
 import qualified Data.Stream as Stream
-import           Crypto.HashString.Subtle (HashString(..))
+import           Crypto.HashString ( HashString )
 import qualified Crypto.HashString as HS
 import           Crypto.Sha256.Hmac
 import           Crypto.Sha256.Hkdf.Subtle

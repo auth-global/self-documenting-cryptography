@@ -21,8 +21,6 @@ import           GHC.Base
 import           GHC.Exts
 import           GHC.IO
 
-import           Crypto.HashString.FFI
-
 -- | Type intended to represent short-ish cryptographic values, say up to 128
 --   bytes or so. Supports constant-time comparisons (i.e. run time depends on
 --   length of the inputs but is otherwise independent of content), as well as
@@ -236,3 +234,74 @@ toBase16Builder = shortByteString . toShortBase16
 toBase64Builder :: HashString -> Builder
 toBase64Builder = shortByteString . toShortBase64
 --}
+
+base16EncodeLength :: Int -> Int
+base16EncodeLength = (*) 2
+
+base16DecodeLength :: Int -> Maybe Int
+base16DecodeLength n
+    | r == 0 = Just q
+    | otherwise = Nothing
+  where
+    (q,r) = n `divMod` 2
+
+foreign import capi unsafe "hs_hashstring_memcmp.h hs_hashstring_const_memcmp"
+  c_const_memcmp_ba
+    :: ByteArray#
+    -> ByteArray#
+    -> CSize
+    -> CInt
+
+foreign import capi unsafe "hs_hashstring_base16.h hs_hashstring_hexDecode"
+  c_hexDecode_ba
+    :: MutableByteArray# RealWorld
+    -> ByteArray#
+    -> CSize
+    -> IO CInt
+
+foreign import capi unsafe "hs_hashstring_base16.h hs_hashstring_hexDecode"
+  c_hexDecode_mba_bs
+    :: MutableByteArray# RealWorld
+    -> CString
+    -> CSize
+    -> IO CInt
+
+foreign import capi unsafe "hs_hashstring_base16.h hs_hashstring_hexEncode"
+  c_hexEncode_ba
+    :: MutableByteArray# RealWorld
+    -> ByteArray#
+    -> CSize
+    -> IO ()
+
+foreign import capi unsafe "hs_hashstring_base16.h hs_hashstring_hexEncode"
+  c_hexEncode_bs_ba
+    :: Ptr Word8
+    -> ByteArray#
+    -> CSize
+    -> IO ()
+
+foreign import capi unsafe "hs_hashstring_xor.h hs_hashstring_xorleft"
+  c_xorleft_ba
+    :: ByteArray#
+    -> CSize
+    -> ByteArray#
+    -> CSize
+    -> MutableByteArray# RealWorld
+    -> IO ()
+
+foreign import capi unsafe "hs_hashstring_xor.h hs_hashstring_xormin"
+  c_xormin_ba
+    :: ByteArray#
+    -> ByteArray#
+    -> CSize
+    -> MutableByteArray# RealWorld
+    -> IO ()
+
+foreign import capi unsafe "hs_hashstring_xor.h hs_hashstring_xormax"
+  c_xormax_ba
+    :: ByteArray#
+    -> CSize
+    -> ByteArray#
+    -> CSize
+    -> MutableByteArray# RealWorld
+    -> IO ()
