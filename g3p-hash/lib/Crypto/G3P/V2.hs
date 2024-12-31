@@ -764,6 +764,12 @@ g3pHash
   -- meet any of the criteria above, but these criteria would seem to fairly
   -- comprehensively cover typical use cases. I'm not sure why a deployment
   -- designer might feel a need to go beyond these criteria.
+  --
+  -- Also note that if you feed an output block from _G3Pb2 echo_ back into
+  -- this parameter, keep the keys and tag the same, and update the counter
+  -- accordingly, then this will "collide" with the next output block of the
+  -- original generator.  This issue can be avoided by a deployment, so it's
+  --  better to not get too creative with this specific parameter.
   -> Word32 -- ^ echo counter
   -> ByteString -- ^ echo tag. A good default is to duplicate the sprout's tag.
   -> ByteString
@@ -792,7 +798,7 @@ g3pHash = ( fmap . fmap . fmap . fmap . fmap
 --   PHKDF key-stretching phase.  The next opportunity to make a choice is
 --   the bcrypt key-stretching phase.
 --
---   This results in two cryptographically independent keys: keyB which
+--   A spark consists of two cryptographically independent keys: keyB which
 --   begins bcrypt, and keyC which is the continuation control key. The
 --   continuation control key allows some or all of the bcrypt computation
 --   to be outsourced to another semi-trusted device, without giving that
