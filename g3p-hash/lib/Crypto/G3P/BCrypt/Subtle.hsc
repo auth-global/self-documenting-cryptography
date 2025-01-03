@@ -1,4 +1,4 @@
-{-# LANGUAGE CApiFFI, OverloadedStrings #-}
+{-# LANGUAGE CApiFFI, OverloadedStrings, ViewPatterns #-}
 
 {- |
 
@@ -103,7 +103,11 @@ somewhat naively attempt to address this issue:
 -}
 
 module Crypto.G3P.BCrypt.Subtle
-  ( BCryptXs(..)
+  ( orpheanBeholderScryDoubt
+  , bcrypt_outputSalt
+  , bcryptRaw_outputSalt
+  , bcryptRaw_genInputs
+  , BCryptXs(..)
   , bcryptXs
   , BCryptXsCtr(..)
   , bcryptXsCtrSuperRound
@@ -111,6 +115,8 @@ module Crypto.G3P.BCrypt.Subtle
   , bcryptXs_maxSaltLength
   , bcryptXsCtr_outputLength
   , BCryptState(..)
+  , base64Encode
+  , base64Decode
   ) where
 
 #include "g3p_bcrypt.h"
@@ -118,14 +124,27 @@ module Crypto.G3P.BCrypt.Subtle
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
+import           Data.ByteString.Internal (c2w, w2c)
 import qualified Data.ByteString.Internal as B
+import qualified Data.Char as Char
 import           Data.Word
 import           Data.Int
 
-import           Foreign.Ptr
 import           Foreign.C.String
+import           Foreign.C.Types
+import           Foreign.ForeignPtr
+import           Foreign.Ptr
 import           System.IO.Unsafe
 
+
+orpheanBeholderScryDoubt :: ByteString
+orpheanBeholderScryDoubt = "OrpheanBeholderScryDoubt"
+
+bcrypt_outputSalt :: ByteString
+bcrypt_outputSalt = orpheanBeholderScryDoubt
+
+bcryptRaw_outputSalt :: ByteString
+bcryptRaw_outputSalt = orpheanBeholderScryDoubt
 
 -- uhh, whut? Am I looking at the wrong version of some documentation? Figuring
 -- out why this is at least sometimes necessary is a good puzzle for later:
@@ -151,17 +170,33 @@ data BCryptXsCtr = BCryptXsCtr
   , bcryptXsCtr_name :: !ByteString
   }
 
-foreign import capi "g3p_bcrypt.h bcrypt_xs" c_bcrypt_xs
+foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs"
+  c_bcrypt_xs
     :: CString -> Word16 -> CString -> Word16
     -> CString -> Word16 -> CString -> Word16
     -> CString -> Word16 -> CString -> Word16
     -> CString -> Word32 -> Word32 -> Ptr Word8 -> IO ()
 
-foreign import capi "g3p_bcrypt.h bcrypt_xs_ctr_superround" c_bcrypt_xs_ctr_superround
+foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs_ctr_superround"
+  c_bcrypt_xs_ctr_superround
     :: CString
     -> CString -> Word32 -> CString -> Word32
     -> CString -> Word32 -> CString -> Word32
     -> Word32 -> Word32 -> Word32 -> CString -> IO Word32
+
+foreign import capi "g3p_bcrypt_base64.h G3P_bcrypt_base64Encode"
+  c_bcrypt_base64Encode
+    :: Ptr Word8
+    -> CString
+    -> Word32
+    -> IO ()
+
+foreign import capi "g3p_bcrypt_base64.h G3P_bcrypt_base64Decode"
+  c_bcrypt_base64Decode
+    :: Ptr Word8
+    -> CString
+    -> Word32
+    -> IO CInt
 
 -- | Any key longer than 72 bytes will be truncated.
 
@@ -254,3 +289,68 @@ len32 :: ByteString -> Word32
 len32 x = fromIntegral (min maxLen32 (B.length x))
 
 newtype BCryptState = BCryptState { bcryptState_toByteString :: ByteString } deriving (Eq, Ord, Show)
+
+-- | Given the length of some binary blob of data, how long will the base64 encoded
+--   version be, without padding?
+
+-- There's probably a "cleaner" way to compute this with bit tricks
+base64EncodeLength :: Int -> Int
+base64EncodeLength n =
+    4 * q + if r == 0 then 0 else 1 + r
+  where
+    (q,r) = n `divMod` 3
+
+-- | Given the length of some base64 encoded data, how long will the binar blob be?
+--   The input length must not include any padding, commonly appearing as one or
+--   two @=@ characters at the end of a string.
+
+-- There's probably a "cleaner" way to compute this with bit tricks
+base64DecodeLength :: Int -> Maybe Int
+base64DecodeLength n
+    | r == 0 = Just (3 * q)
+    | r == 1 = Nothing
+    | otherwise = Just ((3 * q) + (r - 1))
+  where
+    (q,r) = n `divMod` 4
+
+base64Decode :: ByteString -> Maybe ByteString
+base64Decode input =
+  case base64DecodeLength inLen of
+    Nothing -> Nothing
+    Just outLen ->
+      unsafePerformIO $ do
+        myUseAsCString input $ \inPtr -> do
+          out <- B.mallocByteString outLen
+          err <- withForeignPtr out $ \outPtr -> do
+            c_bcrypt_base64Decode outPtr inPtr (fromIntegral inLen)
+          if err == 0
+          then return $! Just $! B.BS out outLen
+          else return Nothing
+  where
+    inLen = B.length input
+
+base64Encode :: ByteString -> ByteString
+base64Encode input =
+  B.unsafeCreate outLen $ \outPtr -> do
+    myUseAsCString input $ \inPtr -> do
+      c_bcrypt_base64Encode outPtr inPtr (fromIntegral inLen)
+  where
+    inLen = B.length input
+    outLen = base64EncodeLength inLen
+
+bcryptRaw_genInputs :: ByteString -> ByteString -> Word32 -> BCryptXs
+bcryptRaw_genInputs (truncateKey -> key) (truncateKey -> salt) rounds =
+    BCryptXs
+    { bcryptXs_key0 = key
+    , bcryptXs_salt0 = salt
+    , bcryptXs_keyL = key
+    , bcryptXs_saltL = B.empty
+    , bcryptXs_keyR = salt
+    , bcryptXs_saltR = B.empty
+    , bcryptXs_saltZ = bcryptRaw_outputSalt
+    , bcryptXs_rounds = rounds
+    }
+
+truncateKey :: ByteString -> ByteString
+truncateKey = B.take bcryptXs_maxKeyLength
+

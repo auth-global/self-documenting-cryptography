@@ -21,16 +21,6 @@ import           Crypto.Sha256.Hkdf
 d :: ByteString -> ByteString
 d = B.decodeBase16Lenient
 
-takeHS :: Int -> [ HashString ] -> [ HashString ]
-takeHS = go
-  where
-    len = SB.length . HS.toShort
-    go _ [] = []
-    go n (b:bs)
-      | n <= 0 = []
-      | len b < n = b : go (n - len b) bs
-      | otherwise = [HS.fromShort (SB.take n (HS.toShort b))]
-
 tests :: [TestTree]
 tests =
   [ testGroup "rfc5869 test vectors"

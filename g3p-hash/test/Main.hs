@@ -2,6 +2,7 @@ import Test.Tasty
 import Data.Monoid
 import qualified G3P
 import qualified G3Pb2
+import qualified Bcrypt
 -- import qualified MyCorpExample
 
 main = do
@@ -14,6 +15,7 @@ main = do
 tests :: (String, Either String G3P.TestVectors) -> (String, Either String G3Pb2.TestVectors) -> TestTree
 tests g3pb1Tvs g3pb2Tvs = testGroup "Test" [
     testGroup "G3Pb1" [G3P.testFile g3pb1Tvs],
-    testGroup "G3Pb2" [G3Pb2.testFile g3pb2Tvs]
+    testGroup "G3Pb2" [G3Pb2.testFile g3pb2Tvs],
+    testGroup "bcrypt" Bcrypt.tests
 --    testGroup "examples" MyCorpExample.tests
   ]

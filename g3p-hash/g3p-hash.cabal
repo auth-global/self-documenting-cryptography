@@ -33,7 +33,9 @@ library
   hs-source-dirs:    lib
   include-dirs:      csrc
   c-sources:         csrc/g3p_bcrypt.c
+                     csrc/g3p_bcrypt_base64.c
   install-includes:  csrc/g3p_bcrypt.h
+                     csrc/g3p_bcrypt_base64.h
   ghc-options:       -Wall
   default-language:  Haskell2010
 
@@ -50,10 +52,12 @@ test-suite test
   other-modules:     G3P
                      G3Pb2
 --                     MyCorpExample
+                     Bcrypt
 
   build-depends:     base
                    , aeson >= 2
 --                   , argon2
+                   , bcrypt
                    , base16 >= 1
                    , bytestring
                    , containers

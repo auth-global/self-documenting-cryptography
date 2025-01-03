@@ -28,25 +28,17 @@
 --    unix-style bcrypt hashes, which has repeatedly proven problematic. One
 --    of the major design motifs of the G3P is to replace this cruft with PHKDF,
 --    which is intended to be bulletproof.
---
---    Similarly, this binding cannot be directly used to process unix-style
---    bcrypt hashes, which does make testing a bit of a challenge.  However,
---    the core algorithm is unmodified, so implementing unix-style hash
---    handling in terms of this binding is very much possible.
---
---    This will be done in the test suite for this library.  Hopefully that
---    implementation will eventually migrate here, once it's production-ready,
---    so that this binding might also be used to handle standard bcrypt hashes
---    directly.
 
 module Crypto.G3P.BCrypt
-  ( bcryptRaw
+  ( bcrypt
+  , bcrypt_saltLength
+  , bcrypt_maxPasswordLength
+  , bcrypt_formatSaltString
+  , bcrypt_parseSaltString
+  , bcrypt_outputLength
+  , bcryptRaw
   , bcryptRaw_maxInputLength
   , bcryptRaw_outputLength
-  , bcryptRaw_outputSalt
-  , orpheanBeholderScryDoubt
-  , BCryptXs()
-  , bcryptRaw_genInputs
   , bcryptXsFree
   ) where
 
@@ -55,6 +47,8 @@ import           Control.Exception(assert)
 import           Data.Bits((.&.))
 import           Data.ByteString(ByteString)
 import qualified Data.ByteString as B
+import           Data.ByteString.Internal(c2w, w2c)
+import qualified Data.Char as Char
 import           Data.Function((&))
 import           Data.Int
 import           Data.Word
@@ -68,6 +62,82 @@ import           Crypto.PHKDF.Assert
 import           Crypto.Encoding.PHKDF (chunkify, chunkifyCycle, takeBs, nullBuffer)
 import           Crypto.G3P.BCrypt.Subtle
 
+-- | OpenBSD-compatible bcrypt
+
+bcrypt :: ByteString -- ^ password
+       -> ByteString -- ^ unix-style salt string
+       -> Maybe ByteString -- ^ unix-style password hash string
+bcrypt key saltString =
+  case  bcrypt_parseSaltString saltString of
+    Just (_, cost, salt, _) ->
+      let hash = bcryptRaw key' salt (2 ^ cost - 1)
+       in Just ( B.take 29 saltString <> base64Encode (B.take 23 hash))
+    Nothing -> Nothing
+  where
+    key' =
+      case (B.elemIndex 0 key) of
+        Nothing -> key
+	Just n -> B.take n key
+
+-- | produce a standard salt string for bcrypt, with or without a password
+--   hash.
+
+bcrypt_formatSaltString
+   :: Char -- ^ Variant, must be @\'b\'@ for now
+   -> Word8 -- ^ Cost factor, must be between 4 and 31 inclusive
+   -> ByteString -- ^ Binary salt, must be 16 bytes long
+   -> ByteString -- ^ Binary hash, must be 0 or 23 bytes long
+   -> Maybe ByteString
+bcrypt_formatSaltString variant cost salt hash
+  | B.length salt /= 16 = Nothing
+  | B.length hash `notElem` [0,23] = Nothing
+  | not ( 4 <= cost && cost <= 31 ) = Nothing
+  | variant `notElem` ['b'] = Nothing
+  | otherwise =
+      Just (B.concat [ "$2", B.singleton (c2w variant),
+                        "$", x, y, "$",
+                        base64Encode salt,
+                        base64Encode hash ])
+  where
+    (toDigit -> x, toDigit -> y) = (cost `divMod` 10)
+
+toDigit :: Word8 -> ByteString
+toDigit a = B.singleton (fromIntegral a + c2w '0')
+
+-- | Given a salt string (e.g. "@\$2b\$12\$...@") in the OpenBSD format,
+--   returns (variant, work cost, binary salt, binary hash). The only supported
+--   variant is currently @\'b\'@. The cost must be between 4 and 31, and the
+--   input string must be either 29 or 60 bytes long, depending on whether the
+--   salt string includes a password hash.
+
+bcrypt_parseSaltString :: ByteString -> Maybe (Char, Word8, ByteString, ByteString)
+bcrypt_parseSaltString salt
+  | not (B.length salt `elem` [29, 60]) = Nothing
+  | not ("$2" `B.isPrefixOf` salt
+         && w2c variant `elem` [ 'b' ]
+         && B.index salt 3 == c2w '$' ) = Nothing
+  | not (  Char.isDigit (w2c (B.index salt 4))
+        && Char.isDigit (w2c (B.index salt 5))
+        && B.index salt 6 == c2w '$' ) = Nothing
+  | not ( 4 <= cost && cost <= 31 ) = Nothing
+  | Just binarySalt <- base64Decode (B.drop 7 (B.take 29 salt))
+  , Just binaryHash <- base64Decode (B.drop 29 salt)
+    = Just (w2c variant, cost, binarySalt, binaryHash)
+  | otherwise = Nothing
+  where
+    variant = B.index salt 2
+    cost = 10 * (B.index salt 4 - c2w '0')
+              + (B.index salt 5 - c2w '0')
+
+bcrypt_saltLength :: Int
+bcrypt_saltLength = 16
+
+bcrypt_maxPasswordLength :: Int
+bcrypt_maxPasswordLength = bcryptXs_maxKeyLength
+
+bcrypt_outputLength :: Int
+bcrypt_outputLength = B.length bcrypt_outputSalt
+
 -- | Any input longer than 72 bytes will be truncated.
 
 bcryptRaw_maxInputLength :: Int
@@ -77,12 +147,6 @@ bcryptRaw_maxInputLength = bcryptXs_maxKeyLength
 
 bcryptRaw_outputLength :: Int
 bcryptRaw_outputLength = B.length bcryptRaw_outputSalt
-
-bcryptRaw_outputSalt :: ByteString
-bcryptRaw_outputSalt = orpheanBeholderScryDoubt
-
-orpheanBeholderScryDoubt :: ByteString
-orpheanBeholderScryDoubt = "OrpheanBeholderScryDoubt"
 
 -- | @bcryptRaw key salt rounds@ Be aware that keys and salts that are longer
 --   than 72 bytes do get truncated to exactly 72 bytes. This binding will
@@ -96,29 +160,10 @@ orpheanBeholderScryDoubt = "OrpheanBeholderScryDoubt"
 bcryptRaw :: ByteString -> ByteString -> Word32 -> ByteString
 bcryptRaw key salt rounds = bcryptXs (bcryptRaw_genInputs key salt rounds)
 
--- | Generate an equivalent input block for 'bcryptXs'
-
-bcryptRaw_genInputs :: ByteString -> ByteString -> Word32 -> BCryptXs
-bcryptRaw_genInputs (f -> key) (f -> salt) rounds =
-    BCryptXs
-    { bcryptXs_key0 = key
-    , bcryptXs_salt0 = salt
-    , bcryptXs_keyL = key
-    , bcryptXs_saltL = B.empty
-    , bcryptXs_keyR = salt
-    , bcryptXs_saltR = B.empty
-    , bcryptXs_saltZ = bcryptRaw_outputSalt
-    , bcryptXs_rounds = rounds
-    }
-
-f :: ByteString -> ByteString
-f = B.take bcryptRaw_maxInputLength
-
 formatFnName :: ByteString -> ByteString
 formatFnName (B.take 28 -> name) = B.concat [bytestring32 0, name, nameExt]
   where
     nameExt = B.take (28 - B.length name) nullBuffer
-
 
 bcryptXsFree_tagBytesPerRound :: Int
 bcryptXsFree_tagBytesPerRound = bcryptXsCtr_outputLength - 32
