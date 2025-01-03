@@ -98,7 +98,7 @@ My guess is that at +6 dB advantage, or a 4x cost multiplier representing a 75% 
 
 This would represent a total failure of the secondary security goal of cryptoacoustics. However it would also represent a significant insight into the research program for cryptoacoustics.
 
-Slow password hashing is something of a best case for cryptoacoustics. Other applications of cryptoacoustics may need +60 dB or +90 dB advantage or more to be viable, making a securely obfuscated attack a million or billion times more expensive.
+Slow password hashing is something of a best case for cryptoacoustics. Other applications of cryptoacoustics may need +60 dB or +90 dB advantage or more to be viable, making a securely obfuscated attack a million or billion times more expensive.  Unfortunately, I suspect that FHE is already somewhat more efficient than this on SHA-256, and suspect that an upper bound of +50 dB or so can be established using today's FHE tools.
 
 Though there's a couple different interpretations of what a negative cryptoacoustic advantage might represent, none of them are terribly plausible. In particular, a securely-obfuscated implementation is almost certainly not going to be _faster_ than a native implementation. And because the G3P's tags are _contextual parameters_, a failure of the cryptoacoustic security model doesn't imply a failure of the classical security model.
 
@@ -106,7 +106,7 @@ The purpose of _cryptoacoustic repetition_ as employed by PHKDF and the G3P is t
 
 ## The Cryptoacoustic Medium
 
-Cryptoacoustics is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes so that our tags are easily decoded and understood by observers, and that maximize the advantage to run-time efficiency of being either forthright or insecurely obfuscated.  This medium hopefully serves as a bulwark against obfuscation because it is _intolerant to noise_.
+Cryptoacoustics is the art of transmitting [signals](https://en.wikipedia.org/wiki/Signal) in the [medium](https://en.wikipedia.org/wiki/Transmission_medium) of cryptographic state changes so that our tags are easily decoded and understood by observers, and that maximize the advantage to run-time efficiency of being either forthright or insecurely obfuscated. This medium hopefully serves as a bulwark against obfuscation because it is _intolerant to noise_.
 
 Conveying a message requires the use of a transmission medium. In our scenario, cryptographic state changes serve as a virtual transmission medium. This medium is purely mathematical and has no physical basis. Rather, algorithmic chokepoints ride upon the context of past communications that occurred via physical transmission media. In the case of the G3P, this context is that somebody hashed a password, and then somebody else stole that hash.
 

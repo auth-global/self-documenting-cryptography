@@ -5,13 +5,13 @@ import Data.Word
 import Crypto.HashString
 import Crypto.Sha256.Hmac
 
--- | Context type for incremental hkdfExtract
+-- | Context type for incremental @hkdfExtract@
 
 newtype HkdfCtx = HkdfCtx {
     hkdfCtx_hmacCtx :: HmacCtx
   } deriving (Eq, Ord)
 
--- | Plain-old-data contextual type for hkdfExpand
+-- | Plain-old-data representation of the generator for @hkdfExpand@
 
 data HkdfGen = HkdfGen
   { hkdfGen_info :: !ShortByteString

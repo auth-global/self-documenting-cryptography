@@ -1,9 +1,15 @@
 module Crypto.Sha256.Hkdf
   ( hkdf
+  , hkdf'
+  , hkdfList
+  , hkdfList'
+  , hkdfGen
   , hkdfExtract
   , hkdfExpand
-  , hkdfExpand_toGen
-  , hkdfExpand_toStream
+  , hkdfExpand'
+  , hkdfExpandList
+  , hkdfExpandList'
+  , hkdfExpandGen
   , HkdfCtx()
   , hkdfCtx_init
   , hkdfCtx_feed, hkdfCtx_feeds
@@ -12,51 +18,101 @@ module Crypto.Sha256.Hkdf
   , HkdfGen()
   , hkdfGen_init
   , hkdfGen_read
+  , hkdfGen_read'
   , hkdfGen_peek
-  , hkdfGen_toStream
   ) where
 
+import           Control.Arrow((***))
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.ByteString.Short (ShortByteString)
 import qualified Data.ByteString.Short as SB
 import           Data.Function((&))
-import           Data.Stream (Stream(..))
-import qualified Data.Stream as Stream
+import qualified Data.List as List
+
 import           Crypto.HashString ( HashString )
 import qualified Crypto.HashString as HS
 import           Crypto.Sha256.Hmac
 import           Crypto.Sha256.Hkdf.Subtle
 
-hkdf :: HmacKey -- ^ salt
+hkdf :: HmacKeyPlain -- ^ salt
      -> ByteString -- ^ initial keying material
-     -> ByteString -- ^ info
-     -> [HashString]
-hkdf salt = hkdfExpand . hkdfExtract salt
+     -> ByteString -- ^ info tag
+     -> Int -- ^ desired output length
+     -> ByteString
+hkdf = (fmap . fmap . fmap . fmap $ HS.toByteString) hkdf'
+
+hkdf' :: HmacKeyPlain -- ^ salt
+      -> ByteString -- ^ initial keying material
+      -> ByteString -- ^ info tag
+      -> Int -- ^ desired output length
+      -> HashString
+hkdf' = (fmap . fmap . fmap $ \gen len ->
+           mconcat (HS.takeBytes len (hkdfGen_toList' gen))
+        ) hkdfGen
+
+hkdfList
+  :: HmacKeyPlain -- ^ salt
+  -> ByteString -- ^ initial keying material
+  -> ByteString -- ^ info tag
+  -> [ByteString]
+hkdfList = (fmap . fmap . fmap $ hkdfGen_toList) hkdfGen
+
+hkdfList'
+  :: HmacKeyPlain -- ^ salt
+  -> ByteString -- ^ initial keying material
+  -> ByteString -- ^ info tag
+  -> [HashString]
+hkdfList' = (fmap . fmap . fmap $ hkdfGen_toList') hkdfGen
+
+
+hkdfGen
+  :: HmacKeyPlain -- ^ salt
+  -> ByteString -- ^ initial keying material
+  -> ByteString -- ^ info tag
+  -> HkdfGen
+hkdfGen = fmap hkdfExpandGen . hkdfExtract . hmacKey_hashed
 
 hkdfExtract
     :: HmacKey -- ^ salt
     -> ByteString -- ^ initial keying material
     -> HmacKey -- ^ pseudorandom key
-hkdfExtract salt = hkdfCtx_finalize . hkdfCtx_update (hkdfCtx_init salt)
+hkdfExtract = fmap hkdfCtx_finalize . hkdfCtx_update . hkdfCtx_init
 
 hkdfExpand
     :: HmacKey -- ^ pseudorandom key
-    -> ByteString -- ^ info
-    -> [HashString]
-hkdfExpand prk = Stream.take 255 . hkdfExpand_toStream prk
+    -> ByteString -- ^ info tag
+    -> Int -- ^ desired length
+    -> ByteString
+hkdfExpand = (fmap . fmap . fmap $ HS.toByteString) hkdfExpand'
 
-hkdfExpand_toGen
+hkdfExpand'
     :: HmacKey -- ^ pseudorandom key
-    -> ByteString -- ^ info
+    -> ByteString -- ^ info tag
+    -> Int -- ^ desired length
+    -> HashString
+hkdfExpand' =
+  (fmap . fmap $ \gen len ->
+      mconcat (HS.takeBytes len (hkdfGen_toList' gen))
+  ) hkdfExpandGen
+
+hkdfExpandList
+    :: HmacKey -- ^ pseudorandom key
+    -> ByteString -- ^ info tag
+    -> [ByteString] -- ^ infinite lazy list of output blocks
+hkdfExpandList = fmap hkdfGen_toList . hkdfExpandGen
+
+hkdfExpandList'
+    :: HmacKey -- ^ pseudorandom key
+    -> ByteString -- ^ info tag
+    -> [HashString] -- ^ infinite lazy list of output blocks
+hkdfExpandList' = fmap hkdfGen_toList' . hkdfExpandGen
+
+hkdfExpandGen
+    :: HmacKey -- ^ pseudorandom key
+    -> ByteString -- ^ info tag
     -> HkdfGen
-hkdfExpand_toGen prk = hkdfGen_init prk . SB.toShort
-
-hkdfExpand_toStream
-    :: HmacKey -- ^ pseudorandom key
-    -> ByteString -- ^ info
-    -> Stream HashString
-hkdfExpand_toStream prk = hkdfGen_toStream . hkdfExpand_toGen prk
+hkdfExpandGen prk = hkdfGen_init prk . SB.toShort
 
 hkdfCtx_init :: HmacKey -> HkdfCtx
 hkdfCtx_init key = HkdfCtx (hmacCtx_init key)
@@ -84,8 +140,8 @@ hkdfGen_init key info = HkdfGen
    , hkdfGen_state = HS.fromShort SB.empty
    }
 
-hkdfGen_read :: HkdfGen -> (HashString, HkdfGen)
-hkdfGen_read gen = (state',gen')
+hkdfGen_read' :: HkdfGen -> (HashString, HkdfGen)
+hkdfGen_read' gen = (state',gen')
  where
    info = hkdfGen_info gen
    key = hkdfGen_key gen
@@ -103,6 +159,9 @@ hkdfGen_read gen = (state',gen')
      , hkdfGen_state = state'
      }
 
+hkdfGen_read :: HkdfGen -> (ByteString, HkdfGen)
+hkdfGen_read = (HS.toByteString *** id) . hkdfGen_read'
+
 hkdfGen_peek :: HkdfGen -> Maybe HashString
 hkdfGen_peek gen =
     if (SB.null (HS.toShort st))
@@ -111,5 +170,8 @@ hkdfGen_peek gen =
   where
     st = hkdfGen_state gen
 
-hkdfGen_toStream :: HkdfGen -> Stream HashString
-hkdfGen_toStream = Stream.unfold hkdfGen_read
+hkdfGen_toList' :: HkdfGen -> [HashString]
+hkdfGen_toList' = List.unfoldr (Just . hkdfGen_read')
+
+hkdfGen_toList :: HkdfGen -> [ByteString]
+hkdfGen_toList = List.unfoldr (Just . hkdfGen_read)

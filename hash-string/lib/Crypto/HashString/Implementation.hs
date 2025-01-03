@@ -2,6 +2,8 @@
 
 module Crypto.HashString.Implementation where
 
+import           Prelude hiding (Foldable, foldr)
+
 import           Data.Array.Byte
 import           Data.Bits((.&.))
 import           Data.ByteString (ByteString)
@@ -12,12 +14,13 @@ import           Data.ByteString.Unsafe (unsafeUseAsCString, unsafeUseAsCStringL
 import           Data.ByteString.Short.Internal (ShortByteString(..))
 import qualified Data.ByteString.Short as SB
 import qualified Data.Char as Char
+import           Data.Foldable(Foldable, foldr)
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Word
 import           Foreign.C
 import           Foreign.Ptr
-import           GHC.Base
+import           GHC.Base hiding (foldr)
 import           GHC.Exts
 import           GHC.IO
 
@@ -135,6 +138,18 @@ toShortBase16 (HashString str@(ByteArray ptr)) =
        in  (# st2, SBS b #)
   where
     ptrlen = SB.length (SBS ptr)
+
+takeBytes :: Foldable f => Int -> f HashString -> [ HashString ]
+takeBytes n strings = foldr delta (const []) strings n
+  where
+    delta :: HashString -> (Int -> [HashString]) -> Int -> [ HashString ]
+    delta str f n
+      | n <= 0 = []
+      | strlen < n = str : f (n - strlen)
+      | otherwise = [tak n str]
+      where strlen = len str
+    len = SB.length . toShort
+    tak n = fromShort . SB.take n . toShort
 
 {--
 fromShortBase64 :: ShortByteString -> Maybe HashString

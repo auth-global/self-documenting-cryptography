@@ -17,6 +17,7 @@ module Crypto.HashString
      , xorLeft
      , xorMin
      , xorMax
+     , takeBytes
      ) where
 
 import Crypto.HashString.Implementation
