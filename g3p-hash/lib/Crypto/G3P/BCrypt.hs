@@ -28,6 +28,14 @@
 --    unix-style bcrypt hashes, which has repeatedly proven problematic. One
 --    of the major design motifs of the G3P is to replace this cruft with PHKDF,
 --    which is intended to be bulletproof.
+--
+--    Note that this binding doesn't (currently?) support the @2a@ and @2x@
+--    variants.  On the other hand, at least the 2a variant depends on
+--    overflow, which as undefined behavior in C is allowed to compile to
+--    whatever it wants... so there might be multiple variants of the @2a@
+--    "variant" of bcrypt floating around out there, depending on particular
+--    C implementations and possibly even specific to architectures, compiler
+--    flags, and versions
 
 module Crypto.G3P.BCrypt
   ( bcrypt
@@ -75,7 +83,7 @@ bcrypt key saltString =
     Nothing -> Nothing
   where
     key' =
-      case (B.elemIndex 0 key) of
+      case (B.elemIndex 0 (B.take bcrypt_maxPasswordLength key)) of
         Nothing -> key
 	Just n -> B.take n key
 
