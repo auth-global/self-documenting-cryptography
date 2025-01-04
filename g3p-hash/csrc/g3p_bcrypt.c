@@ -737,16 +737,14 @@ G3P_bcrypt_xs_ctr_expand
 uint32_t
 G3P_Blowfish_expandCtr
 ( G3P_blf_ctx *const c,
-  const uint8_t *key, const uint32_t keyLen0,
-  const uint8_t *name, const uint32_t nameLen0,
+  const uint8_t *key, const uint32_t keyLen,
+  const uint8_t *name, const uint32_t nameLen,
   const uint8_t *tag, const uint32_t tagLen, const uint32_t tagPos0,
   const uint32_t ctr, const bool keyIsFirst )
 {
   if (c == NULL) return tagPos0;
 
-  const uint32_t keyLen = keyLen0 > 72 ? 72 : keyLen0;
-  const uint32_t nameLen = nameLen0 > 72 ? 72 : nameLen0;
-
+  assert(keyLen <= 72);
   assert(keyLen == nameLen); // FIXME: rework interface
   assert(keyLen % 4 == 0); // FIXME? remove this assumption
 

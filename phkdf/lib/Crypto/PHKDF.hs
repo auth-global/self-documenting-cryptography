@@ -228,6 +228,7 @@ module Crypto.PHKDF
   , phkdfCtx_endPaddingLength
   , phkdfCtx_blockPaddingLength
 {--
+
   , PhkdfSlowCtx()
   , phkdfSlowCtx_extract
   , phkdfSlowCtx_feedArg
@@ -375,7 +376,12 @@ phkdfCtx_feedArgConcat strs =
 --   examining only the first output block and discarding the rest of the
 --   stream.
 
-phkdfCtx_finalize :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> ByteString
+phkdfCtx_finalize
+  :: (Int -> ByteString) -- ^ end-of-message padding, output length must be equal to the number provided
+  -> Word32 -- ^ counter
+  -> ByteString -- ^ tag
+  -> PhkdfCtx
+  -> ByteString
 phkdfCtx_finalize genFillerPad counter tag ctx =
     phkdfCtx_toGen genFillerPad counter tag ctx &
     phkdfGen_head
@@ -394,7 +400,7 @@ phkdfCtx_toHmacCtx ctx =
 --   by 0-63 bytes as needed to get to a SHA256 block boundary
 
 phkdfCtx_toHmacKeyPrefixed
-  :: (Int -> ByteString)
+  :: (Int -> ByteString) -- ^ block synchronization padding, ouput length must be equal to the number provided
   -> PhkdfCtx
   -> HmacKeyPrefixed
 phkdfCtx_toHmacKeyPrefixed genFillerPad ctx =
@@ -440,7 +446,18 @@ phkdfCtx_blockPaddingLength :: PhkdfCtx -> Int
 phkdfCtx_blockPaddingLength ctx =
   fromIntegral ((63 - phkdfCtx_byteCount ctx) .&. 63)
 
-phkdfCtx_toGen :: (Int -> ByteString) -> Word32 -> ByteString -> PhkdfCtx -> PhkdfGen
+-- actually I should probably offer a version of this function with permuted
+-- arguments, as there is at least one potentially useful partial application
+-- here, namely the block computations involved in processing the
+-- end-of-message padding. This partial application requires that PhkdfCtx
+-- and genFillerPad must come first.
+
+phkdfCtx_toGen
+  :: (Int -> ByteString) -- ^ end-of-message padding, output length must be equal to the number provided
+  -> Word32  -- ^ counter
+  -> ByteString -- ^ tag
+  -> PhkdfCtx
+  -> PhkdfGen
 phkdfCtx_toGen genFillerPad counter0 tag ctx =
     PhkdfGen
       { phkdfGen_hmacKeyLike = phkdfCtx_hmacKeyLike ctx
