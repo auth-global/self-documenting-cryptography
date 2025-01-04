@@ -561,11 +561,11 @@ G3P_cycleThen
 
 void
 G3P_bcrypt_xs
-( const char *key0, uint16_t key0bytes, const char *salt0, uint16_t salt0bytes,
-  const char *keyL, uint16_t keyLbytes, const char *saltL, uint16_t saltLbytes,
-  const char *keyR, uint16_t keyRbytes, const char *saltR, uint16_t saltRbytes,
-  const char *saltZ, uint32_t saltZbytes, uint32_t rounds, bool implicitNull,
-  char *output )
+( const uint8_t *key0, uint16_t key0bytes, const uint8_t *salt0, uint16_t salt0bytes,
+  const uint8_t *keyL, uint16_t keyLbytes, const uint8_t *saltL, uint16_t saltLbytes,
+  const uint8_t *keyR, uint16_t keyRbytes, const uint8_t *saltR, uint16_t saltRbytes,
+  const uint8_t *saltZ, uint32_t saltZbytes, uint32_t rounds, bool implicitNull,
+  uint8_t *output )
 {
   G3P_blf_ctx state;
 
@@ -586,9 +586,9 @@ G3P_bcrypt_xs
 void
 G3P_bcrypt_xs_expand
 ( G3P_blf_ctx *state,
-  const char *key0, uint16_t key0bytes, const char *salt0, uint16_t salt0bytes,
-  const char *keyL, uint16_t keyLbytes, const char *saltL, uint16_t saltLbytes,
-  const char *keyR, uint16_t keyRbytes, const char *saltR, uint16_t saltRbytes,
+  const uint8_t *key0, uint16_t key0bytes, const uint8_t *salt0, uint16_t salt0bytes,
+  const uint8_t *keyL, uint16_t keyLbytes, const uint8_t *saltL, uint16_t saltLbytes,
+  const uint8_t *keyR, uint16_t keyRbytes, const uint8_t *saltR, uint16_t saltRbytes,
   uint32_t rounds, bool implicitNull )
 {
   G3P_Blowfish_expand
@@ -664,7 +664,7 @@ G3P_bcrypt_xs_ctr_superround
 ( const uint8_t input[G3P_BLF_CTX_LENGTH],
   const uint8_t *key0, uint32_t len0, const uint8_t *key1, uint32_t len1,
   const uint8_t *name, uint32_t nameLen, const uint8_t *tag, uint32_t tagLen,
-  uint32_t tagPos, uint32_t rounds, uint32_t ctr, char output[G3P_BLF_CTX_LENGTH] )
+  uint32_t tagPos, uint32_t rounds, uint32_t ctr, uint8_t output[G3P_BLF_CTX_LENGTH] )
 {
   G3P_blf_ctx state;
 
@@ -807,32 +807,32 @@ G3P_Blowfish_expandCtr
   c->P[0] = datal;
   c->P[1] = datar;
 
-	for (int i = 2; i < 18; i += 2) {
+  for (int i = 2; i < 18; i += 2) {
     datal ^= G3P_thenCycle(name, nameLen, &pos, tag, tagLen, &tagPos);
     datar ^= G3P_thenCycle(name, nameLen, &pos, tag, tagLen, &tagPos);
-		G3P_Blowfish_encipher(c, &datal, &datar);
+    G3P_Blowfish_encipher(c, &datal, &datar);
 
-		c->P[i] = datal;
-		c->P[i + 1] = datar;
-	}
+    c->P[i] = datal;
+    c->P[i + 1] = datar;
+  }
 
-	for (int i = 0; i < 4; i++) {
-		for (int k = 0; k < 256; k += 2) {
+  for (int i = 0; i < 4; i++) {
+    for (int k = 0; k < 256; k += 2) {
       datal ^= G3P_cycle(tag, tagLen, &tagPos);
       datar ^= G3P_cycle(tag, tagLen, &tagPos);
-			G3P_Blowfish_encipher(c, &datal, &datar);
+      G3P_Blowfish_encipher(c, &datal, &datar);
 
-			c->S[i][k] = datal;
-			c->S[i][k + 1] = datar;
-		}
-	}
+      c->S[i][k] = datal;
+      c->S[i][k + 1] = datar;
+    }
+  }
   return tagPos;
 };
 
 void
 G3P_bcrypt_xs_output
 ( const G3P_blf_ctx *state,
-  const char *saltZ, uint32_t saltZbytes,
+  const uint8_t *saltZ, uint32_t saltZbytes,
   uint8_t *output )
 {
   uint32_t blocks = saltZbytes >> 3;
