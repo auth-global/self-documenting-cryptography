@@ -560,11 +560,63 @@ G3P_cycleThen
 }
 
 void
+G3P_bcrypt_xs
+( const char *key0, uint16_t key0bytes, const char *salt0, uint16_t salt0bytes,
+  const char *keyL, uint16_t keyLbytes, const char *saltL, uint16_t saltLbytes,
+  const char *keyR, uint16_t keyRbytes, const char *saltR, uint16_t saltRbytes,
+  const char *saltZ, uint32_t saltZbytes, uint32_t rounds, bool implicitNull,
+  char *output )
+{
+  G3P_blf_ctx state;
+
+  memcpy(&state, &g3p_blf_init, sizeof(state));
+
+  G3P_bcrypt_xs_expand
+    (&state,
+     key0, key0bytes, salt0, salt0bytes,
+     keyL, keyLbytes, saltL, saltLbytes,
+     keyR, keyRbytes, saltR, saltRbytes,
+     rounds, implicitNull );
+
+  G3P_bcrypt_xs_output (&state, saltZ, saltZbytes, output);
+
+  explicit_bzero(&state, sizeof(state));
+}
+
+void
+G3P_bcrypt_xs_expand
+( G3P_blf_ctx *state,
+  const char *key0, uint16_t key0bytes, const char *salt0, uint16_t salt0bytes,
+  const char *keyL, uint16_t keyLbytes, const char *saltL, uint16_t saltLbytes,
+  const char *keyR, uint16_t keyRbytes, const char *saltR, uint16_t saltRbytes,
+  uint32_t rounds, bool implicitNull )
+{
+  G3P_Blowfish_expand
+    (state,
+     (const uint8_t *) key0, key0bytes,
+     (const uint8_t *) salt0, salt0bytes, implicitNull);
+
+  /* Written so that things work when rounds == UINT32_MAX */
+  rounds++;
+  do {
+    rounds--;
+    G3P_Blowfish_expand
+      (state,
+       (const uint8_t *) keyL, keyLbytes,
+       (const uint8_t *) saltL, saltLbytes, implicitNull);
+    G3P_Blowfish_expand
+      (state,
+       (const uint8_t *) keyR, keyRbytes,
+       (const uint8_t *) saltR, saltRbytes, false );
+  } while (rounds != 0);
+}
+
+void
 G3P_Blowfish_expand
 (G3P_blf_ctx *c,
  const uint8_t *key, uint16_t keybytes,
  const uint8_t *salt, uint16_t saltbytes,
- bool appendnull)
+ bool implicitNull )
 {
   uint32_t pos;
   uint32_t datal;
@@ -572,7 +624,7 @@ G3P_Blowfish_expand
 
   pos = 0;
   for (int i = 0; i < G3P_BLF_N + 2; i++) {
-    if (appendnull) {
+    if (implicitNull) {
       c->P[i] ^= G3P_cycleWx00(key, keybytes, &pos);
     } else {
       c->P[i] ^= G3P_cycle(key, keybytes, &pos);
@@ -607,6 +659,80 @@ G3P_Blowfish_expand
   }
 };
 
+uint32_t
+G3P_bcrypt_xs_ctr_superround
+( const uint8_t input[G3P_BLF_CTX_LENGTH],
+  const uint8_t *key0, uint32_t len0, const uint8_t *key1, uint32_t len1,
+  const uint8_t *name, uint32_t nameLen, const uint8_t *tag, uint32_t tagLen,
+  uint32_t tagPos, uint32_t rounds, uint32_t ctr, char output[G3P_BLF_CTX_LENGTH] )
+{
+  G3P_blf_ctx state;
+
+  if (input == NULL)
+    memcpy(&state, &g3p_blf_init, sizeof(state));
+  else
+    G3P_Blowfish_decodestate(input, &state);
+
+  tagPos = G3P_bcrypt_xs_ctr_expand
+    (&state,
+     key0, len0, key1, len1,
+     name, nameLen, tag, tagLen,
+     tagPos, rounds, ctr);
+
+  G3P_Blowfish_encodestate(&state, output);
+
+  explicit_bzero(&state, sizeof(state));
+  return tagPos;
+}
+
+
+/* bcrypt-xs-ctr (the idealized function, not this implementation) makes the
+   tacit assumptions that:
+     1. len0 <= 72
+     2. len1 <= 72
+     3. len0 == len1 == nameLen
+     4. The first four bytes of "name" are \x00
+   The behavior of this implementation should be considered to be undefined if
+   any of these assumptions are violated.  These conditions imply that:
+
+     4 <= len0 == len1 == nameLen <= 72
+
+   Honestly, I would recommend a much bigger minimum length for any serious
+   deployment. The G3P uses length == 32.
+
+   A more traditional set of names for these parameters would be
+   "salt" instead of "key", and "password" instead of "tag".
+ */
+
+uint32_t
+G3P_bcrypt_xs_ctr_expand
+( G3P_blf_ctx *state,
+  const uint8_t *key0, uint32_t len0, const uint8_t *key1, uint32_t len1,
+  const uint8_t *name, uint32_t nameLen, const uint8_t *tag, uint32_t tagLen,
+  uint32_t tagPos, uint32_t rounds, uint32_t ctr)
+{
+  G3P_Blowfish_expandCtr
+    (state, key0, len0, key1, len1, tag, tagLen, tagPos, 0, false);
+
+  while(rounds > 0) {
+    G3P_Blowfish_expandCtr
+      (state, key0, len0, name, nameLen, tag, tagLen, tagPos, ctr, true);
+    tagPos = G3P_Blowfish_expandCtr
+      (state, key1, len1, name, nameLen, tag, tagLen, tagPos, ~ctr, true);
+    rounds--;
+    ctr--;
+  }
+
+  if (len1 > 72) len1 = 72;
+  // divide by 4, rounding up
+  uint32_t words = (len1 + 3) >> 2;
+  uint32_t pos = 0;
+  for (uint32_t i = 0; i < words; i++) {
+    state->P[i] ^= G3P_then (key1, len1, &pos);
+  }
+
+  return tagPos;
+}
 
 uint32_t
 G3P_Blowfish_expandCtr
@@ -704,132 +830,6 @@ G3P_Blowfish_expandCtr
 	}
   return tagPos;
 };
-
-void
-G3P_bcrypt_xs
-( const char *key0, uint16_t key0bytes, const char *salt0, uint16_t salt0bytes,
-  const char *keyL, uint16_t keyLbytes, const char *saltL, uint16_t saltLbytes,
-  const char *keyR, uint16_t keyRbytes, const char *saltR, uint16_t saltRbytes,
-  const char *saltZ, uint32_t saltZbytes, uint32_t rounds, char *output )
-{
-  G3P_blf_ctx state;
-
-  memcpy(&state, &g3p_blf_init, sizeof(state));
-
-  G3P_bcrypt_xs_expand
-    (&state,
-     key0, key0bytes, salt0, salt0bytes,
-     keyL, keyLbytes, saltL, saltLbytes,
-     keyR, keyRbytes, saltR, saltRbytes,
-     rounds);
-
-  G3P_bcrypt_xs_output (&state, saltZ, saltZbytes, output);
-
-  explicit_bzero(&state, sizeof(state));
-}
-
-uint32_t
-G3P_bcrypt_xs_ctr_superround
-( const uint8_t input[G3P_BLF_CTX_LENGTH],
-  const uint8_t *key0, uint32_t len0, const uint8_t *key1, uint32_t len1,
-  const uint8_t *name, uint32_t nameLen, const uint8_t *tag, uint32_t tagLen,
-  uint32_t tagPos, uint32_t rounds, uint32_t ctr, char output[G3P_BLF_CTX_LENGTH] )
-{
-  G3P_blf_ctx state;
-
-  if (input == NULL)
-    memcpy(&state, &g3p_blf_init, sizeof(state));
-  else
-    G3P_Blowfish_decodestate(input, &state);
-
-  tagPos = G3P_bcrypt_xs_ctr_expand
-    (&state,
-     key0, len0, key1, len1,
-     name, nameLen, tag, tagLen,
-     tagPos, rounds, ctr);
-
-  G3P_Blowfish_encodestate(&state, output);
-
-  explicit_bzero(&state, sizeof(state));
-  return tagPos;
-}
-
-
-void
-G3P_bcrypt_xs_expand
-( G3P_blf_ctx *state,
-  const char *key0, uint16_t key0bytes, const char *salt0, uint16_t salt0bytes,
-  const char *keyL, uint16_t keyLbytes, const char *saltL, uint16_t saltLbytes,
-  const char *keyR, uint16_t keyRbytes, const char *saltR, uint16_t saltRbytes,
-  uint32_t rounds )
-{
-  G3P_Blowfish_expand
-    (state,
-     (const uint8_t *) key0, key0bytes,
-     (const uint8_t *) salt0, salt0bytes, true);
-
-  /* Written so that things work when rounds == UINT32_MAX */
-  rounds++;
-  do {
-    rounds--;
-    G3P_Blowfish_expand
-      (state,
-       (const uint8_t *) keyL, keyLbytes,
-       (const uint8_t *) saltL, saltLbytes, true);
-    G3P_Blowfish_expand
-      (state,
-       (const uint8_t *) keyR, keyRbytes,
-       (const uint8_t *) saltR, saltRbytes, false);
-  } while (rounds != 0);
-}
-
-/* bcrypt-xs-ctr (the idealized function, not this implementation) makes the
-   tacit assumptions that:
-     1. len0 <= 72
-     2. len1 <= 72
-     3. len0 == len1 == nameLen
-     4. The first four bytes of "name" are \x00
-   The behavior of this implementation should be considered to be undefined if
-   any of these assumptions are violated.  These conditions imply that:
-
-     4 <= len0 == len1 == nameLen <= 72
-
-   Honestly, I would recommend a much bigger minimum length for any serious
-   deployment. The G3P uses length == 32.
-
-   A more traditional set of names for these parameters would be
-   "salt" instead of "key", and "password" instead of "tag".
- */
-
-uint32_t
-G3P_bcrypt_xs_ctr_expand
-( G3P_blf_ctx *state,
-  const uint8_t *key0, uint32_t len0, const uint8_t *key1, uint32_t len1,
-  const uint8_t *name, uint32_t nameLen, const uint8_t *tag, uint32_t tagLen,
-  uint32_t tagPos, uint32_t rounds, uint32_t ctr)
-{
-  G3P_Blowfish_expandCtr
-    (state, key0, len0, key1, len1, tag, tagLen, tagPos, 0, false);
-
-  while(rounds > 0) {
-    G3P_Blowfish_expandCtr
-      (state, key0, len0, name, nameLen, tag, tagLen, tagPos, ctr, true);
-    tagPos = G3P_Blowfish_expandCtr
-      (state, key1, len1, name, nameLen, tag, tagLen, tagPos, ~ctr, true);
-    rounds--;
-    ctr--;
-  }
-
-  if (len1 > 72) len1 = 72;
-  // divide by 4, rounding up
-  uint32_t words = (len1 + 3) >> 2;
-  uint32_t pos = 0;
-  for (uint32_t i = 0; i < words; i++) {
-    state->P[i] ^= G3P_then (key1, len1, &pos);
-  }
-
-  return tagPos;
-}
 
 void
 G3P_bcrypt_xs_output
