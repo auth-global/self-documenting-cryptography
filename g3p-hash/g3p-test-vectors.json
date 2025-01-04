@@ -10,8 +10,10 @@
     },
     "results":[
         {"G3Pb2":"73f26cbf3ad8233b795bf6e4d5d32e7ef6d2be4a34ca07d556c6d97c264526c2f846bb33b22597051be7c0870deb702a89e24d5df4b84048087ac3c32d813bbd"},
-        {"args":{"seguid":{"hex":"6aefea0f165a93ba619f5376980cf11156e42e531776c907b69dca3dca35125d02f2a42d2b10b60b08874e4ec8cbecef21f01b84af0d7cf8d08a113bd7bad5b4"}},
-         "G3Pb2":"62b59247a8e5bd43f9e63af5812cc30ae14a9adaae90d3fd029c574654a2ba335c5a32f7d346078f20760e20950d94bade47dd1a596cc0df00bbcc69f1f236a3"}
+        {"args":{
+	    "echo-tag":"Shaka, when the walls fell.",
+	    "seguid":{"hex":"6aefea0f165a93ba619f5376980cf11156e42e531776c907b69dca3dca35125d02f2a42d2b10b60b08874e4ec8cbecef21f01b84af0d7cf8d08a113bd7bad5b4"}},
+         "G3Pb2":"c2dc7c25398c7c97a9b70dd1578bd32aa9b38e59a955ada46c521f84d177205f674ac9bb910448faf171b8a780f5e10dc06f06edc31efb48b60ccf55c80c0503"}
     ]
 },{
     "name":"prehash first light, elaborated",
@@ -82,9 +84,12 @@
         "phkdf-rounds":2022,
         "bcrypt-rounds":16
     },
-    "results":{
+    "results":[{
         "G3Pb2":"0730f4298825a7d7f874023d8c90c8040a6de43806834db14fb624906700869c153720bcb0dc0f13d4c685af29f839a9001218c3539beb48e1447aabb3f7f3b5"
-    }
+    },{
+	"args":{"password":{"hex":"7061737300776f726400"}},
+	"G3Pb2":"a068f02d6955aaa245440920d326dfff5b32e9472491ed561d1ee22d7d087013d1ab06d56e54fc3ebebdca102ef049b7ce2bb15f1ea66205cb0f9aa48e6aaad9"
+    }]
 },{
     "name":"xkcd password strength #1",
     "args":{
