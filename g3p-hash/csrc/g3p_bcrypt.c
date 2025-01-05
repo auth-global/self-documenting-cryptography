@@ -441,7 +441,7 @@ G3P_cycle(const uint8_t *const data, const uint32_t len, uint32_t *const pos)
 
 
 uint32_t
-G3P_then(const uint8_t *const data, const uint32_t len, uint32_t *const pos)
+G3P_once(const uint8_t *const data, const uint32_t len, uint32_t *const pos)
 {
   if (data == NULL || len == 0 || pos == NULL) return 0;
   uint32_t x, j;
@@ -525,14 +525,14 @@ G3P_rightCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint32_t co
 }
 
 uint32_t
-G3P_thenCycle
+G3P_onceThenCycle
 (const uint8_t *const a, const uint32_t al, uint32_t *const restrict ap,
  const uint8_t *const b, const uint32_t bl, uint32_t *const restrict bp) {
   const uint32_t apos = *ap;
   if (apos >= al)
     return G3P_cycle(b,bl,bp);
   if (apos <= al - 4) {
-    return G3P_then(a,al,ap);
+    return G3P_once(a,al,ap);
   }
   uint32_t x;
   x  = G3P_leftCycle(a,al,ap,al - apos);
@@ -728,7 +728,7 @@ G3P_bcrypt_xs_ctr_expand
   uint32_t words = (len1 + 3) >> 2;
   uint32_t pos = 0;
   for (uint32_t i = 0; i < words; i++) {
-    state->P[i] ^= G3P_then (key1, len1, &pos);
+    state->P[i] ^= G3P_once (key1, len1, &pos);
   }
 
   return tagPos;
@@ -755,25 +755,25 @@ G3P_Blowfish_expandCtr
     if (keyIsFirst) {
       int i;
       for (i = 0; i < keyLen; i += 4) {
-        c->P[i >> 2] ^= G3P_then(key, keyLen, &pos);
+        c->P[i >> 2] ^= G3P_once(key, keyLen, &pos);
       }
       for (; i < 72; i += 4) {
-        c->P[i >> 2] ^= G3P_then(tag, tagLen, &tagPos);
+        c->P[i >> 2] ^= G3P_once(tag, tagLen, &tagPos);
       }
     } else {
       int i;
       for (i = 0; i < (72 - keyLen); i += 4) {
-        c->P[i >> 2] ^= G3P_then(tag, tagLen, &tagPos);
+        c->P[i >> 2] ^= G3P_once(tag, tagLen, &tagPos);
       }
       for (; i < 72; i += 4) {
-        c->P[i >> 2] ^= G3P_then(key, keyLen, &pos);
+        c->P[i >> 2] ^= G3P_once(key, keyLen, &pos);
       }
     }
 
     for (int i = 0; i < 4; i++) {
       for (int k = 0; k < 256; k++) {
         if (tagPos >= tagLen) goto end;
-        c->S[i][k] ^= G3P_then(tag, tagLen, &tagPos);
+        c->S[i][k] ^= G3P_once(tag, tagLen, &tagPos);
       }
     }
 
@@ -782,7 +782,7 @@ G3P_Blowfish_expandCtr
     tagPos = tagPos0;
     if (keyIsFirst) {
       for (int i = 0; i < 18; i++) {
-        c->P[i] ^= G3P_thenCycle(key, keyLen, &pos, tag, tagLen, &tagPos);
+        c->P[i] ^= G3P_onceThenCycle(key, keyLen, &pos, tag, tagLen, &tagPos);
       }
     } else {
       uint32_t n = 72 - keyLen;
@@ -801,15 +801,15 @@ G3P_Blowfish_expandCtr
   tagPos = tagPos0;
   pos = 0;
 
-  uint32_t datal = G3P_thenCycle(name, nameLen, &pos, tag, tagLen, &tagPos) ^ ctr;
-  uint32_t datar = G3P_thenCycle(name, nameLen, &pos, tag, tagLen, &tagPos);
+  uint32_t datal = G3P_onceThenCycle(name, nameLen, &pos, tag, tagLen, &tagPos) ^ ctr;
+  uint32_t datar = G3P_onceThenCycle(name, nameLen, &pos, tag, tagLen, &tagPos);
   G3P_Blowfish_encipher(c, &datal, &datar);
   c->P[0] = datal;
   c->P[1] = datar;
 
   for (int i = 2; i < 18; i += 2) {
-    datal ^= G3P_thenCycle(name, nameLen, &pos, tag, tagLen, &tagPos);
-    datar ^= G3P_thenCycle(name, nameLen, &pos, tag, tagLen, &tagPos);
+    datal ^= G3P_onceThenCycle(name, nameLen, &pos, tag, tagLen, &tagPos);
+    datar ^= G3P_onceThenCycle(name, nameLen, &pos, tag, tagLen, &tagPos);
     G3P_Blowfish_encipher(c, &datal, &datar);
 
     c->P[i] = datal;

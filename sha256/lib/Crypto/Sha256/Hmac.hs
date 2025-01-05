@@ -115,7 +115,7 @@ takeBs' n bs = if haveEnough then takeBs n bs else []
 --
 -- Note this structure retains the plaintext key, which isn't strictly necessary
 -- for actually computing the resulting hmac function.  The plaintext key can
--- be forgotten using '
+-- be forgotten using 'hmacKey_forgetPlain'.
 hmacKey :: HmacKeyPlain -> HmacKey
 hmacKey key = HmacKey_Plain key (hmacKeyHashed key)
 
