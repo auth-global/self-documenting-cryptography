@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, LambdaCase, RecordWildCards, ViewPatterns, ScopedTypeVariables #-}
 
-module G3P where
+module G3Pb1 where
 
 import Control.Exception(try)
 import Control.Applicative
@@ -28,7 +28,7 @@ import qualified Data.Stream as S
 import Data.Vector(Vector, (!))
 import qualified Data.Vector as V
 
-import Crypto.G3P
+import Crypto.G3P.V1
 import Test.Tasty
 import Test.Tasty.HUnit
 

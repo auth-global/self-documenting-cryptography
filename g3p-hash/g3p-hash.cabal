@@ -17,6 +17,7 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:   Crypto.G3P
+		     Crypto.G3P.V1
                      Crypto.G3P.V2
                      Crypto.G3P.V2.Foxtrot
                      Crypto.G3P.V2.Subtle
@@ -50,7 +51,7 @@ test-suite test
   hs-source-dirs:    test
   main-is:           Main.hs
 
-  other-modules:     G3P
+  other-modules:     G3Pb1
                      G3Pb2
 --                     MyCorpExample
                      Bcrypt
