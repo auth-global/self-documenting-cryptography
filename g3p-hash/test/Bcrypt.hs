@@ -166,8 +166,14 @@ testVectors =
 
 --- TODO: verify (via code review) that $2b$ and $2y$ are exactly equivalent
 
---- TODO: find test cases that distinguish $2a$ from $2b$ from $2x$, and
+--- TODO? find test cases that distinguish $2a$ from $2b$ from $2x$, and
 ---       implement those other variants
+
+---       note that pyca has a test case that is supposed to expose the 2a bug,
+---       but that test case is not failing on this implementation, which
+---       truncates at 72 bytes.  Also, the same behavior is observed in the
+---       external binding... so that's a couple more mysteries.  (Perhaps
+---       not that important anymore.)
 
     (
         B.concat
