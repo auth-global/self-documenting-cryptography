@@ -487,14 +487,14 @@ G3P_cycleWx00(const uint8_t *data, uint32_t len, uint32_t *current)
 };
 
 uint32_t
-G3P_leftCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint32_t count) {
+G3P_leftPart(const uint8_t *data, uint32_t len, uint32_t *current, uint32_t count) {
   if (data == NULL || len == 0 || count == 0 || current == NULL) return 0;
   if (count > 4)
     count = 4;
 
   uint32_t x,j;
-	x = 0x00000000;
-	j = *current;
+  x = 0x00000000;
+  j = *current;
 
   for (int i = 0; i < count; i++) {
     x = (x << 8) | data[j];
@@ -503,25 +503,25 @@ G3P_leftCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint32_t cou
 
   x <<= 8 * (4 - count);
 
-	*current = j;
-	return x;
+  *current = j;
+  return x;
 }
 
 uint32_t
-G3P_rightCycle(const uint8_t *data, uint32_t len, uint32_t *current, uint32_t count) {
+G3P_rightPart(const uint8_t *data, uint32_t len, uint32_t *current, uint32_t count) {
   if (data == NULL || len == 0 || count == 0 || current == NULL) return 0;
 
   uint32_t x,j;
-	x = 0x00000000;
-	j = *current;
+  x = 0x00000000;
+  j = *current;
 
   for (int i = count; i < 4; i++) {
     x = (x << 8) | data[j];
     if (++j >= len) j = 0;
   }
 
-	*current = j;
-	return x;
+  *current = j;
+  return x;
 }
 
 uint32_t
@@ -535,13 +535,13 @@ G3P_onceThenCycle
     return G3P_once(a,al,ap);
   }
   uint32_t x;
-  x  = G3P_leftCycle(a,al,ap,al - apos);
-  x ^= G3P_rightCycle(b,bl,bp,al - apos);
+  x  = G3P_leftPart(a,al,ap,al - apos);
+  x ^= G3P_rightPart(b,bl,bp,al - apos);
   return x;
 }
 
 uint32_t
-G3P_cycleThen
+G3P_cycleThenOnce
 (uint32_t *const restrict np,
  const uint8_t *const a, const uint32_t al, uint32_t *const restrict ap,
  const uint8_t *const b, const uint32_t bl, uint32_t *const restrict bp) {
@@ -554,8 +554,8 @@ G3P_cycleThen
   }
   *np = 0;
   uint32_t x;
-  x  = G3P_leftCycle(a,al,ap,n);
-  x ^= G3P_rightCycle(b,bl,bp,n);
+  x  = G3P_leftPart(a,al,ap,n);
+  x ^= G3P_rightPart(b,bl,bp,n);
   return x;
 }
 
@@ -787,7 +787,7 @@ G3P_Blowfish_expandCtr
     } else {
       uint32_t n = 72 - keyLen;
       for (int i = 0; i < 18; i++) {
-        c->P[i] ^= G3P_cycleThen(&n, tag, tagLen, &tagPos, key, keyLen, &pos);
+        c->P[i] ^= G3P_cycleThenOnce(&n, tag, tagLen, &tagPos, key, keyLen, &pos);
       }
     }
 
