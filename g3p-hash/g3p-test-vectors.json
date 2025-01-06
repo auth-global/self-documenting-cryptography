@@ -89,6 +89,12 @@
     },{
 	"args":{"password":{"hex":"7061737300776f726400"}},
 	"G3Pb2":"a068f02d6955aaa245440920d326dfff5b32e9472491ed561d1ee22d7d087013d1ab06d56e54fc3ebebdca102ef049b7ce2bb15f1ea66205cb0f9aa48e6aaad9"
+    },{
+	"args":{"password":{"hex":"7061737300574f5244"}},
+	"G3Pb2":"1c371a534c3b402291cc17672eed4ea6f17e640fb5de77a0d0723d48f7c52dcf481e05cf1bf4948a1d7ef2623e9fad18fb1b487a586da78f47382bee9401298b"
+    },{
+	"args":{"password":{"hex":"7061737300574f524400"}},
+	"G3Pb2":"3d2fb8731f2a21cad70caeb80eab27efbc5bd74b15e3784cbfecc086bbd518fa23c925861c0831d2241ae3f1e498eeb824bd28fe66bd7879a91e9776da43d476"
     }]
 },{
     "name":"xkcd password strength #1",
