@@ -271,7 +271,7 @@ bcryptXsFree toString fnName creds longTag contextTags domainTag ctr0 = initRoun
         args = BCryptXsCtr
           { bcryptXsCtr_key0 = key0
           , bcryptXsCtr_key1 = key1
-          , bcryptXsCtr_tag  = longTag <> "\x00"
+          , bcryptXsCtr_tag  = longTag
           , bcryptXsCtr_name = formatFnName fnName
           }
 
