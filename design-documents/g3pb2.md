@@ -122,6 +122,7 @@ which takes a signficant amount of inspiration from HKDF.
     ⋮
     U c = HMAC (Password, U (c−1))
 
+    // Overview of G3Pb2 alfa:
     i = 1196361704
     T 0 = HMAC (Seguid, UserSalt + Password + LongTag + Credentials
                       + ContextTags + INT_32_BE(i) + DomainTag )
@@ -143,7 +144,7 @@ key-stretching.
 The use precomputed HMAC keys avoids the need to preserve PBKDF2's "password"
 throughout the computation. However, precomputed HMAC keys apply no
 key-stretching, so effectively none of the key-stretching work accrues to the
-intermediate state until the HMAC key is forgotten after the end of 
+intermediate state until the HMAC key is forgotten after the end of
 key-stretching.
 
 By contrast, this change means that a single cracking attempt against any
@@ -155,39 +156,41 @@ password that is significantly less expensive per guess than the work already
 done.
 
 PBKDF2 then xors the blocks `U 1 ^ U 2 ^ ... ^ U c` to generate its final
-output block. The G3P does the same, but then it derives two cryptographically
+output block.  The G3P does the same, but then it derives two cryptographically
 independent keys from the result:
 
+    // overview of G3Pb2 bravo:
+    c = (number of PHKDF rounds, ideally ~20000 or so)
     sumT = T 0 ^ T 1 ^ ... ^ T c
     endT = T (c+1)
-    keyB = HMAC (seguid, "B" + endT + sumT + ContextTags + "KEYB" + DomainTag)
-    keyC = HMAC (seguid, "C" + endT + sumT + ContextTags + "KEYC" + DomainTag)
+    keyB = HMAC (SeguidB, "B" + endT + sumT + ContextTags + "KEYB" + DomainTag)
+    keyC = HMAC (SeguidB, "C" + endT + sumT + ContextTags + "KEYC" + DomainTag)
 
 Now, we are ready for the second form of key-stretching, which uses a
 bcrypt-like construction. Overall, this key-stretching phase looks like
 a single call to HMAC:
 
-    seed = HMAC (seguid, keyB + bcryptOutput + keyC
-                       + ContextTags + "SEED" + DomainTag)
+    // overview of G3Pb2 charlie:
+    seed = HMAC (SeguidB, keyB + bcryptOutput + keyC
+                        + ContextTags + "SEED" + DomainTag)
 
-The inclusion of keyC allows for some or all of the bcrypt key-stretching
-computation to be outsourced to another semi-trusted device without losing
-control of the final seed.  For this reason, keyC is also known as the
-continuation control key.
+The inclusion of continuation control key ("keyC") allows for some or all of
+the bcrypt key-stretching computation to be outsourced to another semi-trusted
+device without losing control of the final seed.
 
-Here, `bcryptOutput` is one or more binary blobs consisting of bcrypt's P-box
-and S-box, with one blob for every super-round.  There is one super-round
-for every 128 bcrypt rounds, rounded up.
+Here, `bcryptOutput` is one or more binary blobs largely consisting of
+bcrypt's P-box and S-box, with one blob for every super-round. There is one
+super-round for every 128 bcrypt rounds, rounded up.
 
     msg   = ""
     state = (standard bcrypt initial state based on digits of pi)
 
     for each super-round:
-       key0   = HMAC (seguid, keyB + msg + BcryptTags + "KEY0" + DomainTag)
+       key0   = HMAC ( SeguidB, keyB + msg + BcryptTags + "KEY0" + DomainTagB )
        msg   += key0
-       key1   = HMAC (seguid, keyB + msg + BcryptTags + "KEY1" + DomainTag)
+       key1   = HMAC ( SeguidB, keyB + msg + BcryptTags + "KEY1" + DomainTagB )
        msg   += key1
-       state := bcryptSuperRound (state, key0, key1, LongTag)
+       state := bcryptSuperRound ( state, key0, key1, LongTagB )
        msg   += state
 
     bcryptOutput = msg
@@ -197,21 +200,23 @@ cracking an intermediate state costs very nearly as much per guess as computing
 that intermediate state, thus allowing the transfer of a partial bcrypt
 computation to another semi-trusted device without providing that device a
 cracking attack on the plaintext password that is significantly cheaper per
-guess than the key-stretching work already performed.
+guess than the work already performed.
 
-By contrast, in the middle of the super-round  it is possible to run the bcrypt
-state machine in reverse, which is computation that can be shared across
-multiple guesses. It is the act of forgetting key0 and key1 at the end of each
-super-round that renders this irreversible.[^streaming-hmac-sha256]
+By contrast, in the middle of the super-round, not only can key0 and key1
+be cracked directly, it is possible to run the bcrypt state machine in
+reverse, which can be shared across multiple guesses. It is the act of
+forgetting key0 and key1 at the end of each super-round that renders this
+irreversible, [^streaming-hmac-sha256] allowing the ratchet of key-stretching
+to make progress.
 
 Once we have completed the computation of the seed, the role vector provides
 a last-minute opportunity for domain separation before final output expansion:
 
-    keyL = HMAC( seguid, seed + Role + "KEYL" + DomainTag )
+    keyL = HMAC ( SproutSeguid, seed + Role + "KEYL" + SproutTag )
 
-    out0 = HMAC ( keyL + KeyR, Header + INT_32_BE(Counter) + DomainTag )
-    out1 = HMAC ( keyL + KeyR, out0 + INT_32_BE(Counter + 1) + DomainTag )
-    out2 = HMAC ( keyL + KeyR, out1 + INT_32_BE(Counter + 2) + DomainTag )
+    out0 = HMAC ( keyL + KeyR, EchoHeader + INT_32_BE(EchoCounter) + EchoTag )
+    out1 = HMAC ( keyL + KeyR, out0 + INT_32_BE(EchoCounter + 1) + EchoTag )
+    out2 = HMAC ( keyL + KeyR, out1 + INT_32_BE(EchoCounter + 2) + EchoTag )
     ...
 
 This construction resembles HKDF-SHA256, with the computation of `keyL`
@@ -221,15 +226,15 @@ HKDF-Expand.
 However there are a handful of mostly minor changes: we are using a
 parameterized 4-byte counter before the domain tag, whereas HKDF uses a
 hardcoded 1-byte counter after the info tag. Furthermore, this construction
-allows the right 32 bytes of the output key to be provided, as well as allowing
-for the 32 initial generator state to be specified.
+allows the right 32 bytes of the output key to be provided, and allows the
+32 initial generator state to be specified.
 
 Note a trivial collision can be obtained by feeding an output block
 back into the Header parameter and by incrementing the counter by one, which
-is the same thing as the next output block. This is not the only potential
-issue associated with the Header parameter, but it's also not particularly
-difficult to use safely: see the Haddocks of the reference implementation
-for suggestions.
+is the same thing as the next output block. There are other issues the Header
+parameter is associated with, but it is also not particularly difficult to
+use safely: see the reference implementation's API documentation for
+details and suggestions.
 
 Very much like HKDF-SHA256, these final steps perform no key-stretching, so
 they are very fast relative to the computations required to compute the seed.
@@ -293,10 +298,9 @@ fails at.
 
     This re-derivation process means that at every 128th round, computing a
     single cracking attempt is very nearly as expensive as the work that it
-    took to create that intermediate state.  The only caveat is that most
+    took to create that intermediate state. The only caveat is that most
     of the last half-round key-expansion does not need to be computed per
-    cracking attempt on that intermediate state, which is a negligible
-    amount of work in context.
+    cracking attempt, which is a negligible amount of work in context.
 
     This extended plaintext salting process also means that the suggested
     number of PHKDF rounds was halved, which themselves are now one
