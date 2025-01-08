@@ -12,7 +12,7 @@
 
 * Rewrite top-level PBKDF2 functions into a (relatively) point-free style, a la G3Pb2/Hkdf
 
-    * We want to ensure that a reused partial application is as efficient as possible,
+    * We want to ensure that a reused partial application is as efficient as possibl,ei
       so at least 1 point (i.e. named argument) per function should be "acceptable", and
       sometimes more.
 

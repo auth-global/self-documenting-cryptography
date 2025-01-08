@@ -138,11 +138,11 @@ bareEncodeInteger :: Integer -> Maybe ByteString
 bareEncodeInteger n =
   case compare n 0 of
     LT -> Nothing
-    EQ -> Just leftEncodeZero
+    EQ -> Just bareEncodeZero
     GT -> let nSigBytes = shiftR (integerLog2 n) 3 + 1
            in Just (B.pack (go (fromIntegral nSigBytes)))
   where
-    go nSigBytes = fromIntegral nSigBytes : map getByte (downFrom nSigBytes)
+    go nSigBytes = map getByte (downFrom nSigBytes)
     -- FIXME: using shiftR here results in a quadratic algorithm
     getByte ix = fromIntegral (shiftR n (8*ix) .&. 0xFF)
 

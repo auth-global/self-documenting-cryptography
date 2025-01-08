@@ -9,7 +9,7 @@ support self-documenting cryptography.
 
 In this context, self-documenting cryptography aims to make password hashes
 and comparable authentication materials to be _traceable_ or _useless_
-after they have been stolen by an evesdropper.
+after they have been stolen by an evesdropper, Eve.
 
 Let's say Alice is an IT administrator works for Acme Corporation, Inc. The
 basic idea is to add "this password is for Acme Corporation, Inc." as a tag
@@ -56,7 +56,7 @@ traditionally-strong security margin in the context of Adversarial Literate
 Programming seems implausible.
 
 On the other hand, password cracking is sensitive to even modest overhead.
-For this reason, FHE also doesn't seem to be any immdiate threat to Adversarial
+In this context, FHE also doesn't seem to be any immdiate threat to Adversarial
 Literate Programming based on standard on standard cryptographic primitives
 like SHA-256 and blowfish.
 
@@ -65,7 +65,7 @@ transciphers, which are alternative cryptographic primitives designed to be
 relatively efficient when executed inside FHE. Perhaps alternative
 cryptographic primitives designed to be particularly _in_efficient when
 executed inside any suitably compatible method of homomorphic encryption should
-also be pursued.
+also be pursued as an anti-problem.
 
 While I don't know how much better future Homomorphic Encryption schemes might
 be able to perform on SHA-256 and blowfish, I'm not expecting revolutionary

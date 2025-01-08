@@ -14,9 +14,11 @@
 
        * The real advantage seems to be that if you are using padding, *and* your
          decoder supports padding in the middle of string, then you can concatinate
-	 bytestrings by simply concatinating their base64-encoded parts.  Without
-	 padding, you end up shuffling bits between bytes, instead of achieiving
-	 a simple concatinative homomorphism of bytes.
+	 bytestrings by simply concatinating their base64-encoded parts. Without
+	 padding, a simple concatination can shuffle bits between bytes, instead
+	 of achieiving a concatinative homomorphism of bytes. (Alternatively, one
+	 could implement a special routine to concatinate base64-encoded bytestrings
+	 in a relatively direct manner, minimizing intermediate structures.)
 
        * The downside of allowing padding in the middle of a string is that we
          cannot deduce the length of the decoded data without counting the number
@@ -44,7 +46,7 @@
 
         * Allow strict padding
 
-        * Prohibit padding?
+        * Prohibit padding
 
         * Allow strict padding inside any 4-byte block, which enables the concatinative homomorphism.
 
