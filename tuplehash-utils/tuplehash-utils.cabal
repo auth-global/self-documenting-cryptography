@@ -1,5 +1,5 @@
 name:                tuplehash-utils
-version:             0.0.0.0
+version:             0.1.0.0
 synopsis:            Left Encode and friends from SHA-3's TupleHash
 description:
   See NIST Special Publication 800-185: SHA-3 Derived Functions: cSHAKE, KMAC,
