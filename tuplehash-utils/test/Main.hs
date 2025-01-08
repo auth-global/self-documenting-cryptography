@@ -3,18 +3,19 @@ module Main (main) where
 import           Data.Bits(FiniteBits)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
+import           Data.Int
 import           Crypto.Encoding.SHA3.TupleHash
 
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 
-f x = 2 ^ x :: Int
+f x = 2 ^ x :: Int64
 f' x = 2 ^ x
-g x = 2 ^ x - 1 :: Int
+g x = 2 ^ x - 1 :: Int64
 g' x = 2 ^ x - 1
 
-getNonNegativeInt :: NonNegative Int -> Int
+getNonNegativeInt :: NonNegative Int64 -> Int64
 getNonNegativeInt = getNonNegative
 
 main :: IO ()
