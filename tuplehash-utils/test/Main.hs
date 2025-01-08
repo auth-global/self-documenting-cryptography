@@ -21,16 +21,16 @@ main :: IO ()
 main = defaultMain $ testGroup "toplevel"
    [ testProperty "prop_bareEncode" (prop_bareEncode . getNonNegativeInt)
    , testCase "test_bareEncode" (filter (not . prop_bareEncode . f) [0..62] @?= [])
-   , testCase "test_bareEncode'" (filter (not . prop_bareEncode . g) [0..62] @?= [])
+   , testCase "test_bareEncode'" (filter (not . prop_bareEncode . g) [0..63] @?= [])
    , testProperty "prop_leftEncode" (prop_leftEncode . getNonNegativeInt)
    , testCase "test_leftEncode" (filter (not . prop_leftEncode . f) [0..62] @?= [])
-   , testCase "test_leftEncode'" (filter (not . prop_leftEncode . g) [0..62] @?= [])
+   , testCase "test_leftEncode'" (filter (not . prop_leftEncode . g) [0..63] @?= [])
    , testProperty "prop_bareEncodeInteger" (prop_bareEncodeInteger . getNonNegative)
-   , testCase "test_bareEncodeInteger" (filter (not . prop_bareEncodeInteger . f') [0..255] @?= [])
-   , testCase "test_bareEncodeInteger'" (filter (not . prop_bareEncodeInteger . g') [0..255] @?= [])
+   , testCase "test_bareEncodeInteger" (filter (not . prop_bareEncodeInteger . f') [0..2039] @?= [])
+   , testCase "test_bareEncodeInteger'" (filter (not . prop_bareEncodeInteger . g') [0..2040] @?= [])
    , testProperty "prop_leftEncodeInteger" (prop_leftEncodeInteger . getNonNegative)
-   , testCase "test_leftEncodeInteger" (filter (not . prop_leftEncodeInteger . f') [0..255] @?= [])
-   , testCase "test_leftEncodeInteger'" (filter (not . prop_leftEncodeInteger . g') [0..255] @?= [])
+   , testCase "test_leftEncodeInteger" (filter (not . prop_leftEncodeInteger . f') [0..2039] @?= [])
+   , testCase "test_leftEncodeInteger'" (filter (not . prop_leftEncodeInteger . g') [0..2040] @?= [])
    , testProperty "prop_bareEncodeFromBytes" (prop_bareEncodeFromBytes . getNonNegativeInt)
    , testCase "test_bareEncodeFromBytes" (filter (not . prop_bareEncodeFromBytes . f) [0..62] @?= [])
    , testCase "test_bareEncodeFromBytes'" (filter (not . prop_bareEncodeFromBytes . g) [0..63] @?= [])
@@ -39,11 +39,11 @@ main = defaultMain $ testGroup "toplevel"
    , testCase "test_leftEncodeFromBytes" (filter (not . prop_leftEncodeFromBytes . f) [0..62] @?= [])
    , testCase "test_leftEncodeFromBytes'" (filter (not . prop_leftEncodeFromBytes . g) [0..63] @?= [])
    , testProperty "prop_bareEncodeIntegerFromBytes" prop_bareEncodeIntegerFromBytes
-   , testCase "prop_bareEncodeIntegerFromBytes" (filter (not . prop_bareEncodeIntegerFromBytes . f') [0..255] @?= [])
-   , testCase "test_bareEncodeIntegerFromBytes'" (filter (not . prop_bareEncodeIntegerFromBytes . g') [0..255] @?= [])
+   , testCase "prop_bareEncodeIntegerFromBytes" (filter (not . prop_bareEncodeIntegerFromBytes . f') [0..2048] @?= [])
+   , testCase "test_bareEncodeIntegerFromBytes'" (filter (not . prop_bareEncodeIntegerFromBytes . g') [0..2048] @?= [])
    , testProperty "prop_leftEncodeIntegerFromBytes" prop_leftEncodeIntegerFromBytes
-   , testCase "test_leftEncodeIntegerFromBytes" (filter (not . prop_leftEncodeIntegerFromBytes . f') [0..255] @?= [])
-   , testCase "test_leftEncodeIntegerFromBytes'" (filter (not . prop_leftEncodeIntegerFromBytes . g') [0..255] @?= [])
+   , testCase "test_leftEncodeIntegerFromBytes" (filter (not . prop_leftEncodeIntegerFromBytes . f') [0..2036] @?= [])
+   , testCase "test_leftEncodeIntegerFromBytes'" (filter (not . prop_leftEncodeIntegerFromBytes . g') [0..2037] @?= [])
    ]
 
 readBigEndian :: ByteString -> Integer
