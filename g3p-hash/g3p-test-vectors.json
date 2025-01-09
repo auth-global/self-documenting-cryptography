@@ -658,10 +658,11 @@
     "name":"foxtrot trivial inputs",
     "args": {
         "domain-tag":"",
-        "bcrypt-rounds":0
+        "bcrypt-rounds":0,
+	"counter":0
     },
     "results":[
-        {"G3PFoxtrot":"4af57205400b53d930af8b7e29a11fd19b155d7849a4ef67c43b7de2c0547b8a"}
+        {"G3PFoxtrot":"effb225ccab938512a5d7e050857bdaba8e9dd090621c971608312e649f68f93"}
     ]
 },{
     "name":"foxtrot self-referential inputs",
@@ -669,12 +670,12 @@
         "key":"key",
 	"hash":"hash",
 	"ikms":["initial-keying-materials","vector"],
-	"tweaks":["tweaks","vector"],
 	"domain-tag":"domain-tag",
 	"long-tag":"long-tag",
-	"counter":"CNTR",
 	"context-tags":["context-tags","vector"],
-        "bcrypt-rounds":42
+        "bcrypt-rounds":42,
+	"tweaks":["tweaks","vector"],
+	"counter":"CNTR"
     },
     "results":[
         {"G3PFoxtrot":"c5a61b1d8cc4f239cd0c1361a9e83d30570a1af4fc43d1e063c496b2052f204e"}
