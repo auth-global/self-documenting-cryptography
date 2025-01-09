@@ -43,7 +43,7 @@ import           Crypto.Encoding.PHKDF (takeBs, nullBuffer)
 import           Network.ByteOrder(word32, bytestring64)
 
 data G3PFoxtrotSalt = G3PFoxtrotSalt
-  { g3pFoxtrotSalt_secretSalt :: !HmacKey
+  { g3pFoxtrotSalt_key :: !HmacKey
   , g3pFoxtrotSalt_longTag :: !ByteString
   , g3pFoxtrotSalt_contextTags :: !(Vector ByteString)
   , g3pFoxtrotSalt_domainTag :: !ByteString
@@ -61,14 +61,14 @@ g3pFoxtrot
 g3pFoxtrot salt hash ikms = doTweak
   where
     foxtrot = "G3Pb2 foxtrot"
-    secretSalt = g3pFoxtrotSalt_secretSalt salt
+    key = g3pFoxtrotSalt_key salt
     longTag = g3pFoxtrotSalt_longTag salt
     contextTags = g3pFoxtrotSalt_contextTags salt
     domainTag = g3pFoxtrotSalt_domainTag salt
     rounds = g3pFoxtrotSalt_bcryptRounds salt
 
     spark =
-      phkdfCtx_init secretSalt &
+      phkdfCtx_init key &
       phkdfCtx_feedArg (foxtrot <> hash) &
       phkdfCtx_feedArgs ikms &
       phkdfCtx_toHmacKeyPrefixed (B.concat . flip takeBs [domainTag, "\x00", longTag, nullBuffer] . fromIntegral)

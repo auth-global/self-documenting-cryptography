@@ -439,7 +439,7 @@ getG3PFoxtrotArgs env = \case
    matchKey env "tweaks" -> (getMaybeByteStringVector -> Just mTweaks,
    matchKey env "counter" -> (getEchoCounter -> (Just g3pFoxtrotArgs_counter),
    args')))))))))) | KM.null args'
-   -> let g3pFoxtrotSalt_secretSalt = hmacKey (fromMaybe B.empty mKey)
+   -> let g3pFoxtrotSalt_key = hmacKey (fromMaybe B.empty mKey)
           g3pFoxtrotSalt_contextTags = fromMaybe V.empty mContextTags
           g3pFoxtrotSalt_longTag = fromMaybe g3pFoxtrotSalt_domainTag mLongTag
           g3pFoxtrotArgs_salt = G3PFoxtrotSalt{..}
