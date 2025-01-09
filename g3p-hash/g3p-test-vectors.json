@@ -654,4 +654,29 @@
          "G3Pb2":"5db0d353035f842e6792cd5a7687e9c4c29b6a9db58afcd212daf28082b1d63b"
         }
     ]
+},{
+    "name":"foxtrot trivial inputs",
+    "args": {
+        "domain-tag":"",
+        "bcrypt-rounds":0
+    },
+    "results":[
+        {"G3PFoxtrot":"4af57205400b53d930af8b7e29a11fd19b155d7849a4ef67c43b7de2c0547b8a"}
+    ]
+},{
+    "name":"foxtrot self-referential inputs",
+    "args": {
+        "key":"key",
+	"hash":"hash",
+	"ikms":["initial-keying-materials","vector"],
+	"tweaks":["tweaks","vector"],
+	"domain-tag":"domain-tag",
+	"long-tag":"long-tag",
+	"counter":"CNTR",
+	"context-tags":["context-tags","vector"],
+        "bcrypt-rounds":42
+    },
+    "results":[
+        {"G3PFoxtrot":"c5a61b1d8cc4f239cd0c1361a9e83d30570a1af4fc43d1e063c496b2052f204e"}
+    ]
 }]

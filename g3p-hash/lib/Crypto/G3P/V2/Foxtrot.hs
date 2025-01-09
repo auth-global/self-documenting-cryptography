@@ -57,7 +57,7 @@ g3pFoxtrot
   -> f ByteString
   -> g ByteString
   -> Word32
-  -> G3PSource
+  -> ByteString
 g3pFoxtrot salt hash ikms = doTweak
   where
     foxtrot = "G3Pb2 foxtrot"
@@ -113,7 +113,7 @@ g3pFoxtrot salt hash ikms = doTweak
 
     doTweak tweak counter =
       phkdfCtx_feedArgs tweak sprout &
-      phkdfCtx_toGen (B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral) counter domainTag
+      phkdfCtx_finalize (B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral) counter domainTag
 
 g3pTango
   :: (Foldable f)

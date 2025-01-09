@@ -34,6 +34,7 @@ import Network.ByteOrder(word32)
 
 import Crypto.G3P.V2
 import Crypto.G3P.V2.Subtle(G3PSpark(..), G3PSeed(..))
+import Crypto.G3P.V2.Foxtrot
 import Crypto.PHKDF.HMAC(HmacKey, hmacKey)
 import Crypto.Encoding.PHKDF(takeBs, nullBuffer)
 import Test.Tasty
@@ -71,6 +72,14 @@ data Result = Result
    { result_args :: !Args
    , result_hashes :: !(KeyMap ByteString)
    }
+
+data G3PFoxtrotArgs = G3PFoxtrotArgs
+  { g3pFoxtrotArgs_salt :: !G3PFoxtrotSalt
+  , g3pFoxtrotArgs_hash :: !ByteString
+  , g3pFoxtrotArgs_ikms :: !(Vector ByteString)
+  , g3pFoxtrotArgs_tweaks :: !(Vector ByteString)
+  , g3pFoxtrotArgs_counter :: !Word32
+  }
 
 data TestVector = TestVector
    { testVector_name :: !Text
@@ -150,6 +159,10 @@ genResultEnv tvs =
           case getG3PArgs resultEnv args of
             Just inputs -> Right (doG3PSeed inputs)
             Nothing -> Left "arguments not parsed"
+      | alg == "G3PFoxtrot" =
+          case getG3PFoxtrotArgs resultEnv args of
+            Just inputs -> Right (doG3PFoxtrot inputs)
+            Nothing -> Left "arguments not parsed"
       | otherwise = Left "algorithm name not recognized"
       where
         alg  = testId_algorithm $ simpleTestVector_id tv
@@ -184,6 +197,15 @@ doG3PSeed args = [g3pSeed_seedKey seed]
     inputs = g3pArgs_inputs args
     seedInputs = g3pArgs_seedInputs args
     seed = g3pSeed salt inputs seedInputs
+
+doG3PFoxtrot :: G3PFoxtrotArgs -> [ByteString]
+doG3PFoxtrot args = [g3pFoxtrot salt hash ikms tweaks counter]
+  where
+    salt = g3pFoxtrotArgs_salt args
+    hash = g3pFoxtrotArgs_hash args
+    ikms = g3pFoxtrotArgs_ikms args
+    tweaks = g3pFoxtrotArgs_tweaks args
+    counter = g3pFoxtrotArgs_counter args
 
 genSimpleTestCases :: SimpleTestVectors -> ResultEnv -> [ TestTree ]
 genSimpleTestCases tvs resultEnv =
@@ -402,6 +424,29 @@ getG3PDelta env = \case
           g3pDelta_echoHeader = fromMaybe g3pDelta_sproutTag mEchoHeader
           g3pDelta_echoTag = fromMaybe g3pDelta_sproutTag mEchoTag
        in Just (G3PDelta {..}, args')
+  _ -> Nothing
+
+getG3PFoxtrotArgs :: ResultEnv -> KeyMap Val -> Maybe G3PFoxtrotArgs
+getG3PFoxtrotArgs env = \case
+  (
+   matchKey env "domain-tag" -> (Just (Str g3pFoxtrotSalt_domainTag),
+   matchKey env "key" -> (getMaybeByteString -> Just mKey,
+   matchKey env "hash" -> (getMaybeByteString -> Just mHash,
+   matchKey env "ikms" -> (getMaybeByteStringVector -> Just mIkms,
+   matchKey env "long-tag" -> (getMaybeByteString -> Just mLongTag,
+   matchKey env "bcrypt-rounds" -> (Just (Int (fromIntegral -> g3pFoxtrotSalt_bcryptRounds)),
+   matchKey env "context-tags" -> (getMaybeByteStringVector -> Just mContextTags,
+   matchKey env "tweaks" -> (getMaybeByteStringVector -> Just mTweaks,
+   matchKey env "counter" -> (getEchoCounter -> (Just g3pFoxtrotArgs_counter),
+   args')))))))))) | KM.null args'
+   -> let g3pFoxtrotSalt_secretSalt = hmacKey (fromMaybe B.empty mKey)
+          g3pFoxtrotSalt_contextTags = fromMaybe V.empty mContextTags
+          g3pFoxtrotSalt_longTag = fromMaybe g3pFoxtrotSalt_domainTag mLongTag
+          g3pFoxtrotArgs_salt = G3PFoxtrotSalt{..}
+          g3pFoxtrotArgs_hash = fromMaybe B.empty mHash
+          g3pFoxtrotArgs_ikms = fromMaybe V.empty mIkms
+          g3pFoxtrotArgs_tweaks = fromMaybe V.empty mTweaks
+       in Just G3PFoxtrotArgs{..}
   _ -> Nothing
 
 defaultEchoCounter :: Word32
