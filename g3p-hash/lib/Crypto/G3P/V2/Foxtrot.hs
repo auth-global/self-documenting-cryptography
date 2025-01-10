@@ -34,13 +34,11 @@ import           Data.Word
 import           Data.Vector(Vector)
 import qualified Data.Vector as V
 
-import           Crypto.G3P.V2 (G3PSource)
 import           Crypto.G3P.BCrypt (bcryptXsFree)
 import           Crypto.PHKDF
-import           Crypto.PHKDF.HMAC(hmacKey_hashed)
 import           Crypto.Encoding.PHKDF (takeBs, nullBuffer)
 
-import           Network.ByteOrder(word32, bytestring64)
+import           Network.ByteOrder(bytestring64)
 
 data G3PFoxtrotSalt = G3PFoxtrotSalt
   { g3pFoxtrotSalt_key :: !HmacKey
@@ -115,30 +113,20 @@ g3pFoxtrot salt hash ikms = doTweak
       phkdfCtx_feedArgs tweak sprout &
       phkdfCtx_finalize (B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral) counter domainTag
 
+
+-- TODO: rewrite this in a more point-free style, in order to better support partial application
 g3pTango
   :: (Foldable f)
   => HmacKey      -- ^ typically a secret
   -> f ByteString -- ^ inputs
+  -> Word32       -- ^ counter
   -> ByteString   -- ^ domain tag
   -> ByteString   -- ^ 32-byte output hash
-g3pTango secretKey inputs domainTag = out
+g3pTango secretKey inputs counter domainTag = out
   where
     tango = "G3Pb2 tango"
     out =
       phkdfCtx_init secretKey &
       phkdfCtx_feedArg tango &
       phkdfCtx_feedArgs inputs &
-      phkdfCtx_finalize (B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral) (word32 "SALT") domainTag
-
-g3pTangoSalt
-  :: (Foldable f)
-  => HmacKey      -- ^ typically a secret, consider using a seguid
-  -> f ByteString -- ^ inputs
-  -> ByteString   -- ^ salt key right, truncated to 32 bytes
-  -> ByteString   -- ^ domain tag
-  -> ByteString   -- ^ 32-byte output hash
-g3pTangoSalt secretSeguid inputs keyR domainTag = out
-  where
-    keyL = g3pTango secretSeguid inputs domainTag
-    secretKey = hmacKey_hashed (keyL <> B.take 32 keyR)
-    out = g3pTango secretKey ["user secret salt"] domainTag
+      phkdfCtx_finalize (B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral) counter domainTag
