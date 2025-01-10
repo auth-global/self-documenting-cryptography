@@ -76,9 +76,16 @@ data Result = Result
 data G3PFoxtrotArgs = G3PFoxtrotArgs
   { g3pFoxtrotArgs_salt :: !G3PFoxtrotSalt
   , g3pFoxtrotArgs_hash :: !ByteString
-  , g3pFoxtrotArgs_ikms :: !(Vector ByteString)
+  , g3pFoxtrotArgs_inputs :: !(Vector ByteString)
   , g3pFoxtrotArgs_tweaks :: !(Vector ByteString)
   , g3pFoxtrotArgs_counter :: !Word32
+  }
+
+data G3PTangoArgs = G3PTangoArgs
+  { g3pTangoArgs_key :: !HmacKey
+  , g3pTangoArgs_inputs :: !(Vector ByteString)
+  , g3pTangoArgs_counter :: !Word32
+  , g3pTangoArgs_domainTag :: !ByteString
   }
 
 data TestVector = TestVector
@@ -163,6 +170,10 @@ genResultEnv tvs =
           case getG3PFoxtrotArgs resultEnv args of
             Just inputs -> Right (doG3PFoxtrot inputs)
             Nothing -> Left "arguments not parsed"
+      | alg == "G3PTango" =
+          case getG3PTangoArgs resultEnv args of
+            Just inputs -> Right (doG3PTango inputs)
+            Nothing -> Left "arguments not parsed"
       | otherwise = Left "algorithm name not recognized"
       where
         alg  = testId_algorithm $ simpleTestVector_id tv
@@ -199,13 +210,21 @@ doG3PSeed args = [g3pSeed_seedKey seed]
     seed = g3pSeed salt inputs seedInputs
 
 doG3PFoxtrot :: G3PFoxtrotArgs -> [ByteString]
-doG3PFoxtrot args = [g3pFoxtrot salt hash ikms tweaks counter]
+doG3PFoxtrot args = [g3pFoxtrot salt hash inputs tweaks counter]
   where
     salt = g3pFoxtrotArgs_salt args
     hash = g3pFoxtrotArgs_hash args
-    ikms = g3pFoxtrotArgs_ikms args
+    inputs = g3pFoxtrotArgs_inputs args
     tweaks = g3pFoxtrotArgs_tweaks args
     counter = g3pFoxtrotArgs_counter args
+
+doG3PTango :: G3PTangoArgs -> [ByteString]
+doG3PTango args = [g3pTango key inputs counter tag]
+  where
+    key = g3pTangoArgs_key args
+    inputs = g3pTangoArgs_inputs args
+    counter = g3pTangoArgs_counter args
+    tag = g3pTangoArgs_domainTag args
 
 genSimpleTestCases :: SimpleTestVectors -> ResultEnv -> [ TestTree ]
 genSimpleTestCases tvs resultEnv =
@@ -432,7 +451,7 @@ getG3PFoxtrotArgs env = \case
    matchKey env "domain-tag" -> (Just (Str g3pFoxtrotSalt_domainTag),
    matchKey env "key" -> (getMaybeByteString -> Just mKey,
    matchKey env "hash" -> (getMaybeByteString -> Just mHash,
-   matchKey env "ikms" -> (getMaybeByteStringVector -> Just mIkms,
+   matchKey env "inputs" -> (getMaybeByteStringVector -> Just mInputs,
    matchKey env "long-tag" -> (getMaybeByteString -> Just mLongTag,
    matchKey env "bcrypt-rounds" -> (Just (Int (fromIntegral -> g3pFoxtrotSalt_bcryptRounds)),
    matchKey env "context-tags" -> (getMaybeByteStringVector -> Just mContextTags,
@@ -444,9 +463,22 @@ getG3PFoxtrotArgs env = \case
           g3pFoxtrotSalt_longTag = fromMaybe g3pFoxtrotSalt_domainTag mLongTag
           g3pFoxtrotArgs_salt = G3PFoxtrotSalt{..}
           g3pFoxtrotArgs_hash = fromMaybe B.empty mHash
-          g3pFoxtrotArgs_ikms = fromMaybe V.empty mIkms
+          g3pFoxtrotArgs_inputs = fromMaybe V.empty mInputs
           g3pFoxtrotArgs_tweaks = fromMaybe V.empty mTweaks
        in Just G3PFoxtrotArgs{..}
+  _ -> Nothing
+
+getG3PTangoArgs :: ResultEnv -> KeyMap Val -> Maybe G3PTangoArgs
+getG3PTangoArgs env = \case
+  (
+   matchKey env "key" -> (getMaybeByteString -> Just mKey,
+   matchKey env "inputs" -> (getMaybeByteStringVector -> Just mInputs,
+   matchKey env "counter" -> (getEchoCounter -> (Just g3pTangoArgs_counter),
+   matchKey env "domain-tag" -> (Just (Str g3pTangoArgs_domainTag),
+   args'))))) | KM.null args'
+   -> let g3pTangoArgs_key = hmacKey (fromMaybe B.empty mKey)
+          g3pTangoArgs_inputs = fromMaybe V.empty mInputs
+       in Just G3PTangoArgs{..}
   _ -> Nothing
 
 defaultEchoCounter :: Word32

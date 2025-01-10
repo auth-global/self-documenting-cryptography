@@ -48,6 +48,10 @@ data G3PFoxtrotSalt = G3PFoxtrotSalt
   , g3pFoxtrotSalt_bcryptRounds :: !Word32
   }
 
+
+-- | Stripped down version of G3Pb2 charlie, without a built-in continuation control
+--   key.
+
 g3pFoxtrot
   :: (Foldable f, Foldable g)
   => G3PFoxtrotSalt
@@ -114,19 +118,22 @@ g3pFoxtrot salt hash ikms = doTweak
       phkdfCtx_finalize (B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral) counter domainTag
 
 
+-- | G3Pb2 tango: a simple application of PHKDF used to derive secret server-side
+--   salts in @test/MyCorpExample.hs@.
+
 -- TODO: rewrite this in a more point-free style, in order to better support partial application
 g3pTango
   :: (Foldable f)
-  => HmacKey      -- ^ typically a secret
+  => HmacKey
   -> f ByteString -- ^ inputs
   -> Word32       -- ^ counter
   -> ByteString   -- ^ domain tag
   -> ByteString   -- ^ 32-byte output hash
-g3pTango secretKey inputs counter domainTag = out
+g3pTango key inputs counter domainTag = out
   where
     tango = "G3Pb2 tango"
     out =
-      phkdfCtx_init secretKey &
+      phkdfCtx_init key &
       phkdfCtx_feedArg tango &
       phkdfCtx_feedArgs inputs &
       phkdfCtx_finalize (B.concat . flip takeBs (cycle [domainTag, "\x00"]) . fromIntegral) counter domainTag

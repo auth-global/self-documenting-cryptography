@@ -669,7 +669,7 @@
     "args": {
         "key":"key",
 	"hash":"hash",
-	"ikms":["initial-keying-materials","vector"],
+	"inputs":["inputs","vector"],
 	"domain-tag":"domain-tag",
 	"long-tag":"long-tag",
 	"context-tags":["context-tags","vector"],
@@ -678,6 +678,28 @@
 	"counter":"CNTR"
     },
     "results":[
-        {"G3PFoxtrot":"c5a61b1d8cc4f239cd0c1361a9e83d30570a1af4fc43d1e063c496b2052f204e"}
+        {"G3PFoxtrot":"5f78c4e051c0e2e176027cfe1598bfa4c1f210d31f4ec055d49fa78e1f2a8ed4"}
+    ]
+},{
+    "name":"tango trivial inputs",
+    "args": {
+	"key":"",
+	"inputs":[],
+	"counter":0,
+	"domain-tag":""
+    },
+    "results":[
+        {"G3PTango":"9b4032ed4312a0ca4c1701f239e03e2770298ca7b790ebd550dd7b16db078f67"}
+    ]
+},{
+    "name":"tango self-referential inputs",
+    "args": {
+        "key":"key",
+	"inputs":["inputs","vector"],
+	"counter":"CNTR",
+	"domain-tag":"domain-tag"
+    },
+    "results":[
+        {"G3PTango":"d6b55df3e07b59153829818808b4bdd997d7a89b5ead33e353b4bd5ec781a9bc"}
     ]
 }]
