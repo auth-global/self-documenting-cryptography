@@ -188,6 +188,8 @@ results =
       , myDiskKey "quarterly-report.pdf"
       ]
 
+-- FIXME: these are currently wrong, change these once this part of the test
+-- suite is working again.
 auResults :: [Text]
 auResults =
   [ "3759cc63959878c79e9077f7c8dc401cad1700e03bab7ca52ef2982553c37197"
