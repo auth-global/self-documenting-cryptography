@@ -45,6 +45,12 @@ results =
       myStorageDomain = "cloud.my.domain.example"
       myLongTag = "My Corporation, Inc. https://my.domain.example/.well-known/security.txt" :: ByteString
       mySeguid = hmacKey "9c08053b7e507a78b571b5b93e1326674540d7106da6408fcafeddcfcdf1ed76"
+      -- If your deployment uses a public salt server, I recommend keeping
+      -- random salts directly in a database. More specifically, I recommend
+      -- to not derive public salts from non-public information, as an
+      -- evesdropper could use this as evidence that they have actually
+      -- compromised your stuff.
+
       userRandomSalt = "60473b8010e16d46"
       userSecondSecretHash = "0c06f683f093cb899b4a1e9836fc7281"
       mySalt =
@@ -97,32 +103,50 @@ results =
       -- time being, combining argon2 and g3pFoxtrot is almost certainly an
       -- excellent choice for server-side hashing.
 
+      -- If the overall authentication flow is based on sending a plaintext
+      -- prehash to the server which is then hashed further, I recommend using
+      -- a secret, server-side salt per account. As this salt is never intended
+      -- to be publicly acknowledged, one could derive this salt from
+      -- non-public information without directly providing an evedropper the
+      -- ability to prove to others they've been in your infrastructure.
+
+      -- However, I would still recommend storing a secret per account, so
+      -- that an evesdropper cannot steal your entire secret salt database,
+      -- possibly including secret salts that aren't yet in use, by stealing
+      -- a single key. On the other hand, deriving the secret salt using
+      -- a relatively small number of keys stored outside the database
+      -- means that even if somebody steals your database, they won't
+      -- necessarily have access to secret salts.
+
       mySecretSeguid = hmacKey "7db250698fe555f6832f33189f97e14ef3c1c2dcada5807119aa7676c24f3fac"
 
-      -- The use of secret seguids allows My Corp to prove that its secret
+      userPrivateSalt = "4314a11c2620a8ad"
+      userSecretPreSalt = g3pTango mySecretSeguid [userPrivateSalt] (word32 "SALT") myLoginDomain
+      userSecretSalt = g3pTango mySeguid [userSecretPreSalt, "user secret salt"] (word32 "SALT") myLoginDomain
+
+      -- This derivation scheme allows My Corp to prove that its secret
       -- keys are in fact its trade secrets even in the face of the most dogged
       -- liars. Moreover this fact can possibly remain plausibly deniable even
-      -- after the secret seguid's derivation has been stolen and published, so
-      -- neither does this necessarily commit My Corp to claiming its secrets.
+      -- after the derivation has been stolen and published, so neither does this
+      -- necessarily commit My Corp to claiming its secrets.
 
       -- Deriving a secret HMAC key per account allows My Corp to outsource
       -- offline cracking attacks on individual accounts without revealing an
       -- offline cracking attack on every account.
 
-      -- Moreover g3pTangoSalt allows the proof-of-trade-secret to also be
+      -- Moreover, this derivation allows the proof-of-trade-secret to also be
       -- revealed/claimed on a per-account basis, without publicly tying the
       -- proof-of-trade-secret to a specific userRandomSalt. This latter
       -- proof-of-trade-secret is of course implicitly tied to a specific
       -- userRandomSalt, but it need not be tied in an explicit, public way.
 
-      mySecretSalt = g3pTangoSalt mySecretSeguid [userRandomSalt] myLoginDomain myLoginDomain
-
       myFoxtrot input ctr = phkdfGen_head $ g3pFoxtrot (G3PFoxtrotSalt
-        { g3pFoxtrotSalt_secretSalt = hmacKey (mySecretSalt <> B.take 32 myHeader)      , g3pFoxtrotSalt_longTag = myLongTag
+        { g3pFoxtrotSalt_key = hmacKey (mySecretSalt <> B.take 32 myHeader)
+        , g3pFoxtrotSalt_longTag = myLongTag
         , g3pFoxtrotSalt_contextTags = V.singleton userRandomSalt
         , g3pFoxtrotSalt_domainTag = myLoginDomain
         , g3pFoxtrotSalt_bcryptRounds = 383
-        }) input [] [] ctr
+        }) [input] [] ctr
 
       myArgon2 = hash $ HashOptions
         { hashIterations = 3

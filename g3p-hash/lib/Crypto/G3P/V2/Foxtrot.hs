@@ -49,8 +49,10 @@ data G3PFoxtrotSalt = G3PFoxtrotSalt
   }
 
 
--- | Stripped down version of G3Pb2 charlie, without a built-in continuation control
---   key.
+-- | G3Pb2 foxtrot is a function that incorporates a bcrypt-like key-stretching
+--   phase. Stripped down version of G3Pb2 charlie, without a built-in continuation
+--   control key. @test/MyCorpExample.hs@ uses this as a server-side cryptoacoustic
+--   component that sandwiches the comparatively silent argon2.
 
 g3pFoxtrot
   :: (Foldable f, Foldable g)
