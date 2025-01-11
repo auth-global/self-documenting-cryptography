@@ -668,7 +668,6 @@
     "name":"foxtrot self-referential inputs",
     "args": {
         "key":"key",
-	"hash":"hash",
 	"inputs":["inputs","vector"],
 	"domain-tag":"domain-tag",
 	"long-tag":"long-tag",
@@ -678,7 +677,7 @@
 	"counter":"CNTR"
     },
     "results":[
-        {"G3PFoxtrot":"5f78c4e051c0e2e176027cfe1598bfa4c1f210d31f4ec055d49fa78e1f2a8ed4"}
+        {"G3PFoxtrot":"5a4997aeca24df3b934020f94ee1f70b35d3468c792737d81182df22f70b7047"}
     ]
 },{
     "name":"tango trivial inputs",

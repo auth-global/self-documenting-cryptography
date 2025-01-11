@@ -75,7 +75,6 @@ data Result = Result
 
 data G3PFoxtrotArgs = G3PFoxtrotArgs
   { g3pFoxtrotArgs_salt :: !G3PFoxtrotSalt
-  , g3pFoxtrotArgs_hash :: !ByteString
   , g3pFoxtrotArgs_inputs :: !(Vector ByteString)
   , g3pFoxtrotArgs_tweaks :: !(Vector ByteString)
   , g3pFoxtrotArgs_counter :: !Word32
@@ -210,10 +209,9 @@ doG3PSeed args = [g3pSeed_seedKey seed]
     seed = g3pSeed salt inputs seedInputs
 
 doG3PFoxtrot :: G3PFoxtrotArgs -> [ByteString]
-doG3PFoxtrot args = [g3pFoxtrot salt hash inputs tweaks counter]
+doG3PFoxtrot args = [g3pFoxtrot salt inputs tweaks counter]
   where
     salt = g3pFoxtrotArgs_salt args
-    hash = g3pFoxtrotArgs_hash args
     inputs = g3pFoxtrotArgs_inputs args
     tweaks = g3pFoxtrotArgs_tweaks args
     counter = g3pFoxtrotArgs_counter args
@@ -450,19 +448,17 @@ getG3PFoxtrotArgs env = \case
   (
    matchKey env "domain-tag" -> (Just (Str g3pFoxtrotSalt_domainTag),
    matchKey env "key" -> (getMaybeByteString -> Just mKey,
-   matchKey env "hash" -> (getMaybeByteString -> Just mHash,
    matchKey env "inputs" -> (getMaybeByteStringVector -> Just mInputs,
    matchKey env "long-tag" -> (getMaybeByteString -> Just mLongTag,
    matchKey env "bcrypt-rounds" -> (Just (Int (fromIntegral -> g3pFoxtrotSalt_bcryptRounds)),
    matchKey env "context-tags" -> (getMaybeByteStringVector -> Just mContextTags,
    matchKey env "tweaks" -> (getMaybeByteStringVector -> Just mTweaks,
    matchKey env "counter" -> (getEchoCounter -> (Just g3pFoxtrotArgs_counter),
-   args')))))))))) | KM.null args'
+   args'))))))))) | KM.null args'
    -> let g3pFoxtrotSalt_key = hmacKey (fromMaybe B.empty mKey)
           g3pFoxtrotSalt_contextTags = fromMaybe V.empty mContextTags
           g3pFoxtrotSalt_longTag = fromMaybe g3pFoxtrotSalt_domainTag mLongTag
           g3pFoxtrotArgs_salt = G3PFoxtrotSalt{..}
-          g3pFoxtrotArgs_hash = fromMaybe B.empty mHash
           g3pFoxtrotArgs_inputs = fromMaybe V.empty mInputs
           g3pFoxtrotArgs_tweaks = fromMaybe V.empty mTweaks
        in Just G3PFoxtrotArgs{..}

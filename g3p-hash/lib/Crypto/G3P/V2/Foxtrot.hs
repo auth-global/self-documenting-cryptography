@@ -57,12 +57,11 @@ data G3PFoxtrotSalt = G3PFoxtrotSalt
 g3pFoxtrot
   :: (Foldable f, Foldable g)
   => G3PFoxtrotSalt
-  -> ByteString
   -> f ByteString
   -> g ByteString
   -> Word32
   -> ByteString
-g3pFoxtrot salt hash ikms = doTweak
+g3pFoxtrot salt inputs = doTweak
   where
     foxtrot = "G3Pb2 foxtrot"
     key = g3pFoxtrotSalt_key salt
@@ -73,8 +72,8 @@ g3pFoxtrot salt hash ikms = doTweak
 
     spark =
       phkdfCtx_init key &
-      phkdfCtx_feedArg (foxtrot <> hash) &
-      phkdfCtx_feedArgs ikms &
+      phkdfCtx_feedArg foxtrot &
+      phkdfCtx_feedArgs inputs &
       phkdfCtx_toHmacKeyPrefixed (B.concat . flip takeBs [domainTag, "\x00", longTag, nullBuffer] . fromIntegral)
 
     -- G3Pb2 foxtrot doesn't ever explicitly encode the length of the syntax
