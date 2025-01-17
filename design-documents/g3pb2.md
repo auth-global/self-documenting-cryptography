@@ -34,7 +34,7 @@ provide Craig a sporting chance of recovering Alice's documentation from Eve's
 instruction, or force Eve to give up on the idea of letting Craig run Alice's
 algorithm himself.
 
-Alas, in theory it should be possible for Eve to use some flavor of Homomorphic
+In theory it should be possible for Eve to use some flavor of Homomorphic
 Encryption to construct an implementation of Alice's algorithm that securely
 hides the fact that "this password is for Acme Corporation" from Craig. For
 example, people have demonstrated being able to compute a few blocks of
@@ -250,29 +250,30 @@ fails at.
     and instead summarizes its block generator using xor, bringing it much
     closer to PBKDF2.
 
-    One of the consequences of using sha256 to consume the output blocks of
-    PHKDF's generator is that cracking attacks on the intermediate state need
-    not compute this summary. Thus, the key-stretching benefit of a
-    third[^domain-tag-length] of SHA256 blocks does not accrue until after
-    the computation of slow-extract is complete.
+    One of the unfortunate consequences of using sha256 to consume the output
+    blocks of PHKDF's generator is that cracking attacks on the intermediate
+    state need not compute this summary. Thus, the key-stretching benefit of a
+    third[^domain-tag-length] of SHA256 blocks did not accrue until after the
+    computation of slow-extract is complete.
 
-    By comparison, a cracking attack on an intermediate state of version 2
-    can either crack the xor-sum or the extension code. If a cracker attacks
-    the xor-sum, the computation of the last PHKDF round can always be elided.
+    In the new version, a cracker on an intermediate state can choose to attack
+    either the xor-sum or the extension code. If a cracker attacks the xor-sum,
+    the computation of the last PHKDF round can always be elided.
 
-    If one computes the last PHKDF round instead, one could elide the
-    computation of the xor-sum. Unlike above, computing this sum is not a
-    constant amount of work, but the xor-sum is also very inexpensive
-    relative to a sha256 block computation. Thus it should take a fairly
-    large number of rounds before it becomes less work for a cracker to
-    compute one more PHKDF round. (I've not tried to measure this myself, yet,
-    but the precise cutover point can depend on specific hardware and other
-    causal factors relevant to the context.)
+    If the cracker attacks the extension code instead, they'll need to compute
+    one more round of PHKDF, but can elide the computation of the xor-sum.
+    One round of PHKDF is a constant amount of additional work while
+    maintaining a xor-sum of all generated blocks is a linear amount of work,
+    however, one round of PHKDF is at least two SHA256 block computations,
+    which is a comparable amount of work as tracking the xor-sum over a
+    large number of PHKDF output blocks.
 
     Either way, compared to version 1, this is a relatively small
     difference between the effort required to create an intermediate state
     and the effort required to make a single cracking attempt against
-    that intermediate state.
+    that intermediate state.  (I really need to work on a pithier way of
+    referring to that particular constraint on the internal streaming
+    structure (topology?) of the hashing algorithm.)
 
 2.  Bcrypt's integration has been entirely reworked, using an enhanced
     salting process.
@@ -283,12 +284,16 @@ fails at.
     treated in the original bcrypt.
 
     However, whereas every key expansion encrypted a string of null bytes,
-    the new integration encrypts the bcrypt long tag parameter as an
-    extended plaintext salt. The original bcrypt uses this same construct to
-    initialize the state, but then switches to using null bytes.  The modified
-    bcrypt takes this latent feature and uses it in every key expansion
-    in a novel way.
+    the new integration encrypts the bcrypt long tag parameter as an extended
+    plaintext salt. Technically speaking, this encryption is the Blowfish
+    block cipher used in a variant of cipher block chaining (CBC) mode that
+    additionally incorporates a key feedback mechanism
 
+    The original bcrypt uses this mode of operation to initialize the state,
+    but then switches to using null bytes. The G3P's novel bcrypt variant
+    develops this latent feature into something used in every blowfish
+    key expansion, which occurs twice every bcrypt round.
+    
     Furthermore, the original bcrypt extracts its final hash by encrypting
     the string "OrpheanBeholderScryDoubt" with 64 rounds of blowfish in ECB
     mode. The new integration simply uses HMAC-SHA256 to summarize the bcrypt
@@ -298,13 +303,14 @@ fails at.
 
     This re-derivation process means that at every 128th round, computing a
     single cracking attempt is very nearly as expensive as the work that it
-    took to create that intermediate state. The only caveat is that most
-    of the last half-round key-expansion does not need to be computed per
-    cracking attempt, which is a negligible amount of work in context.
+    took to create that intermediate state. The only advantage to an
+    intermediate-state cracker is that the last half-round key expansion does
+    not need to be computed, which in context is a negligible amount of work
+    per guess.
 
     This extended plaintext salting process also means that the suggested
     number of PHKDF rounds was halved, which themselves are now one
-    SHA256 block less expensive.
+    SHA256 block less expensive than they were in the old version.
 
     Thus assuming a short domain tag (less than 20 bytes) and the suggested
     cost parameters, the G3P version 2 spends approximately one third of
