@@ -29,7 +29,7 @@ library
                    , network-byte-order
                    , phkdf >= 0.1
                    , Stream
-                   , tuplehash-utils
+                   , tuplehash-utils >= 0.1
                    , vector
   hs-source-dirs:    lib
   include-dirs:      csrc

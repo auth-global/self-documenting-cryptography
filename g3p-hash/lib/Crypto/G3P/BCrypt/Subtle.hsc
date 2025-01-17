@@ -1,5 +1,13 @@
 {-# LANGUAGE CApiFFI, OverloadedStrings, ViewPatterns #-}
 
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.G3P.BCrypt.Subtle
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
+
 {- |
 
 Bcrypt with an excessive amount of freedom and salt, appropriate for

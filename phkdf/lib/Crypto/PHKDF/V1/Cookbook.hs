@@ -1,4 +1,11 @@
 {-# Language OverloadedStrings #-}
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.PHKDF.V1.Cookbook
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
 
 -- | The Password Hash Key Derivation Function (PHKDF) is a unification,
 --   synthesis, and distillation of PBKDF2, HKDF, and TupleHash. It was

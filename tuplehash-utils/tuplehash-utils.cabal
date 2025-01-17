@@ -7,7 +7,7 @@ description:
   <https://www.nist.gov/publications/sha-3-derived-functions-cshake-kmac-tuplehash-and-parallelhash>
   Note that this does not implement TupleHash itself, though it could be used
   to implement TupleHash given an implementation of Keccak/SHA-3.  This only
-  implements the data-encoding portions of TupleHash, and does not directly
+  implements the data-encoding portions of TupleHash, and does not
   implement any kind of cryptographic state machine.
 
 license:             Apache-2.0
@@ -43,7 +43,7 @@ test-suite test
     main-is:          Main.hs
     build-depends:    base
                     , bytestring
-		    , tasty
+                    , tasty
                     , tasty-quickcheck
-		    , tasty-hunit
-		    , tuplehash-utils
+                    , tasty-hunit
+                    , tuplehash-utils

@@ -1,5 +1,13 @@
--- | Plain-old-data explicit representations of intermediate 'g3pHash'
---   computations.
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.G3P.V2.Subtle
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-- Plain-old-data explicit representations of intermediate 'g3pHash'
+-- computations.
+--
+-------------------------------------------------------------------------------
 
 module Crypto.G3P.V2.Subtle where
 

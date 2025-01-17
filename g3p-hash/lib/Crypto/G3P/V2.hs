@@ -1,5 +1,13 @@
 {-# LANGUAGE OverloadedStrings, ViewPatterns #-}
 
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.G3P.V2
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
+
 {- |
 
 The [Global Password Prehash Protocol (G3P)](https://github.com/auth-global/self-documenting-cryptography/)

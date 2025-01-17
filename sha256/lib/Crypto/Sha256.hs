@@ -1,6 +1,17 @@
 {-# LANGUAGE MagicHash, UnboxedTuples, OverloadedStrings, ScopedTypeVariables,
              BangPatterns, LambdaCase #-}
 
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.Sha256
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-- Binding to SHA256, supporting streaming, backtracking, bitstring inputs, and
+-- (de)serialization of intermediate states.
+--
+-------------------------------------------------------------------------------
+
 module Crypto.Sha256
   ( hash
   , hash'

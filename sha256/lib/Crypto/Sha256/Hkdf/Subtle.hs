@@ -1,3 +1,11 @@
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.Sha256.Hkdf.Subtle
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
+
 module Crypto.Sha256.Hkdf.Subtle where
 
 import Data.ByteString.Short(ShortByteString)

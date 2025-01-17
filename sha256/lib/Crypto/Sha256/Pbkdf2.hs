@@ -1,6 +1,14 @@
 {-# LANGUAGE BangPatterns #-}
 
--- | An implementation of PBKDF2-HMAC-SHA256
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.Sha256.Pbkdf2
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-- An implementation of PBKDF2-HMAC-SHA256
+--
+-------------------------------------------------------------------------------
 
 module Crypto.Sha256.Pbkdf2
      ( pbkdf2
@@ -38,17 +46,19 @@ takeHS = go
       | len b < n = b : go (n - len b) bs
       | otherwise = [HS.fromShort (SB.take n (HS.toShort b))]
 
--- TODO: write pbkdf2 and pbkdf2_index functions in a point-free style
+-- | Simple interface to PBKDF2. Reusing computations via partial application is
+--   not (yet!) supported. TODO: write pbkdf2 and pbkdf2_index functions in a
+--   point-free style.
 
 pbkdf2
-  :: HmacKey -- ^ nominally the "password"
+  :: ByteString -- ^ nominally the "password"
   -> ByteString -- ^ nominally the "salt"
   -> Word64 -- ^ number of rounds
   -> Int -- ^ desired length of output
   -> HashString
 pbkdf2 password0 salt rounds len = out
   where
-     password = hmacKey_toHashed password0
+     password = hmacKeyHashed password0
      saltCtx =
        pbkdf2Ctx_init password &
        pbkdf2Ctx_feed salt
@@ -59,14 +69,14 @@ pbkdf2 password0 salt rounds len = out
      out = mconcat (takeHS len (map gen [1..maxBound]))
 
 pbkdf2_index
-  :: HmacKey -- ^ nominally the "password"
+  :: ByteString -- ^ nominally the "password"
   -> ByteString -- ^ nominally the "salt"
   -> Word32 -- ^ the "index", returns the i-th block of output. The first index is 1, thus the result consists of bytes starting at 32*(i-1) and ending before 32*i.  This is appended as 4 more bytes after the salt.
   -> Word64 -- ^ number of rounds
   -> HashString -- ^ 32-byte output"
 pbkdf2_index password0 salt index rounds = out
   where
-     password = hmacKey_toHashed password0
+     password = hmacKeyHashed password0
      saltCtx =
        pbkdf2Ctx_init password &
        pbkdf2Ctx_feed salt
@@ -104,7 +114,10 @@ pbkdf2Ctx_feeds = flip pbkdf2Ctx_updates
 -- | Append the index to the end of the salt, and then initialize a 'Pbkdf2Gen' with
 --   one round applied.
 
-pbkdf2Ctx_finalize :: Word32 -> Pbkdf2Ctx -> Pbkdf2Gen
+pbkdf2Ctx_finalize
+  :: Word32 -- ^ index of output block
+  -> Pbkdf2Ctx
+  -> Pbkdf2Gen
 pbkdf2Ctx_finalize index ctx = Pbkdf2Gen
   { pbkdf2Gen_password = password
   , pbkdf2Gen_finalize = state
@@ -119,7 +132,10 @@ pbkdf2Ctx_finalize index ctx = Pbkdf2Gen
 
 -- | Apply zero or more rounds to a pbkdf2 computation.
 
-pbkdf2Gen_iterate :: Word64 -> Pbkdf2Gen -> Pbkdf2Gen
+pbkdf2Gen_iterate
+  :: Word64  -- ^ number of key-stretching rounds to perform
+  -> Pbkdf2Gen
+  -> Pbkdf2Gen
 pbkdf2Gen_iterate n0 ctx = go n0 xorSum0 state0
   where
     password = pbkdf2Gen_password ctx

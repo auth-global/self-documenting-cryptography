@@ -1,4 +1,11 @@
 {-# LANGUAGE OverloadedStrings, BangPatterns, ScopedTypeVariables #-}
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.PHKDF.Primitives
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
 
 {- |
 

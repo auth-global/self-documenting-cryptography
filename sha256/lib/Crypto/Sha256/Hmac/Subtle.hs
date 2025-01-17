@@ -1,8 +1,13 @@
-{- |
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.Sha256.Hmac.Subtle
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-- "Internal" data structures and functions for hmac
+--
+-------------------------------------------------------------------------------
 
-"Internal" data structures and functions for hmac
-
--}
 module Crypto.Sha256.Hmac.Subtle
   ( HmacKey(..)
   , hmacKey_ipad

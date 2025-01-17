@@ -1,3 +1,11 @@
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.PHKDF.Assert
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
+
 module Crypto.PHKDF.Assert where
 
 import Data.Bits

@@ -1,6 +1,12 @@
 {-# LANGUAGE ViewPatterns, OverloadedStrings, BangPatterns, ScopedTypeVariables #-}
 
--- |  A very minimal binding to the core of the bcrypt algorithm, adapted from
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.G3P.BCrypt
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+--    A very minimal binding to the core of the bcrypt algorithm, adapted from
 --    OpenBSD's implementation. The Global Password Prehash Protocol version
 --    G3Pb1 cannot be implemented in terms of standard bcrypt interfaces for
 --    several reasons:
@@ -36,6 +42,8 @@
 --    "variant" of bcrypt floating around out there, depending on particular
 --    C implementations and possibly even specific to architectures, compiler
 --    flags, and versions
+--
+-------------------------------------------------------------------------------
 
 module Crypto.G3P.BCrypt
   ( bcrypt

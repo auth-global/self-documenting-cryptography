@@ -1,5 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.G3P.V2.Foxtrot
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
+
 {- |
 
 Stripped-down version of G3Pb2 charlie, primarily intended for server-side

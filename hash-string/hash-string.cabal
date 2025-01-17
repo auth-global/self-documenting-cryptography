@@ -1,8 +1,12 @@
 cabal-version:      1.24
 name:               hash-string
 version:            0.1.0.0
-synopsis:           bytestring newtypes supporting constant-time base16 and comparisons.
--- description:
+synopsis:
+  binary strings supporting constant-time base16 and comparisons
+description:
+  binary string types supporting constant-time base16 encoding and decoding, as
+  well as constant time lexicographic comparisons. Note that the time required
+  does depend linearly on length, but is otherwise data-independent.
 license:            Apache-2.0
 license-file:       LICENSE
 author:             Steve "Sc00bz" Thomas, Leon P Smith

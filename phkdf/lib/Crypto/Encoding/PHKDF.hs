@@ -1,5 +1,13 @@
 {-# LANGUAGE OverloadedStrings, ViewPatterns #-}
 
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.Encoding.PHKDF
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
+
 module Crypto.Encoding.PHKDF where
 
 import Data.Bits(Bits, (.&.), shift)

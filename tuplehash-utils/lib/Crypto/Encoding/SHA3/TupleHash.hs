@@ -1,5 +1,20 @@
 {-# LANGUAGE OverloadedStrings, BangPatterns, ScopedTypeVariables, ViewPatterns #-}
 
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.Encoding.SHA3.TupleHash
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-- See NIST Special Publication 800-185: SHA-3 Derived Functions: cSHAKE, KMAC,
+-- TupleHash and ParallelHash. <https://www.nist.gov/publications/sha-3-derived-functions-cshake-kmac-tuplehash-and-parallelhash>
+-- Note that this module does not implement TupleHash itself, though it could
+-- be used to implement TupleHash given an implementation of Keccak/SHA-3. This
+-- only implements the data-encoding portions of TupleHash, and does not
+-- implement any kind of cryptographic state machine.
+--
+-------------------------------------------------------------------------------
+
 module Crypto.Encoding.SHA3.TupleHash
   ( leftEncodeZero
   , leftEncodeInteger

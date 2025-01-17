@@ -1,11 +1,15 @@
 {-# LANGUAGE ViewPatterns, LambdaCase, BangPatterns #-}
 
-{- |
-
-An implementation of HMAC-SHA256 that supports precomputed keys, streaming,
-backtracking, and bitstring inputs.
-
--}
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.Sha256.Hmac
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-- An implementation of HMAC-SHA256 that supports precomputed keys, streaming,
+-- backtracking, bitstring inputs, and (de)serialization of intermediate states.
+--
+-------------------------------------------------------------------------------
 
 module Crypto.Sha256.Hmac
   ( hmac

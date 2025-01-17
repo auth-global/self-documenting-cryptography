@@ -1,3 +1,10 @@
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.PHKDF.Primitives.Subtle
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
 module Crypto.PHKDF.Primitives.Subtle
   ( PhkdfCtx(..)
   , phkdfCtx_byteLen

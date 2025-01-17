@@ -1,3 +1,11 @@
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.PHKDF.Subtle
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
+
 module Crypto.PHKDF.Subtle
   ( PhkdfCtx(..)
   , phkdfCtx_unsafeFeed

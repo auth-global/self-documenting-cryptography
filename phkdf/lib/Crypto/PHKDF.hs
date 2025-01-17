@@ -1,5 +1,13 @@
 {-# LANGUAGE OverloadedStrings, BangPatterns, ScopedTypeVariables #-}
 
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.PHKDF
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
+
 {- |
 
 This module provides an interface to Version 2 of PHKDF, especially the
@@ -228,7 +236,7 @@ module Crypto.PHKDF
   , phkdfCtx_endPaddingLength
   , phkdfCtx_blockPaddingLength
 {--
-
+--- FIXME: add an updated xor-based SlowCtx, closer to PBKDF2
   , PhkdfSlowCtx()
   , phkdfSlowCtx_extract
   , phkdfSlowCtx_feedArg

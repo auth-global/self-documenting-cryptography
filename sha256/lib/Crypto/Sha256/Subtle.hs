@@ -1,5 +1,13 @@
 {-# LANGUAGE MagicHash, UnboxedTuples, CApiFFI, UnliftedFFITypes, BangPatterns #-}
 
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.Sha256.Subtle
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
+
 module Crypto.Sha256.Subtle where
 
 import           Data.Array.Byte

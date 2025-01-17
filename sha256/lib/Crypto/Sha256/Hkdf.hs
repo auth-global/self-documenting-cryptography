@@ -1,3 +1,15 @@
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.Sha256.Hkdf
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+--
+-- Implementation of HKDF-SHA256 supporting key reuse, backtracking, streaming,
+-- and more.
+--
+-------------------------------------------------------------------------------
+
 module Crypto.Sha256.Hkdf
   ( hkdf
   , hkdf'

@@ -18,7 +18,6 @@ import           Test.Tasty.HUnit
 import           Crypto.HashString (HashString(..))
 import qualified Crypto.HashString as HS
 import           Crypto.Sha256.Pbkdf2
-import           Crypto.Sha256.Hmac(hmacKey)
 
 d :: ByteString -> ByteString
 d = B.decodeBase16Lenient
@@ -31,7 +30,7 @@ tests =
       ]
   ]
   where
-    run x = HS.toBase16 (pbkdf2 (hmacKey (password x)) (salt x) (rounds x) (B.length (out x))) @?= extractBase16 (B.encodeBase16' (out x))
+    run x = HS.toBase16 (pbkdf2 (password x) (salt x) (rounds x) (B.length (out x))) @?= extractBase16 (B.encodeBase16' (out x))
 
 testVectors :: [TestVector]
 testVectors =

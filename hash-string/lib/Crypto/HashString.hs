@@ -1,3 +1,15 @@
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.HashString
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-- binary string types supporting constant-time base16 encoding and decoding, as
+-- well as constant time lexicographic comparisons. Note that the time required
+-- does depend linearly on length, but is otherwise data-independent.
+--
+-------------------------------------------------------------------------------
+
 module Crypto.HashString
      ( HashString
      , fromShort

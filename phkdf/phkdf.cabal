@@ -42,7 +42,7 @@ library
                    , sha256
                    , network-byte-order
                    , Stream
-                   , tuplehash-utils
+                   , tuplehash-utils >= 0.1
                    , vector
 
   ghc-options:       -Wall

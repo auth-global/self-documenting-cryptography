@@ -2,7 +2,7 @@
 
 ![Property of YOUR COMPANY INC.](design-documents/media/property-tag.png)
 
-The [Global Password Prehash Protocol (G3P)](g3p-hash/lib/Crypto/G3P.hs) is [designed](design-documents/g3p.md) to be a password hash and key derivation function, based on PHKDF and bcrypt. The algorithm behind the G3P is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape deck](https://en.wikipedia.org/wiki/Digital_Audio_Tape) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker) which provides a form of _digital watermarking_.[^steampunk]
+The [Global Password Prehash Protocol (G3P)](g3p-hash/lib/Crypto/G3P.hs) is [designed](design-documents/g3pb2.md) to be a password hash and key derivation function, based on PHKDF and bcrypt. The algorithm behind the G3P is a bit like an [Enigma rotary cipher machine](https://en.wikipedia.org/wiki/Enigma_machine) with an integrated [tape deck](https://en.wikipedia.org/wiki/Digital_Audio_Tape) and [loudspeaker](https://en.wikipedia.org/wiki/Loudspeaker) which provides a form of _digital watermarking_.[^steampunk]
 
 The position of the G3P's rotors are initialized by a _seguid_. Then the user types their username and password on the keyboard, which causes the position of the rotors to change.
 

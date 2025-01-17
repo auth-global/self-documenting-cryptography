@@ -1,7 +1,12 @@
 name:                sha256
 version:             0.1.0.0
-synopsis:  A modern binding to SHA256, HMAC, HKDF, and PBKDF2
--- description:
+synopsis:
+  A modern binding to SHA256, HMAC, HKDF, and PBKDF2
+description:
+  A modern binding to SHA256, HMAC, HKDF, and PBKDF2 supporting precomputed
+  HMAC keys, streaming, backtracking, bitstring inputs, and (de)serialization
+  of intermediate states.  Both HKDF and PBKDF2 reuse HMAC key computations
+  for efficiency.
 license:             Apache-2.0
 license-file:        LICENSE
 author:              Vincent Hanquez, Herbert Valerio Riedel, Leon P Smith

@@ -1,5 +1,13 @@
 {-# LANGUAGE OverloadedStrings, ViewPatterns #-}
 
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.Encoding.PHKDF.V1
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
+
 module Crypto.Encoding.PHKDF.V1 where
 
 import Data.Monoid((<>))

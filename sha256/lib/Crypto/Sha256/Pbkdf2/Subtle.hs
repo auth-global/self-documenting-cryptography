@@ -1,3 +1,11 @@
+-------------------------------------------------------------------------------
+-- |
+-- Module:      Crypto.Sha256.Pbkdf2.Subtle
+-- Copyright:   (c) 2024 Auth Global
+-- License:     Apache2
+--
+-------------------------------------------------------------------------------
+
 module Crypto.Sha256.Pbkdf2.Subtle where
 
 import           Crypto.HashString
