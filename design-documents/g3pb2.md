@@ -243,6 +243,45 @@ be efficiently generated from a single key-stretching computation, something
 that the suggested way of producing longer outputs with the original PBKDF2
 fails at.
 
+# Deployment Considerations:
+
+A deployment designer may notice that the Global Password Prehash Protocol has
+no less than 21 parameters, but the thing to remember is that the G3P is
+carefully designed so that almost every parameter must be an exact match.
+If the match isn't exact, then the outputs will be cryptographically
+independent to any efficient observer who isn't privy to all the inputs.
+
+There are a few exceptions: there are some trivial (but largely uninteresting)
+"collisions" involving HMAC-SHA256 keys.  This is dictated by an external
+standard. Additionally, there are some truncation and other gotchas the
+echo-header and echo-key parameters. All other collisions on the G3P are
+cryptographically non-trivial.
+
+All parameters fall into one of five categories: things needed only _once_ near
+the beginning of the computation, things needed _sporadically_ throughout a
+computation, things needed _constantly_ throughout a computation, parameters
+that determine how _expensive_ a key stretching phase will be to compute, and
+parameters that can be used to efficiently _tweak_ the output after
+key-stretching has been performed.
+
+Additionally, there is a visibility graph between parameters. For example,
+being able to specify the "username" and compute the output hash yourself on
+your own hardware implies that your computer must know every other parameter.
+Being able to specify the "password" implies knowledge of every parameter
+other than the "username", which can be hidden behind a hash using partial
+evaluation.
+
+Your computer must know the plaintext of any "tag", if you are specifying
+either the username or password. However, plaintext HMAC-SHA256 keys can always
+be replaced with two intermediate SHA256 states via parital evaluation.
+
+These intermediate states are essentially two SHA256 hashes of the plaintext
+HMAC key. As these are constant and must be known to your computer, using
+self-documenting globally unique identifiers (seguids) as HMAC-SHA256 keys
+allow you to indirectly convey a message via these intermediate states.
+This approach happens to be the only way to include a self-documenting
+domain separation constant in the computation of HMAC's outer pad.
+
 # Major changes since Version 1:
 
 1.  In PHKDF version 1's slow extract function, the block generator was
