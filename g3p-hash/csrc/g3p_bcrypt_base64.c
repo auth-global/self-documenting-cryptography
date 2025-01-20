@@ -31,7 +31,7 @@
 // ./         [A-Z]      [a-z]     [0-9]
 // 0x2e-0x2f, 0x41-0x5a, 0x61-0x7a, 0x30-0x39
 
-static inline int base64Decode6BitsDotSlash(char src)
+static inline int base64Decode6BitsDotSlash(uint8_t src)
 {
   int ch  = (unsigned char) src;
   int ret = -1;
@@ -51,7 +51,7 @@ static inline int base64Decode6BitsDotSlash(char src)
   return ret;
 }
 
-static inline int base64Decode3BytesDotSlash(uint8_t dest[3], const char src[4])
+static inline int base64Decode3BytesDotSlash(uint8_t dest[3], const uint8_t src[4])
 {
   int c0 = base64Decode6BitsDotSlash(src[0]);
   int c1 = base64Decode6BitsDotSlash(src[1]);
@@ -64,7 +64,7 @@ static inline int base64Decode3BytesDotSlash(uint8_t dest[3], const char src[4])
   return ((c0 | c1 | c2 | c3) >> 8) & 1;
 }
 
-static inline char base64Encode6BitsDotSlash(unsigned int src)
+static inline uint8_t base64Encode6BitsDotSlash(unsigned int src)
 {
   src += 0x2e;
 
@@ -80,7 +80,7 @@ static inline char base64Encode6BitsDotSlash(unsigned int src)
   return (char) src;
 }
 
-static inline void base64Encode3BytesDotSlash(char dest[4], const uint8_t src[3])
+static inline void base64Encode3BytesDotSlash(uint8_t dest[4], const uint8_t src[3])
 {
   unsigned int b0 = src[0];
   unsigned int b1 = src[1];
@@ -103,7 +103,7 @@ void G3P_bcrypt_base64Encode(char *dest, const void *src, size_t srcLen)
 {
   if (dest == NULL || src == NULL || srcLen == 0) return;
   for (; srcLen >= 3; srcLen -= 3) {
-    base64Encode3BytesDotSlash(dest, (const uint8_t*) src);
+    base64Encode3BytesDotSlash((uint8_t *)dest, (const uint8_t*) src);
     dest += 4;
     src   = (const uint8_t*) src + 3;
   }
@@ -130,14 +130,14 @@ int G3P_bcrypt_base64Decode(void *dest, const char *src, size_t srcLen)
   int err = 0;
 
   for (; srcLen > 4; srcLen -= 4) {
-    err |= base64Decode3BytesDotSlash((uint8_t*) dest, src);
+    err |= base64Decode3BytesDotSlash((uint8_t*) dest, (uint8_t*)src);
     dest  = (uint8_t*) dest + 3;
     src  += 4;
   }
   if (srcLen > 0) {
     size_t  i;
     uint8_t tmpOut[3];
-    char    tmpIn[4] = {'A', 'A', 'A', 'A'};
+    uint8_t tmpIn[4] = {'A', 'A', 'A', 'A'};
 
     for (i = 0; i < srcLen; i++) {
       tmpIn[i] = src[i];
