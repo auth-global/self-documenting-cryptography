@@ -246,15 +246,16 @@ fails at.
 # Deployment Considerations:
 
 A deployment designer may notice that the Global Password Prehash Protocol has
-no less than 21 parameters, but the thing to remember is that the G3P is
-carefully designed so that almost every parameter must be an exact match.
-If the match isn't exact, then the outputs will be cryptographically
+no less than 21 parameters. This may seem excessive, but the thing to remember
+is that the G3P is carefully designed so that almost every parameter must be
+an exact match. Any difference means the outputs will be cryptographically
 independent to any efficient observer who isn't privy to all the inputs.
 
 There are a few exceptions: there are some trivial (but largely uninteresting)
-"collisions" involving HMAC-SHA256 keys.  This is dictated by an external
-standard. Additionally, there are some truncation and other gotchas the
-echo-header and echo-key parameters. All other collisions on the G3P are
+"collisions" involving HMAC-SHA256 keys. This behavior is externally dictated
+by relevant standards. Additionally, there are truncation and other gotchas
+associated with the echo-header and echo-key parameters, which are used to
+tweak the final output hash. All other collisions on the G3P are
 cryptographically non-trivial.
 
 All parameters fall into one of five categories: things needed only _once_ near
@@ -326,12 +327,13 @@ domain separation constant in the computation of HMAC's outer pad.
     the new integration encrypts the bcrypt long tag parameter as an extended
     plaintext salt. Technically speaking, this encryption is the Blowfish
     block cipher used in a variant of cipher block chaining (CBC) mode that
-    additionally incorporates a key feedback mechanism
+    additionally incorporates a key feedback mechanism.
 
-    The original bcrypt uses this mode of operation to initialize the state,
-    but then switches to using null bytes. The G3P's novel bcrypt variant
-    develops this latent feature into something used in every blowfish
-    key expansion, which occurs twice every bcrypt round.
+    The original bcrypt uses this mode of operation to initialize the state
+    by encrypting a cyclc extension of the salt. After this single key
+    expansion, the original bcrypt switches to using null bytes. The G3P's
+    novel bcrypt variant replaces these null bytes with a counter and
+    tag.
     
     Furthermore, the original bcrypt extracts its final hash by encrypting
     the string "OrpheanBeholderScryDoubt" with 64 rounds of blowfish in ECB
@@ -348,12 +350,11 @@ domain separation constant in the computation of HMAC's outer pad.
     per guess.
 
     This extended plaintext salting process also means that the suggested
-    number of PHKDF rounds was halved, which themselves are now one
-    SHA256 block less expensive than they were in the old version.
-
-    Thus assuming a short domain tag (less than 20 bytes) and the suggested
-    cost parameters, the G3P version 2 spends approximately one third of
-    the time in PHKDF relative to version 1.
+    number of PHKDF rounds was halved. Futhermore, each round is now one
+    SHA256 block less expensive than the old version. Thus assuming a short
+    domain tag (less than 20 bytes) and the suggested cost parameters, the
+    G3P version 2 spends approximately one third of the time in PHKDF
+    relative to version 1.
 
 3.  When domain tags are 20 bytes or longer, the end-of-message padding that
     PHKDF applies to HMAC-SHA256 was tweaked to use a proper bitstring.

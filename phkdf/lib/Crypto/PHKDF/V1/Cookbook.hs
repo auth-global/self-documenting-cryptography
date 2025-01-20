@@ -7,7 +7,11 @@
 --
 -------------------------------------------------------------------------------
 
--- | The Password Hash Key Derivation Function (PHKDF) is a unification,
+-- | The following module is a worked example of how one might apply PHKDF.
+--   It is somewhat out of date, but continues to be depended upon for
+--   part of the test suite, at least for the time being.
+-- 
+--   The Password Hash Key Derivation Function (PHKDF) is a unification,
 --   synthesis, and distillation of PBKDF2, HKDF, and TupleHash. It was
 --   designed as a building block for implementing a variety of
 --   self-documenting cryptographic constructions.

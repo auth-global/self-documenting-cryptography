@@ -1,6 +1,16 @@
 # Revision history for g3p-hash
 
-## Version 2.0.0.0 "The War Tuba" (2024-04-20)
+## Version 2.0.0.0 release (2025-01-20)
+
+* The prerelease depended on a local fork of cryptohash-sha256 that supported
+  bitstring inputs. This release rewrote the FFI bindings surrounding
+  cryptohash-sha256. This is coordinated with the release of the new sha256
+  binding which also supports precomputed HMAC keys, streaming, backtracking,
+  (de)serialization of intermediate states, HKDF, PBKDF2, and more.
+
+* an OpenBSD-compatible bcrypt binding is now exported from Crypto.G3P.BCrypt
+
+## Version 2.0.0.0 prelease "The War Tuba" (2024-04-20)
 
 I was incredibly over the moon happy with Version 1. Then it provided me with
 the spark of insight that lead to Version 2, which is 100x better. I am still

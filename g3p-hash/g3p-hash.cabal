@@ -13,11 +13,12 @@ category:            Cryptography
 build-type:          Simple
 extra-source-files:  ChangeLog.md
                      g3p-test-vectors.json
+		     test/MyCorpExample.hs
 cabal-version:       >=1.10
 
 library
   exposed-modules:   Crypto.G3P
-		     Crypto.G3P.V1
+                     Crypto.G3P.V1
                      Crypto.G3P.V2
                      Crypto.G3P.V2.Foxtrot
                      Crypto.G3P.V2.Subtle
@@ -53,7 +54,7 @@ test-suite test
 
   other-modules:     G3Pb1
                      G3Pb2
---                     MyCorpExample
+--                    MyCorpExample
                      Bcrypt
 
   build-depends:     base
@@ -64,6 +65,7 @@ test-suite test
                    , bytestring
                    , containers
                    , g3p-hash
+                   , hash-string
                    , network-byte-order
                    , phkdf
                    , Stream
