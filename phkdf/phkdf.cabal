@@ -69,11 +69,11 @@ test-suite test
                    , bytestring
                    , containers
                    , phkdf
-		   , quickcheck-instances
+                   , quickcheck-instances
                    , Stream
                    , tasty
                    , tasty-hunit
-		   , tasty-quickcheck
+                   , tasty-quickcheck
                    , text
                    , vector
 

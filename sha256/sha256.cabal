@@ -33,7 +33,7 @@ library
   other-modules:
                      Crypto.Sha256.Hmac.Implementation
 
-  build-depends:     base
+  build-depends:     base < 5
                    , bytestring
                    , hash-string
                    , network-byte-order

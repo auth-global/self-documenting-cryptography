@@ -22,7 +22,7 @@ library
 
     other-modules:    Crypto.HashString.Implementation
 
-    build-depends:    base,
+    build-depends:    base < 5,
                       bytestring,
                       ghc-prim
     hs-source-dirs:   lib
