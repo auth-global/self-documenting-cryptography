@@ -13,6 +13,7 @@ category:            Cryptography
 build-type:          Simple
 extra-source-files:  ChangeLog.md
                      g3p-test-vectors.json
+                     g3pb1-test-vectors.json
 		     test/MyCorpExample.hs
 cabal-version:       >=1.10
 
