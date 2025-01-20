@@ -63,8 +63,8 @@ extendTag = B.concat <$> extendTagToList
 --   This is a "proof" in the sense that if
 --   @trimExtendedTag (extendTag x) == Just x@ is true for all bytestrings
 --   @x@, then all collisions are non-trivial, but we haven't presented a
---   full deductive proof of this property.  (It will eventually be part of
---   the test suite.)
+--   full deductive proof of this property.  It is part of the test suite,
+--   tested by quickcheck fuzzing.
 --
 --   The rest of PHKDF and the G3P's syntax follows this as an iron rule
 --   of syntax design. I've not literally written a program to parse out
