@@ -30,7 +30,6 @@
 #include <string.h>
 #include <ghcautoconf.h>
 
-#include "hs_hashstring_memcmp.h"
 #include "hs_sha256.h"
 
 #define ptr_uint32_aligned(ptr) (!((uintptr_t)(ptr) & 0x3))
@@ -409,6 +408,34 @@ hs_sha256_const_memcmp_uint32be
   return out;
 }
 
+/*
+
+  FIXME:
+
+  This function is a duplicate of hs_hashstring_const_memcmp. This duplication
+  was introduced to work around an issue with hackage's build infrastructure,
+  as the C compiler couldn't find hs_hashstring_memcmp.h
+
+  A more proper fix would avoid this duplication.
+
+*/
+static inline
+int
+hs_sha256_const_memcmp
+( const uint8_t *const a,
+  const uint8_t *const b,
+  size_t const n )
+{
+  int d, out = 0;
+  size_t i = n;
+  while (i > 0) {
+    i--;
+    d = a[i] - b[i];
+    out = d == 0 ? out : d;
+  }
+  return out;
+}
+
 // constant-ish time memcmp, could be better, but should be pretty good
 // doesn't handle nulls, must be passed a non-null argument!
 int
@@ -421,10 +448,14 @@ hs_sha256_const_memcmp_ctx
   int x = a->count & 0x3F;
   int y = b->count & 0x3F;
   int n = (x < y) ? x : y;
-  if ( (d = hs_hashstring_const_memcmp(a->buffer, b->buffer, n)) ) return d;
+  if ( (d = hs_sha256_const_memcmp(a->buffer, b->buffer, n)) ) return d;
   if ( (d = x - y) ) return d;
   // does this last comparison even matter in practice?
   if (a->count == b->count) return 0;
+  // It is of course trivial to reach this location if you simply take a SHA256
+  // context structure and change the length, but this should be effectively
+  // unreachable without constructing at least one state synthetically.
+  // A difference in length implies a cryptographically non-trivial collision.
   if (a->count < b->count) return -1;
   return 1;
 }

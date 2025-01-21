@@ -1,5 +1,5 @@
 name:                sha256
-version:             0.1.0.1
+version:             0.1.0.2
 synopsis:
   A modern binding to SHA256, HMAC, HKDF, and PBKDF2
 description:
@@ -46,6 +46,11 @@ library
   cc-options:        -Wall  
   install-includes:  csrc/hs_sha256.h
   c-sources:         csrc/hs_sha256.c
+
+source-repository head
+  type:     git
+  location: http://github.com/auth-global/self-documenting-cryptography
+  subdir:   sha256
 
 test-suite test
   type:              exitcode-stdio-1.0
