@@ -30,7 +30,7 @@ library
                    , bytestring
                    , network-byte-order
                    , phkdf >= 0.1
-                   , Stream
+                   , Stream >= 0.3
                    , tuplehash-utils >= 0.1
                    , vector
   hs-source-dirs:    lib
