@@ -1,14 +1,12 @@
 * Improve Instances
 
-* Clean up warnings
-
 * Clean up magic constants, replace with symbolic references
 
-* Prepare for Release
+* Haddock documentation
 
-    * Headers on all files
+* rename functions
 
-    * Fill in at least some of the missing documentation
+    * consistent naming scheme surrounding ByteString/HashString/ShortByteString/etc.  (Typeclasses??)
 
 * Rewrite top-level PBKDF2 functions into a (relatively) point-free style, a la G3Pb2/Hkdf
 
