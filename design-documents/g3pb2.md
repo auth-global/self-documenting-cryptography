@@ -4,12 +4,12 @@
 
 The Global Password Prehash Protocol (G3P) version 2 (G3Pb2) is a slow password
 hash and key derivation function based on HMAC-SHA256 and blowfish, using
-slightly modified variants of PBKDF2, HKDF, and bcrypt in order to better
-support self-documenting cryptography.
+variants of PBKDF2, HKDF, and bcrypt that have been minimally modified in
+order to better support self-documenting cryptography. Also, the G3P is
+explicitly designed to support keying end-to-end encryption (E2EE) off of the
+password, so long as the G3P is deployed as a client-side prehash.
 
-In this context, self-documenting cryptography aims to make password hashes
-and comparable authentication materials to be _traceable_ or _useless_
-after they have been stolen by an evesdropper, Eve.
+In this context, self-documenting cryptography aims to make password hashes[^comparable-to-hashes] _traceable_ or _useless_ after they have been stolen by an evesdropper, Eve.
 
 Let's say Alice is an IT administrator works for Acme Corporation, Inc. The
 basic idea is to add "this password is for Acme Corporation, Inc." as a tag
@@ -36,8 +36,8 @@ algorithm himself.
 
 In theory it should be possible for Eve to use some flavor of Homomorphic
 Encryption to construct an implementation of Alice's algorithm that securely
-hides the fact that "this password is for Acme Corporation" from Craig. For
-example, people have demonstrated being able to compute a few blocks of
+hides the fact that "this password is for Acme Corporation, Inc." from Craig.
+For example, people have demonstrated being able to compute a few blocks of
 SHA-256 inside Fully Homomorphic Encryption (FHE) within a few seconds.
 
 While most forms of Homomorphic Encryption impose significant overhead, FHE is
@@ -48,15 +48,15 @@ to perform a computation by a factor of a 100,000 or more.
 
 However, the suprising existence of FHE, and the fact that it can in theory
 obscure any computable algorithm whose output itself doesn't give away secrets,
-suggests that it might not even be possible to stake this security goal on an
-asymptotic difference in the complexity of algorithms. Rather, Adversarial
-Literate Programming may be limited to a linear factor, making its security
-margin relatively weak for cryptography. I would even say that acheiving a
-traditionally-strong security margin in the context of Adversarial Literate
-Programming seems implausible.
+suggests that it might not even be possible to stake Adversarial Literate
+Programming's  security goal on an asymptotic difference in the complexity of
+algorithms. Rather, Adversarial Literate Programming may be limited to a linear
+factor, making its security margin relatively weak for cryptography. I would
+even say that acheiving a traditionally-strong security margin in the context
+of Adversarial Literate Programming seems implausible.
 
 On the other hand, password cracking is sensitive to even modest overhead.
-In this context, FHE also doesn't seem to be any immdiate threat to Adversarial
+In this context, FHE doesn't seem to be any immediate threat to Adversarial
 Literate Programming based on standard on standard cryptographic primitives
 like SHA-256 and blowfish.
 
@@ -64,8 +64,8 @@ In fact, a topic of research in FHE is the construction of homomorphic
 transciphers, which are alternative cryptographic primitives designed to be
 relatively efficient when executed inside FHE. Perhaps alternative
 cryptographic primitives designed to be particularly _in_efficient when
-executed inside any suitably compatible method of homomorphic encryption should
-also be pursued as an anti-problem.
+executed inside any suitable method of homomorphic encryption should also
+be pursued as an anti-problem.
 
 While I don't know how much better future Homomorphic Encryption schemes might
 be able to perform on SHA-256 and blowfish, I'm not expecting revolutionary
@@ -87,7 +87,8 @@ Blake2, and return the plaintext hash needed for key-stretching.
 Now, Craig _might_ be able to still determine the parameters hidden inside FHE
 by computing a hash with a known password and then cracking the unknowns.
 This approach can be facilitated when Craig is aware of Alice's documentation
-among others but does not yet know that Alice's documentation is relevant.
+among others but is not yet aware that Alice's documentation is immediately
+relevant.
 
 However, this requires more sophistication and often more computation on
 Craig's part compared to reverse engineering Alice's documentation from Eve's
@@ -96,8 +97,8 @@ include say, a random 16-byte salt for account separation purposes, then this
 approach to recovering Alice's documentation won't work.
 
 While the overhead to compute this initial call to Blake2 inside FHE would be
-substantial, it seems possibly low enough that Eve could consider deploying FHE
-to hide Alice's documentation from Craig in an obfuscation attack.
+substantial, it still might be low enough that Eve would consider deploying FHE
+to hide Alice's argon2-backed documentation from Craig in an obfuscation attack.
 
 For this reason, the G3P is designed such that Alice's documentation is
 required throughout the entire key-stretching process. Ideally, the only way
@@ -122,9 +123,9 @@ which takes a signficant amount of inspiration from HKDF.
     ⋮
     U c = HMAC (Password, U (c−1))
 
-    // Overview of G3Pb2 alfa:
     i = 1196361704
-    T 0 = HMAC (Seguid, UserSalt + Password + LongTag + Credentials
+    T 0 = HMAC (Seguid, "G3Pb2 alfa" +
+                      + UserSalt + Password + LongTag + Credentials
                       + ContextTags + INT_32_BE(i) + DomainTag )
     T 1 = HMAC (Seguid, T 0 + INT_32_BE(i + 1) + DomainTag )
     ⋮
@@ -159,20 +160,21 @@ PBKDF2 then xors the blocks `U 1 ^ U 2 ^ ... ^ U c` to generate its final
 output block.  The G3P does the same, but then it derives two cryptographically
 independent keys from the result:
 
-    // overview of G3Pb2 bravo:
     c = (number of PHKDF rounds, ideally ~20000 or so)
     sumT = T 0 ^ T 1 ^ ... ^ T c
     endT = T (c+1)
-    keyB = HMAC (SeguidB, "B" + endT + sumT + ContextTags + "KEYB" + DomainTag)
-    keyC = HMAC (SeguidB, "C" + endT + sumT + ContextTags + "KEYC" + DomainTag)
+    keyB = HMAC (SeguidB, "G3Pb2 bravo" +
+                          "B" + endT + sumT + ContextTags + "KEYB" + DomainTag)
+    keyC = HMAC (SeguidB, "G3Pb2 bravo" +
+                          "C" + endT + sumT + ContextTags + "KEYC" + DomainTag)
 
 Now, we are ready for the second form of key-stretching, which uses a
 bcrypt-like construction. Overall, this key-stretching phase looks like
 a single call to HMAC:
 
-    // overview of G3Pb2 charlie:
-    seed = HMAC (SeguidB, keyB + bcryptOutput + keyC
-                        + ContextTags + "SEED" + DomainTag)
+    seed = HMAC (SeguidB, "G3Pb2 charlie"
+                        + keyB + bcryptOutput
+                        + keyC + ContextTags + "SEED" + DomainTag)
 
 The inclusion of continuation control key ("keyC") allows for some or all of
 the bcrypt key-stretching computation to be outsourced to another semi-trusted
@@ -186,14 +188,22 @@ super-round for every 128 bcrypt rounds, rounded up.
     state = (standard bcrypt initial state based on digits of pi)
 
     for each super-round:
-       key0   = HMAC ( SeguidB, keyB + msg + BcryptTags + "KEY0" + DomainTagB )
+       key0   = HMAC ( SeguidB, "G3Pb2 charlie"
+                              + keyB + msg + BcryptTags + "KEY0" + DomainTagB )
        msg   += key0
-       key1   = HMAC ( SeguidB, keyB + msg + BcryptTags + "KEY1" + DomainTagB )
+       key1   = HMAC ( SeguidB, "G3Pb2 charlie"
+                              + keyB + msg + BcryptTags + "KEY1" + DomainTagB )
        msg   += key1
        state := bcryptSuperRound ( state, key0, key1, LongTagB )
        msg   += state
 
     bcryptOutput = msg
+
+Note that the key and initial message prefix is shared across all calls to
+HMAC.  In fact, for a secure implementation, the HMAC function must be
+computed using streaming and backtracking. This has the added benefit of
+reducing the memory required to compute the bcrypt key-stretching phase to a
+constant ~4332 bytes or so.
 
 The transition between each superround serves as a synchronization point where
 cracking an intermediate state costs very nearly as much per guess as computing
@@ -226,8 +236,8 @@ HKDF-Expand.
 However there are a handful of mostly minor changes: we are using a
 parameterized 4-byte counter before the domain tag, whereas HKDF uses a
 hardcoded 1-byte counter after the info tag. Furthermore, this construction
-allows the right 32 bytes of the output key to be provided, and allows the
-32 initial generator state to be specified.
+also parameterizes of the right 32 bytes of the output key as well as
+the 32-byte initial generator state.
 
 Note a trivial collision can be obtained by feeding an output block
 back into the Header parameter and by incrementing the counter by one, which
@@ -251,12 +261,12 @@ is that the G3P is carefully designed so that almost every parameter must be
 an exact match. Any difference means the outputs will be cryptographically
 independent to any efficient observer who isn't privy to all the inputs.
 
-There are a few exceptions: there are some trivial (but largely uninteresting)
-"collisions" involving HMAC-SHA256 keys. This behavior is externally dictated
-by relevant standards. Additionally, there are truncation and other gotchas
-associated with the echo-header and echo-key parameters, which are used to
-tweak the final output hash. All other collisions on the G3P are
-cryptographically non-trivial.
+There are a few exceptions, but they are all documented: there are some trivia
+l (but largely uninteresting) "collisions" involving HMAC-SHA256 keys. This
+behavior is externally dictated by relevant standards. Additionally, there are
+truncation and other gotchas associated with the echo-header and echo-key
+parameters, which are used to tweak the final output hash. All other collisions
+on the G3P are cryptographically non-trivial.
 
 All parameters fall into one of five categories: things needed only _once_ near
 the beginning of the computation, things needed _sporadically_ throughout a
@@ -269,7 +279,7 @@ Additionally, there is a visibility graph between parameters. For example,
 being able to specify the "username" and compute the output hash yourself on
 your own hardware implies that your computer must know every other parameter.
 Being able to specify the "password" implies knowledge of every parameter
-other than the "username", which can be hidden behind a hash using partial
+other than the "username", the plaintext of which can be hidden using partial
 evaluation.
 
 Your computer must know the plaintext of any "tag", if you are specifying
@@ -370,6 +380,10 @@ domain separation constant in the computation of HMAC's outer pad.
 
 5.  The final HKDF-like output phase has been reworked and generalized a bit,
     and makes fewer assumptions about its parameters.
+
+[^comparable-to-hashes]:
+    Or anything comparable to a password hash, such as a server-side PAKE
+    credential.
 
 [^pbkdf2-tagged-hmac]:
     Except for the addition of a counter that is incremented every round, the
