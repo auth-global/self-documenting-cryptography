@@ -199,18 +199,18 @@ super-round for every 128 bcrypt rounds, rounded up.
 
     bcryptOutput = msg
 
-Note that the key and initial message prefix is shared across all calls to
-HMAC.  In fact, for a secure implementation, the HMAC function must be
+Note the key and initial message prefix that is shared across all calls to
+HMAC. In fact, for a secure implementation, the HMAC function must be
 computed using streaming and backtracking. This has the added benefit of
 reducing the memory required to compute the bcrypt key-stretching phase to a
-constant ~4332 bytes or so.
+constant ~4268 bytes[^byte-estimate] or so.
 
-The transition between each superround serves as a synchronization point where
-cracking an intermediate state costs very nearly as much per guess as computing
-that intermediate state, thus allowing the transfer of a partial bcrypt
-computation to another semi-trusted device without providing that device a
-cracking attack on the plaintext password that is significantly cheaper per
-guess than the work already performed.
+The transition between each superround serves as a synchronization
+point[^minimal-continuation] where cracking an intermediate state costs very
+nearly as much per guess as computing that intermediate state, thus allowing
+the transfer of a partial bcrypt computation to another semi-trusted device
+without providing that device a cracking attack on the plaintext password
+that is significantly cheaper per guess than the work already performed.
 
 By contrast, in the middle of the super-round, not only can key0 and key1
 be cracked directly, it is possible to run the bcrypt state machine in
@@ -261,8 +261,8 @@ is that the G3P is carefully designed so that almost every parameter must be
 an exact match. Any difference means the outputs will be cryptographically
 independent to any efficient observer who isn't privy to all the inputs.
 
-There are a few exceptions, but they are all documented: there are some trivia
-l (but largely uninteresting) "collisions" involving HMAC-SHA256 keys. This
+There are a few exceptions, but they are all documented: there are some trivial
+(but largely uninteresting) "collisions" involving HMAC-SHA256 keys. This
 behavior is externally dictated by relevant standards. Additionally, there are
 truncation and other gotchas associated with the echo-header and echo-key
 parameters, which are used to tweak the final output hash. All other collisions
@@ -411,3 +411,16 @@ domain separation constant in the computation of HMAC's outer pad.
     This assumes a short domain tag of less than 20 bytes. For example, a
     quarter of sha256 blocks don't accrue before completion for domain
     tags 20-82 byte long, etc.
+
+[^byte-estimate]:
+    Bcrypt's P-box is 72 bytes, Bcrypt's S-box is 4096 bytes, plus one SHA256
+    accumulator context at 32 bytes, plus two 32 byte derived bcrypt keys, plus
+    a 4-byte bcrypt round counter.
+
+[^miniminal-continuation]:
+    A minimal data package for transferring the key-stretching continuation to
+    another computer at one of these synchronization points would consist of
+    the P-box, S-box, SHA256 accumulator, the number of superrounds to be
+    performed, and any necessary salt parameters.  Ignoring the salts, this
+    totals to ~4204 bytes, possibly less given that the number of superrounds
+    would typically be storable in one byte instead of four.
