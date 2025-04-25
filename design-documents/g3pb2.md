@@ -1,5 +1,9 @@
 # The Global Password Prehash Protocol (G3P), Version 2
 
+(by Leon P Smith,  Auth Global)
+
+This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
+
 # Introduction
 
 The Global Password Prehash Protocol (G3P) version 2 (G3Pb2) is a slow password
@@ -21,8 +25,8 @@ resulting hash.
 This fingerprint means that a password cracker must add on "this password is
 for Acme Corporation, Inc." onto the end of every guess, otherwise they are
 automatically guessing the wrong password. And if that is the cracker's guess,
-then it should be possiblefor the cracker to contact Acme and say,
-"Hey, we think we may have come across some of your stolen password hashes...".
+then it should be possible for the cracker to contact Acme and say, "Hey, we
+think we may have come across some of your stolen password hashes...".
 
 This is an example of Adversarial Literate Programming: Alice is an IT
 administrator who works for Acme. She gets to specify an algorithm with some
@@ -190,7 +194,7 @@ with no key stretching applied.
 
 A synchronization point is a continuation whose most efficient cracking attack
 costs almost as much _per guess_ as the work required to create that
-continuation in the first place. This property immplies that a password hash
+continuation in the first place. This property implies that a password hash
 computation can transferred from one device to another with full credit for
 key-stretching work already performed.
 
@@ -264,8 +268,8 @@ very closely based on the classic bcrypt. Many existing analyses of bcrypt
 should apply to this variant with minimal need for revision.
 
 Each super-round consists of 128 modified bcrypt rounds, except for the first
-super-round which consists of 1-128 bcrypt rounds. These modified rounds are
-modelled very closely on the original bcrypt. For example, compare an original
+super-round which consists of 1-128 rounds. These modified rounds are modelled
+very closely on the original bcrypt. For example, compare an original
 bcrypt round on top with the modified round on bottom:
 
     S = (blowfish state, a bytestring of length 4168)
@@ -320,8 +324,8 @@ bcrypt round on top with the modified round on bottom:
     S_1
 
      |   BLOWFISH-EXPAND
-     |     (INT_32_BE(roundCtr) + "bcrypt-xs-free ..." +
-     |      CYCLE(LongTagB + "\x00", 4136))
+     |     ( INT_32_BE(roundCtr) + "bcrypt-xs-free ..."
+     |     + CYCLE(LongTagB + "\x00", 4136) )
      v
 
     S_2
@@ -332,8 +336,8 @@ bcrypt round on top with the modified round on bottom:
     S_3
 
      |   BLOWFISH-EXPAND
-     |     (INT_32_BE(~roundCtr) + "bcrypt-xs-free ..." +
-     |      CYCLE(LongTagB + "\x00", 4136))
+     |     ( INT_32_BE(~roundCtr) + "bcrypt-xs-free ..."
+     |     + CYCLE(LongTagB + "\x00", 4136) )
      v
 
     S_4 = (state for next round and/or input for HMAC-SHA256)
@@ -348,9 +352,9 @@ observation is also true of BLOWFISH-EXPAND.
 
 For this reason, any state collisions in the original bcrypt will get pushed
 back apart at least once per round, as the password and/or salt must be
-different to be a collision. Thus no such collision matters except for the
-final state. This also demonstrates that the literal plaintext password is
-needed throughout bcrypt's key-stretching phase.
+different. Thus no such collision matters except for the final state. This
+also demonstrates that the literal plaintext password is needed throughout
+bcrypt's key-stretching phase.
 
 In modified bcrypt, differences in the long tag will cause any state collisions
 to be pushed apart four times per round. Moreover differences in the password
@@ -385,7 +389,8 @@ bcrypt, it runs once per super-round.
 
     S_0  = (state from previous super-round, or digits of pi)
 
-     |   XOR( take(40, LongTagB) + key0 + drop(40, LongTagB) )
+     |   XOR( (first 40 bytes of the long-tag suffixed with null bytes)
+     |      + key0 + (remaing bytes of long tag) )
      v
 
     S_1
@@ -458,121 +463,176 @@ be efficiently generated from a single key-stretching computation, something
 that the suggested way of producing longer outputs with the original PBKDF2
 fails at.
 
-# Combinatorics of Hash Continuations
+# Combinatorics of Cryptographic Continuations
 
-How many cryptographic hash functions are there? Cryptographic hash functions
-aspire to be a "good enough" approximation of a random oracle.
+How many password hash functions are there? Cryptographic hash functions
+aspire to be a "good enough" approximation of an idealized random oracle.
+Random oracles cannot exist in reality, but they provide a useful model for
+analyzing cryptographic constructions.
 
-An idealized model of random oracles says that the input space is all finite
-strings, of which there is a countable infinity. Thus there are an uncountable
-infinity of possible random oracles.
+An idealized random oracle is a pure function whose input space is all finite
+strings, and whose output space is several hundred fair coin flips.  As there
+are a countable infinity of finite strings, there are an uncountable infinity
+of idealized random oracles.
 
 In an idealized random oracle, any difference anywhere in an input string leads
-to independent outputs. This means that by interleaving some constant data as
-"salt" with the input data in an unambiguous, canonical way, one can produce an
-unlimited number of "new" random oracles from a base random oracle.
+to statistically independent output bits. This means that by interleaving some
+constant data as "salt" with the input data in an unambiguous, canonical way,
+one can produce an unlimited number of "new" random oracles from a base random
+oracle.
 
 **Theorem**: Any change in this salt will, with probability 1, cause at least
-one output of the resulting oracle to also change. In practice, all outputs
-will be different, with a negligible number of counterexamples that might never
-be found. The point is that the mapping from salts to idealized random oracles
-is _almost surely_ injective, as otherwise you would have to win an infinite
-number of coin flips without ever losing.
+one output to change. Otherwise, one would have to win an infinite number of
+fair coin flips without losing even once.
 
-This idealized random oracle model is agnostic to how salt is interleaved:
-every distinct interleaving will result in a distinct random oracle, but this
-model does not expose any practical difference between these choices.
+In practice, any change in the salt will cause all outputs to be different.
+Colliding a single output requires never losing any of hundreds of fair coin
+flips in a single go. Thus there are a negligible number of collisions that
+will never be found in practice.
+
+**Corollary**: The mapping from salts to idealized random oracles is
+_almost surely_ injective.
+
+This idealized model is agnostic to how salt is interleaved: every distinct
+interleaving will result in a distinct random oracle, but this naive model
+offers no practical difference to how the salt is interleaved with the input.
 
 However this naive view is misleading: practical hash functions usually support
-streaming inputs. The structure that is necessary to make this work reveals
-differences between salt prepended before passwords, versus salt appended after
-passwords.
+streaming inputs. For example, SHA256 uses a compression function that applies
+an input block of 64 bytes to a state of 32 bytes, resulting in a new state.
+This allows arbitrarily long inputs to be processed one block at a time, and
+is more or less how most cryptographic hash functions are structured.[^not-blake3]
 
-Actual hash functions like SHA256 use a compression function that applies a
-block of input to a state, resulting in a new state. This allows arbitrarily
-long inputs to be processed one block at a time.[^not-blake3]
+Even if we assume the compression function is an idealized random oracle, this
+structure reveals differences between salt that is prefixed before passwords,
+versus salt that is suffixed after. In the case of prefixed salts, finding a
+single collision on the compression function can be enough to produce an
+infinite family of collisions, something that does not happen with suffixed
+salts. This is inherent to any streaming implementation.
 
-The consequence is that colliding the compression function early can produce a
-large family of collisions based on adding identical suffixes onto that
-collided state. By contrast, idealized random oracles never produce families
-of collisions.
+In the context of SHA256, any prefixed salt can be removed 64 bytes at a time,
+replaced by modifications to the 256-bit state. This is an example of _partial
+evaluation_, which can be shared across an unlimited number of applications.
 
-In the context of SHA256, any prepended salt can be removed 64 bytes at a time,
-replaced by modifications to the 256-bit state. This is an example of partial
-evaluation, which can be shared across an unlimited number of applications.
-Partial evaluation demonstrates that there cannot be more than 2^256
-functionally distinct prepended salts without leaving some salt in SHA256's
-input buffer, or appending some salt after the password.
+Algebraically speaking, we are comparing the partial evaluations of the
+functions `λx → hash(A + x)` and `λx → hash(B + x)` for distinct salts `A`
+and `B`. If these salts collide the compression function, then we can trivially
+produce "new" collisions by simply choosing any arbitrary bitstring and
+appending it to both salts. Because these functions are pointwise equal,
+they are two different descriptions of the same underlying function.
+
+Partial evaluation of SHA256 demonstrates there cannot be more than 2^256
+functionally distinct prefixed salts without leaving some salt in input buffer,
+or suffixing some salt after the password. Even though the input space of
+prefixed salts is much larger than 256 bits, collisions on the compression
+function can propagate throughout the remainder of the computation.
 
 Similarly, the G3P processes the plaintext password in a single pass near the
 beginning of the hash computation. Applying the previous argument means that
-there cannot be more than 2^256 functionally distinct combinations of prepended
-salt and passwords.[^extracting-entropy-with-sha256]
+there cannot be more than 2^256 functionally distinct combinations of prefixed
+salt and password.[^extracting-entropy-with-sha256]
 
 Now that we've bounded the input space, we can answer our original question:
 there are (2^256)^(2^256) = 2^(2^264) password hash functions assuming a
-compression function with a 256-bit internal state and 256-bit output. Even
-though the input space is much larger than 256 bits, collisions on the
-compression function can propogate throughout an entire computation, assuming
-the remainder of the input is the same.
+compression function with a 256-bit internal state and 256-bit output, and
+that are limited to one pass over the plaintext of the password.
 
-Representing a single such function sampled uninformly at random would require
-at least 2^264 bits of data, which is roughly comparable to the 3*10^80
-particles estimated to exist in the observable universe. For all practical
-purposes, this is an utterly inexhaustible supply of password hash functions,
-even without stepping outside this artificially narrow definition of what a
-password function "is".[^excludes-many-existing-password-hash-functions]
+Representing a single such function sampled uniformly at random from this
+distribution would require at least 2^264 bits of storage, which is roughly
+comparable to the 3*10^80 particles estimated to exist in the observable
+universe.
 
-On the other hand, any leftover preprended salt, and all salt that is appended
-after the password, cannot be processed without first choosing a value for the
-password input.[^low-entropy-inputs] This forces the full plaintext of any
-appended salt to be available to any non-exotic implementation capable of
-computing hashes for arbitrary passwords.
+For all practical purposes, this is an utterly inexhaustible supply of
+password hash functions, even without stepping outside this artificially narrow
+definition of what a password function "is".[^excludes-many-existing-password-hash-functions]
+
+On the other hand, any leftover prefixed salt,[^low-entropy-inputs] and all
+suffixed salt, cannot be processed without first choosing a value for the
+password input. This forces the full plaintext of any appended salt to be
+available to any ordinary implementation capable of computing hashes for
+arbitrary passwords.
+
+**Fact:** Given a hash function modelled as a _compression function_ that is
+assumed to be an idealized random oracle, the mapping from _suffixed_ salts to
+hash functions is almost surely injective.
+
+Suffixed salts do not produce produce families of collisions even when we
+take compression functions into account. Because the plaintext of a suffixed
+salt cannot be processed until the password has been chosen, the functions
+`λx → hash(x + Y)` and `λx → hash(x + Z)` don't readily admit non-trivial
+partial evaluations.
+
+Moreover, colliding this partial application of suffixed salt is highly
+implausible. Because the salts `Y` and `Z` must be distinct, a counterexample
+would be able to create a very large number of cryptographically distinct
+collisions for free.
+
+Because these collisions are distinct, finding a counterexample remains
+implausible even if we assume access to another oracle that grants a small
+number of collisions in the desired form "for free".
+
+By the pigeonhole principle, such counterexamples have to exist. However, if
+compression functions are idealized as random oracles, then due to the utterly
+inexhaustible supply of similar password hash functions within the confines of
+the Milky Way galaxy, it seems like at least one of those salts would almost
+certainly have to be much _much_ longer than 2.3 million terabytes, a number
+chosen for the sake of discussion because that's the length limit imposed by
+SHA256.
 
 **Conjecture:** It seems highly plausible, and rather probable, that the map
-from _appended_ salts to password hash functions is injective in practice even
-when the random oracle model is replaced with a reputable cryptographic has
-h function such as HMAC-SHA256.
+from suffixed salts to password hash functions is injective in practice even
+when more idealized models are instantiated with a reputable cryptographic
+hash function such as HMAC-SHA256.
 
-An explicit counterexample to this conjecture demands an extremely large
-family of HMAC-SHA256 collisions in a very specific form, and as of April 2025
-not a single collision on HMAC-SHA256 has been publicly demonstrated.[^contrast-salt-collisions]
+One could argue that the mapping of prefixed salts to password hash functions
+is also injective in practice. After all, a collision on SHA256 has never been
+publically demonstrated, which might make this argument seem purposeless and
+pendantic.  But I have two responses: firstly, suffixed salts are injective
+in practice in a significantly stronger sense than prefixed salts. Secondly,
+much of the design work around the G3P revolves around understanding and
+controlling partial evaluation!
 
-By the pigeonhole principle, such counterexamples have to exist. However, it
-seems plausible that the appended salt would need to be much longer than the
-2.3 million terabyte length limitation imposed by SHA256.
+For example, we want to enhance the utility of legitimate forms of partial
+evaluation, which is why the G3P adopted fully incremental key-stretching as a
+design goal. Also, we don't want to allow the possibility of partially
+evaluating away the plaintext of any parameter called a "tag", therefore
+prefixed salts cannot be tags, which is the reason the G3P's "username"
+parameter doesn't have "tag" anywhere in the name.
 
 **Observation:** Remember that our goal is to adversarially pass messages inside
 algorithms via the mathematics of game theory. Our primary communications
 objectives are the domain tag and long tags. One or both of these is expected
-to typically be on the order of one hundred to a few hundred bytes long. That
+to typically be on the order of one hundred to a few hundred bytes long, which
 is much longer than the 256-bit SHA256 state machine.
 
-We would like to argue that our message is implied by the algorithm we specify.
-Thus we would prefer to argue that our message describes a unique algorithm in
-a space of up to 2^(2^264)) hash functions rather than arguing that our message
+We need to argue that our message is implied by the algorithm we specify. Thus
+we should prefer to argue that our message describes a unique algorithm in a
+space of up to 2^(2^264)) hash functions rather than arguing that our message
 describes some inscrutable equivalence class consisting of those inputs that
 produce a single one of 2^256 possible SHA256 states.
 
 We should prefer the former argument over the latter even if we are unlikely to
 ever be able to explicitly find a collision, because it is a stronger argument.
 The difference reminds me of the distinction between information-theoretic
-versus computational security.
+versus computational security. Moreover, the act of making the latter argument
+is a brown M&M suggesting that partial evaluation may be possible, which we
+wish to prevent in the case of tags!
 
-Appending salts after a password plausibly achieves the properties necessary to
-make our preferred argument work, whereas prepending salts clearly does not.
+Suffixing salts after a password plausibly achieves the properties necessary to
+make our preferred argument work, whereas prefixed salts clearly do not.
 Furthermore, partial evaluation provides a method of obscuring (part of) a
-prepended salt, meaning that arbitrary messages cannot be robustly passed via
-a prepended salt alone.[^seguids]
+prefixed salt, meaning that arbitrary messages cannot be robustly passed via
+a prefixed salt alone.[^seguids]
 
-On the other hand, prepended salts are still useful, especially for account
+On the other hand, prefixed salts are still useful, especially for account
 separation purposes. This ensures that the password hash function has fully
 committed to a particular account before the plaintext of the password can be
-processed.
+processed. In effect, the password serves as a "tag" relative to to prefixed
+salt.
 
-This is the reason why the G3P uses "Username" as the name of the salt
-prepended to the "password" parameter; these parameter names do not prescribe
-a particular usage, but they do suggest an intended usage.
+This is the reason why the G3P uses "username" as the name of the prefixed
+salt parameter; these parameter names do not prescribe a particular usage, but
+they do suggest an intended usage.
 
 # Deployment Considerations:
 
@@ -702,8 +762,8 @@ domain separation constant in the computation of HMAC's outer pad.
     and makes fewer assumptions about its parameters.
 
 [^comparable-to-hashes]:
-    Or anything comparable to a password hash, such as a
-    server-side PAKE credential.
+    Or anything comparable to a password hash, such as a server-side PAKE
+    credential.
 
 [^pbkdf2-tagged-hmac]:
     Except for the addition of a counter that is incremented every round, the
@@ -793,58 +853,23 @@ domain separation constant in the computation of HMAC's outer pad.
 
 [^low-entropy-inputs]:
     Speculative partial evaluation provides a caveat to the self-documenting
-    properties of leftover prepended salt. If the subsequent input doesn't
+    properties of leftover prefixed salt. If the subsequent input doesn't
     contribute enough entropy to the remainder of the SHA-256 block, then the
-    plaintext of any leftover prepended salt can be obscured.
+    plaintext of any leftover prefixed salt can be obscured.
 
-    For example, if there is 63 bytes of leftover salt, then only one more byte
-    is needed to complete the next block. Eve could simply generate 256 SHA-256
-    states for Craig to start from, one state for each possible last byte. If
-    Eve knows that this last byte will be the first byte of a TupleHash length
-    encoding, then Eve could get away with two or three speculative states
-    instead of 256.
+    For example, if there is 63 bytes of leftover salt, and only one more byte
+    is needed to complete the next block, Eve could simply generate 256
+    different states for Craig to start from, one state for each possible last
+    byte. If Eve knows that this last byte will be the first byte of a
+    TupleHash length encoding, then Eve might be able to get away with providing
+    Craig with only two or three speculative states.
 
-    For this and other reasons, when the G3P uses leftover prepended salt, the
-    length of this leftover is usually 32 bytes long.  There is one exception
-    that is only 29 bytes.
-
-[^contrast-salt-collisions]:
-    Though nobody has publicly demonstrated any collision on SHA256, finding a
-    single collision on the intermediate SHA256 state generated by two prefixed
-    salts allows for the trivial creation of an infinite family of collisions.
-    On the other hand, differences in suffixed salts do not, and every
-    collision will be cryptographically distinct.
-
-    Algebraically speaking, if the partial evaluations of the functions
-    `\X -> hash(saltA + X)` and `\X -> hash(saltB + X)` collides SHA256's
-    compression function, then those two functions are identical to each other.
-
-    Here, saltA and saltB are distinct, are of the same length, and that length
-    is a multiple of 64. By simply appending whatever we want onto the ends of
-    both salts, we've now produced a new collision.
-
-    This downside to prefixed salts would be largely theoretical, except for
-    the fact that much of the design work around the G3P revolves around
-    partial evaluation. For example, we want to enhance the utility of
-    legitimate forms of partial evaluation, such as the G3P's adoption of
-    fully incremental key-stretching. Also, prefixed salts cannot be tags,
-    because we don't want there to be a possibility of partially evaluating
-    away the plaintext of anything we call a "tag".
-
-    Because the plaintext of a suffixed salt cannout be processed until
-    the password is known,  the functions `\X -> hash(X + saltA)` and
-    `\X -> hash(X + saltB)` don't readily admit any nontrivial partial
-    evaluations. Thus suffixed salts could plausibly be something we do
-    want to call a "tag".
-
-    Moreover, colliding these two partial applications is highly implausible,
-    Here, saltA and saltB need to be distinct, thus guaranteeing a difference
-    in the sha256 input message _after_ a choice of any "password" X. Thus
-    by picking two distinct passwords, our hypothetical collsion would
-    would demonstrate two cryptographically distinct collisions.
+    For this and other reasons, when the G3P intentionally makes use of
+    leftover prefixed salt, the length of this leftover is usually 32 bytes
+    long. There is one exception that is only 29 bytes.
 
 [^seguids]:
-    It is sometimes possible to communicate a message via a prepended salt.
+    It is sometimes possible to communicate a message via a prefixed salt.
     This is more or less what self-documenting globally unique identifiers
     (seguids) were invented to do. However, relying on seguids for delivering
     a message to Craig requires more detective work and sophistication on
@@ -855,7 +880,7 @@ domain separation constant in the computation of HMAC's outer pad.
     prefixed seguids from Craig.
 
     The parameters that the G3P calls a "seguid" are actually HMAC keys, and
-    HMAC keys are in effect both prepended before and appended after an input
+    HMAC keys are in effect both prefixed before and suffixed after an input
     message. It is the seguid construct that allows messages to be passed via
     HMAC keys, even though HMAC keys can always be partially evaluated into
     NMAC keys, a.k.a. precomputed HMAC keys. Thus the name was chosen to hint
