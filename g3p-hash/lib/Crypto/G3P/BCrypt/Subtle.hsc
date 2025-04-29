@@ -167,7 +167,6 @@ data BCryptXs = BCryptXs
   , bcryptXs_saltR :: !ByteString
   , bcryptXs_saltZ :: !ByteString -- ^ not subject to maxSaltLength, but that doesn't seem overly relevant
   , bcryptXs_rounds :: !Word32
-  , bcryptXs_implicitNull :: !Bool
   }
 
 data BCryptXsCtr = BCryptXsCtr
@@ -182,7 +181,7 @@ foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs"
     :: CString -> Word16 -> CString -> Word16
     -> CString -> Word16 -> CString -> Word16
     -> CString -> Word16 -> CString -> Word16
-    -> CString -> Word32 -> Word32 -> Bool -> Ptr Word8 -> IO ()
+    -> CString -> Word32 -> Word32 -> Ptr Word8 -> IO ()
 
 foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs_ctr_superround"
   c_bcrypt_xs_ctr_superround
@@ -240,7 +239,7 @@ bcryptXs x = if B.null sZ then "" else unsafePerformIO $ do
                         k0' (len16 k0) s0' (len16 s0)
                         kL' (len16 kL) sL' (len16 sL)
                         kR' (len16 kR) sR' (len16 sR)
-                        sZ' (len32 sZ) rounds implicitNull out')
+                        sZ' (len32 sZ) rounds out')
   where
     k0 = bcryptXs_key0 x
     s0 = bcryptXs_salt0 x
@@ -250,7 +249,6 @@ bcryptXs x = if B.null sZ then "" else unsafePerformIO $ do
     sR = bcryptXs_saltR x
     sZ = bcryptXs_saltZ x
     rounds = bcryptXs_rounds x
-    implicitNull = bcryptXs_implicitNull x
 
 -- | Likely at least somewhat less subtle than the one above, thanks to the addition of a counter.
 
@@ -357,7 +355,6 @@ bcryptRaw_genInputs (truncateKey -> key) (truncateKey -> salt) rounds =
     , bcryptXs_saltR = B.empty
     , bcryptXs_saltZ = bcryptRaw_outputSalt
     , bcryptXs_rounds = rounds
-    , bcryptXs_implicitNull = True
     }
 
 truncateKey :: ByteString -> ByteString

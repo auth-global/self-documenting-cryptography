@@ -92,8 +92,7 @@ G3P_bcrypt_xs
 ( const uint8_t *key0, uint16_t key0bytes, const uint8_t *salt0, uint16_t salt0bytes,
   const uint8_t *keyL, uint16_t keyLbytes, const uint8_t *saltL, uint16_t saltLbytes,
   const uint8_t *keyR, uint16_t keyRbytes, const uint8_t *saltR, uint16_t saltRbytes,
-  const uint8_t *saltZ, uint32_t saltZbytes, uint32_t rounds, bool implicitNull,
-  uint8_t *output );
+  const uint8_t *saltZ, uint32_t saltZbytes, uint32_t rounds, uint8_t *output );
 
 void
 G3P_bcrypt_xs_expand
@@ -101,7 +100,7 @@ G3P_bcrypt_xs_expand
   const uint8_t *key0, uint16_t key0bytes, const uint8_t *salt0, uint16_t salt0bytes,
   const uint8_t *keyL, uint16_t keyLbytes, const uint8_t *saltL, uint16_t saltLbytes,
   const uint8_t *keyR, uint16_t keyRbytes, const uint8_t *saltR, uint16_t saltRbytes,
-  uint32_t rounds, bool implicitNull );
+  uint32_t rounds );
 
 uint32_t
 G3P_bcrypt_xs_ctr_superround
