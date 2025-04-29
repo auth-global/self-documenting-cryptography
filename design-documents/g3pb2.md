@@ -118,6 +118,84 @@ for Eve to carry out a secure obfuscation attack would be to run the entire
 key-stretching process in Fully Homomorphic Encryption, thus maximizing the
 computational overhead inflicted on Craig by Alice and Eve.
 
+# Example Threat Scenarios
+
+In Adversarial Literate Programming, Alice specifies a password hash function,
+Eve steals some hashes, which she wants to give to Craig to crack. Here's
+a few examples where applying self-documenting domain separation via plaintext
+tags to a password hash function can help.
+
+## The Muskian Cybercoup
+
+When Mr. Big Balls parades into your organization's server room and copies all
+of your password hashes, self-documenting tags prevents him from usefully
+giving your password hashes to his cybercriminal buddies at The Com
+without being honest about where those hashes originally came from.
+
+Here, Mr. Big Balls is acting as Eve, and The Com is acting as Craig.
+
+If somebody among The Com were to betray the effort of Mr. Big Balls and report
+the stolen hashes back to your organization, then they'd be acting as a friendly
+Craig.
+
+## The Botnet Cracker
+
+If The Com then decides to use stolen computing resources in an attempt to
+crack your passwords, then there is an unavoidable risk of the computation
+being observed, and the payload given to a security analyst.
+
+Thanks to self-documenting domain separation, the security analyst will be able
+to take The Com's implementation of your password hash algorithm, and from it
+reverse engineer your invitation to contact your organzation about the stolen
+hashes
+
+Here, The Com is acting as Eve, and the stolen computing resource is acting as
+Craig.
+
+Also in this story, the stolen computing resource is acting as an Eve, and the
+security analyst is acting as a friendly Craig.
+
+In this highly adversarial scenario, The Com might consider deploying some kind
+of Homomorphic Encryption to securely hide your tags from the security analyst,
+so it's important to inflict a signficant amount of overhead in this case.
+
+This means that the plaintext of some tag should be required throughout a
+substantial portion of the key-stretching computation, which means that
+argon2 by itself should not be considered sufficient.
+
+Those wishing to use argon2 could use the G3P with a reduced number of rounds
+as a preprocessing and/or postprocessing step in order to avoid tag obscuration
+attacks. Ideally, someday a close analog of argon2 would be available that
+supports carrying a plaintext tag throughout the entire key-stretching process.
+
+## The Professional Cracker
+
+There are certainly legitimate use cases for password cracking. Without the use
+of self-documenting tags to securely enforce the origin of password hashing
+data, many who are involved in legitimate password cracking activities are at
+risk of unknowingly participating in unethical and/or illicit activities.
+
+For example, let's say a corporation outsources legitimate password cracking
+work to a professional who is interested in staying above board. Today's
+password hashing technology does not itself impose any impediment to a corrupt
+IT worker who wishes to commingle outside password hashes into the data being
+forwarded to the professional password cracker.
+
+The best case scenario would be that self-documenting tags have been applied to
+all the legitimate data to be cracked. Self-documenting domain separation
+prevents all outside data from getting in, greatly reducing the scope of abuse
+of legitimate password cracking services.
+
+On the other hand, applying self-documenting domain separation to outside data
+also prevents it from getting cracked by legitimate, professional crackers,
+even if they cannot robustly restrict their efforts to only legitimate data.
+
+In this less-adversarial scenario, an ethical professional should not knowingly
+accept or run any password cracker that incorporates Homomorphic Encryption.
+Thus infliciting the maximum overhead is relatively less important, so
+plaintext tags backed by HMAC or argon2 alone should be good enough in this
+rather limited situation.
+
 # Simplified Overview
 
 ## Iterated HMAC preprocessing
@@ -202,8 +280,8 @@ Neither classic bcrypt nor classic PBKDF2 have any useful synchronization
 points. PHKDF has a synchronization point every round.
 
 PBKDF2 xors the blocks `U 1 ^ U 2 ^ ... ^ U c` to generate its final output
-block. The G3P does the same, but then it derives two cryptographically
-independent keys from the result:
+block. The G3P does the same, but starts at zero, computes one additional round,
+and then derives two cryptographically independent keys from the results:
 
     c = (number of PHKDF rounds, ideally ~20000 or so)
     sumT = T 0 ^ T 1 ^ ... ^ T c
@@ -272,10 +350,10 @@ G3P uses a modified bcrypt algorithm that is very closely based on the classic
 bcrypt. Many existing analyses of bcrypt should apply to this variant with
 minimal need for revision.
 
-To compute the seed, we need `bcryptOutput`, which is one or more binary blobs
-consisting of bcrypt's P-box and S-box interspersed with portions of the long
-tag, with one blob for every super-round. There is one super-round for every
-128 bcrypt rounds, rounded up.
+To compute the seed, we need `bcryptOutput`, which is one or more fixed-length
+>12 kiB binary blobs consisting of bcrypt's P-box and S-box interspersed with
+portions of the bcrypt long tag, with one blob for every super-round. There is
+one super-round for every 128 bcrypt rounds, rounded up.
 
     msg   = ""
     state = (classic bcrypt initial state based on digits of pi)
@@ -284,12 +362,12 @@ tag, with one blob for every super-round. There is one super-round for every
        key0   = HMAC
                  ( BcryptSeguid,
                    "G3Pb2 charlie" + keyB + msg +
-                   ContextTagsB + "KEY0" + DomainTagB )
+                   BcryptContextTags + "KEY0" + BcryptDomainTag )
        msg   += key0
        key1   = HMAC
                  ( BcryptSeguid,
                    "G3Pb2 charlie" + keyB + msg +
-                   ContextTagsB + "KEY1" + DomainTagB )
+                   BcryptContextTags + "KEY1" + BcryptDomainTag )
        msg   += key1
        state := bcryptSuperRound ( state, key0, key1, BcryptLongTag )
        msg   += state
@@ -359,7 +437,8 @@ bcrypt round on top with the modified round on bottom:
 
     S_0  = (state from previous round)
 
-     |   XOR (key0 + BcryptLongTag)
+     |   XOR ( key0 + BcryptLongTag
+     |       + CYCLE("\x00", 4136 - LENGTH(BcryptLongTag)) )
      v
 
     S_1
@@ -371,7 +450,8 @@ bcrypt round on top with the modified round on bottom:
 
     S_2
 
-     |   XOR (key1 + BcryptLongTag)
+     |   XOR ( key1 + BcryptLongTag
+     |       + CYCLE("\x00", 4136 - LENGTH(BcryptLongTag)) )
      v
 
     S_3
@@ -409,8 +489,8 @@ computation, the counter guarantees the following state _will_ be different
 than all previous following states.
 
 Both the original and modified bcrypt have a half-round state initialization
-phase. In the original bcrypt, it runs once per computation. In the modified
-bcrypt, it runs once per super-round.
+phase. In the original bcrypt, it runs at the beginning of every computation.
+In the modified bcrypt, it runs once at the beginning of every super-round.
 
     // original bcrypt
 
@@ -447,20 +527,21 @@ computation from one device to another outside these transitions.
 
 In the middle of a super-round, key0 and key1 would need to be transferred.
 These values must be computed before a super-round can begin, thus a cracker
-could crack these keys directly and would not need to compute any portion of
+could attack these keys directly and would not need to compute any portion of
 the current super-round.
 
 Also, the bcrypt state machine can be run in reverse. There is an efficient
 implementation of BLOWFISH-COEXPAND that will produce a starting state given
 a final state. This computation can be shared across multiple guesses, meaning
 that a cracker can instead attack the final bcrypt state of the previous
-super-round, saving a half-round of bcrypt and more than 12 kilobytes of SHA256
-input processing per guess compared to cracking key0.
+super-round. Compared to cracking key0, this saves a half-round of bcrypt and
+more than 12 kilobytes of SHA256 input processing.
 
 These keys are forgotten as part of the transition between super-rounds, which
-prevents the use of BLOWFISH-COEXPAND to calculate the previous super-round's
-final state. It is this act of forgetting that enables the key-stretching
-ratchet to make progress.
+prevents moving backwards across the XOR steps and prevents moving backwards
+across the call to BCRYPT-EXPAND in the initializing half-round. The act of
+forgetting these keys enables the key-stretching ratchet to make forward
+progress.
 
 There is also an efficient implementation of BLOWFISH-TRANSCODE which takes
 as input any single pair of starting and ending states, and produces the unique
@@ -495,17 +576,16 @@ one output to change. Otherwise, one would have to win an infinite number of
 fair coin flips without losing even once.
 
 In practice, any change in the salt will cause all outputs to be different.
-Colliding a single output requires never losing any of hundreds of fair coin
-flips in a single go. Thus there are a negligible number of collisions that
-will never be found in practice.
+Colliding a single output requires not losing any of hundreds of fair coin
+flips. Thus there are a negligible number of collisions that will never be
+found in practice.
 
 **Corollary**: The mapping from salts to idealized random oracles is
 _almost surely_ injective.
 
 This idealized model is agnostic to how salt is interleaved: every distinct
 interleaving will result in a distinct random oracle, but this naive model
-offers no practical way to distinguish how the salt is interleaved with the
-input.
+offers no way to distinguish how the salt is interleaved with the input.
 
 However this naive view is misleading: practical hash functions usually support
 streaming input. For example, SHA256 uses a compression function that applies
@@ -517,8 +597,8 @@ Even if we assume the compression function is an idealized random oracle, this
 structure reveals that with prefixed salts, finding a single collision on the
 compression function can be enough to produce an infinite family of collisions,
 as a single collision can propagate throughout the rest of the computation.
-This is something that does not happen with suffixed salts. This is inherent
-to any streaming implementation.
+This is something that does not happen with suffixed salts. Some variation of
+this argument is inherent to any streaming implementation.
 
 In the context of SHA256, any prefixed salt can be removed 64 bytes at a time,
 replaced by modifications to the 256-bit state. This is an example of _partial
@@ -597,7 +677,7 @@ hash function such as HMAC-SHA256.
 One could argue that the mapping of prefixed salts to password hash functions
 is also injective in practice. After all, a collision on SHA256 has never been
 publically demonstrated, which might make this argument seem purposeless and
-pendantic.  But I have two responses: firstly, suffixed salts are injective
+pendantic. But I have two responses: firstly, suffixed salts are injective
 in practice in a significantly stronger sense than prefixed salts. Secondly,
 much of the design work around the G3P revolves around understanding and
 controlling partial evaluation!
@@ -637,7 +717,7 @@ a prefixed salt alone.[^seguids]
 On the other hand, prefixed salts are still useful, especially for account
 separation purposes. This ensures that the password hash function has fully
 committed to a particular account before the plaintext of the password can be
-processed. In effect, the password serves as a "tag" relative to the prefixed
+processed. In effect, the password serves as a tag relative to the prefixed
 salt.
 
 This is the reason why the G3P uses "username" as the name of the prefixed
@@ -706,8 +786,8 @@ of mine, Dr. David Doiron, who I had for Optics at the Indiana Academy for
 Science, Mathematics, and Humanities at Ball State University in Indiana.
 
 In retrospect, that class was my introduction to signals and communication
-theory. Even though while I was unravelling this puzzle, I basically thought
-of the plaintext tag as a signal, with the space of cryptographic state changes
+theory. While I was unravelling this puzzle, I basically thought of the
+plaintext tag as a signal, with the space of cryptographic state changes
 as the transmission medium. I thought of a cryptographic hash function as some
 sort of exotic modem capable of guaranteeing the delivery of messages exactly
 in the most relevant situations and incapable of making any other guarantees
@@ -729,7 +809,7 @@ not formalized in my mind, but I'm reasonably confident that time will prove
 that it can be a reasonably deep and fruitful analogy.
 
 For example, the decibel is a logarithmic scale, but is otherwise dimensionless.
-Thus it is sensible and convenient to use decibels to talking about the overhead
+Thus it is sensible and convenient to use decibels to talk about the overhead
 inflicted on Craig by Alice and Eve when secure tag obfuscation attacks are
 carried out via Homomorphic Encryption.
 
@@ -763,80 +843,14 @@ relevant to one's interests unless one is doing something nefarious to Alice,
 that would seem to fit the _de facto_ usage of "woke".
 
 And, in order to be effective, cryptoacoustics will need to impart something
-not unlike an indelible fingerprint or watermark[^unlike-a-watermark] to the
-result. Thus cryptoacoustics is a transmission medium of woke mind viruses
-that cannot be deleted.
-
-# Example Threat Scenarios
-
-## The Muskian Cybercoup
-
-When Mr. Big Balls parades into your organization's server room and copies all
-of your password hashes, cryptoacoustics prevents him from usefully giving your
-password hashes to his cybercriminal buddies at The Com without being honest
-about where those hashes originally came from.
-
-Here, Mr. Big Balls is acting as Eve, and The Com is acting as Craig.
-
-If somebody among The Com were to betray Mr. Big Balls effort and report the
-stolen hashes back to your organization, then they'd be acting as a friendly
-Craig.
-
-## The Botnet Cracker
-
-If The Com then decides to use stolen computing resources in an attempt to
-crack your passwords, then there is an unavoidable risk of the computation
-being observed, and the payload given to a security analyst.
-
-Thanks to cryptoacoustics, the security analyst will be able to take The
-Com's implementation of your password hash algorithm, and from it reverse
-engineer your invitation to contact your organzation about the stolen hashes.
-
-Here, The Com is acting as Eve, and the stolen computing resource is acting as
-Craig.
-
-Also in this story, the stolen computing resource is acting as an Eve, and the
-security analyst is acting as a friendly Craig.
+not unlike an fingerprint or watermark[^unlike-a-watermark] that cannot be
+removed or deleted from the result. Thus cryptoacoustics is a transmission
+medium of indelible woke mind viruses.
 
 As reporting the stolen password hashes back to your organization must be very
 woke indeed, cryptoacoustics is a transmission medium of mind viruses intent on
 zombifying woke Craigs into assisting the counterintelligence goals of your
 organization.
-
-In this highly adversarial scenario, it is important to enhance cryptoacoustic
-advantage by ensuring that the plaintext of some tag is required throughout a
-substantial portion of the key-stretching computation, which means that argon2
-by itself should not be considered sufficient.
-
-Those wishing to use argon2 could use the G3P with a reduced number of rounds
-as a preprocessing and/or postprocessing step in order to avoid tag obscuration
-attacks. Ideally, someday a close analog of argon2 would be available that
-supports carrying a plaintext tag throughout the entire key-stretching process.
-
-## The Professional Cracker
-
-There are certainly legitimate use cases for password cracking. Without the use
-of cryptoacoustics to securely enforce the origin of password hashing data,
-many who are involved in legitimate password cracking activities are at risk
-of unknowingly participating in unethical and/or illicit password cracking
-activities.
-
-For example, let's say a corporation outsources legitimate password cracking
-work to a professional who is interested in staying above board. Today's
-password hashing technology does not itself impose any impediment to another
-corrupt IT worker who wishes to commingle outside password hashes into the data
-being forwarded to the professional password cracker.
-
-The best case scenario is that cryptoacoustic has been applied to all the
-legitimate data to be cracked. This prevents all outside data from getting in,
-greatly reducing the scope of abuse of legitimate password cracking services.
-
-On the other hand, applying self-documenting domain separation to outside data
-also prevents it from getting cracked by legitimate, professional crackers.
-
-In this less-adversarial scenario, trying to maximize cryptoacoustic advantage
-isn't nearly as important. Plaintext tags backed by HMAC or argon2 alone should
-be good enough in this rather limited scenario.
 
 # Deployment Considerations:
 
@@ -1099,7 +1113,7 @@ domain separation constant in the computation of HMAC's outer pad.
     Unlike a watermark, a cryptoacoustic tag is kind of sigil that cannot be
     read directly from a passsword hash, but rather represents a belief about
     its origin, thus preserving plausible deniability. This belief must be
-    correct for that password hash to be both genuine and crackable.  
+    correct for that password hash to be both genuine and crackable.
 
 [^domain-tag-length]:
     This assumes a short domain tag of less than 20 bytes. For example, a
