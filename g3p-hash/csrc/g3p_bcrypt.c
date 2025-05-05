@@ -527,8 +527,6 @@ G3P_Blowfish_expand
  bool implicitNull )
 {
   uint32_t pos;
-  uint32_t datal;
-  uint32_t datar;
 
   pos = 0;
   for (int i = 0; i < G3P_BLF_N + 2; i++) {
@@ -540,13 +538,8 @@ G3P_Blowfish_expand
   }
 
   pos = 0;
-  datal = G3P_cycle(salt, saltbytes, &pos);
-  datar = G3P_cycle(salt, saltbytes, &pos);
-  G3P_Blowfish_encipher(c, &datal, &datar);
-  c->P[0] = datal;
-  c->P[1] = datar;
-
-  for (int i = 2; i < G3P_BLF_N + 2; i += 2) {
+  uint32_t datal = 0, datar = 0;
+  for (int i = 0; i < G3P_BLF_N + 2; i += 2) {
     datal ^= G3P_cycle(salt, saltbytes, &pos);
     datar ^= G3P_cycle(salt, saltbytes, &pos);
     G3P_Blowfish_encipher(c, &datal, &datar);
@@ -565,7 +558,132 @@ G3P_Blowfish_expand
       c->S[i][k + 1] = datar;
     }
   }
-};
+}
+
+void
+G3P_Blowfish_revexpand
+(G3P_blf_ctx *c,
+ const uint8_t *key, uint16_t keybytes,
+ const uint8_t *salt, uint16_t saltbytes,
+ bool implicitNull )
+{
+  uint32_t pos;
+  uint32_t datal;
+  uint32_t datar;
+
+  datal = c->S[3][254];
+  datar = c->S[3][255];
+  pos = saltbytes == 0 ? 0 : 4160 % saltbytes;
+  for (int i = 3; i >= 0; i--) {
+    for (int k = 254; k >= 0; k -= 2) {
+      G3P_Blowfish_decipher(c, &datal, &datar);
+
+      c->S[i][k] = datal;
+      c->S[i][k + 1] = datar;
+
+      pos = saltbytes == 0 ? 0 : (72 + 1024*i + 4*k) % saltbytes;
+      datal ^= G3P_cycle(salt, saltbytes, &pos);
+      datar ^= G3P_cycle(salt, saltbytes, &pos);
+    }
+  }
+
+  for (int i = G3P_BLF_N; i >= 0; i -= 2) {
+    G3P_Blowfish_decipher(c, &datal, &datar);
+
+    c->P[i] = datal;
+    c->P[i + 1] = datar;
+
+    pos = saltbytes == 0 ? 0 : (i * 4) % saltbytes;
+    datal ^= G3P_cycle(salt, saltbytes, &pos);
+    datar ^= G3P_cycle(salt, saltbytes, &pos);
+  }
+
+  pos = 0;
+  for (int i = 0; i < G3P_BLF_N + 2; i++) {
+    if (implicitNull) {
+      c->P[i] ^= G3P_cycleWx00(key, keybytes, &pos);
+    } else {
+      c->P[i] ^= G3P_cycle(key, keybytes, &pos);
+    }
+  }
+}
+
+
+void
+G3P_Blowfish_Pbox_xor
+(G3P_blf_ctx *c,
+ const uint8_t *key, uint16_t keybytes,
+ bool implicitNull )
+{
+  if (c == NULL || key == NULL || keybytes == 0) return;
+  uint32_t pos = 0;
+  for (int i = 0; i < G3P_BLF_N + 2; i++) {
+    if (implicitNull) {
+      c->P[i] ^= G3P_cycleWx00(key, keybytes, &pos);
+    } else {
+      c->P[i] ^= G3P_cycle(key, keybytes, &pos);
+    }
+  }
+}
+
+void
+G3P_Blowfish_transcode
+(const uint8_t ain[G3P_BLF_CTX_LENGTH],
+ const uint8_t zin[G3P_BLF_CTX_LENGTH],
+ uint8_t transCode[G3P_BLF_CTX_LENGTH])
+{
+  G3P_blf_ctx c,z;
+
+  G3P_Blowfish_decodestate(ain,&c);
+  G3P_Blowfish_decodestate(zin,&z);
+
+  uint32_t datal = 0, datar = 0;
+
+  for (int i = 0; i < G3P_BLF_N + 2; i += 2) {
+    G3P_Blowfish_encipher(&c, &datal, &datar);
+
+    datal ^= z.P[i];
+    datar ^= z.P[i+1];
+
+    *(transCode++) = (uint8_t) ((datal >> 24) & 0xFF);
+    *(transCode++) = (uint8_t) ((datal >> 16) & 0xFF);
+    *(transCode++) = (uint8_t) ((datal >>  8) & 0xFF);
+    *(transCode++) = (uint8_t) ( datal        & 0xFF);
+    *(transCode++) = (uint8_t) ((datar >> 24) & 0xFF);
+    *(transCode++) = (uint8_t) ((datar >> 16) & 0xFF);
+    *(transCode++) = (uint8_t) ((datar >>  8) & 0xFF);
+    *(transCode++) = (uint8_t) ( datar        & 0xFF);
+
+    c.P[i] = datal = z.P[i];
+    c.P[i] = datar = z.P[i+1];
+  }
+
+  for (int i = 0; i < 4; i++) {
+    for (int k = 0; k < 256; k += 2) {
+      G3P_Blowfish_encipher(&c, &datal, &datar);
+
+      datal ^= z.S[i][k];
+      datar ^= z.S[i][k+1];
+
+      *(transCode++) = (uint8_t) ((datal >> 24) & 0xFF);
+      *(transCode++) = (uint8_t) ((datal >> 16) & 0xFF);
+      *(transCode++) = (uint8_t) ((datal >>  8) & 0xFF);
+      *(transCode++) = (uint8_t) ( datal        & 0xFF);
+      *(transCode++) = (uint8_t) ((datar >> 24) & 0xFF);
+      *(transCode++) = (uint8_t) ((datar >> 16) & 0xFF);
+      *(transCode++) = (uint8_t) ((datar >>  8) & 0xFF);
+      *(transCode++) = (uint8_t) ( datar        & 0xFF);
+
+      c.S[i][k] = datal = z.S[i][k];
+      c.S[i][k + 1] = datar = z.S[i][k+1];
+    }
+  }
+  explicit_bzero(&c, sizeof(c));
+  explicit_bzero(&z, sizeof(z));
+  explicit_bzero(&datal, sizeof(datal));
+  explicit_bzero(&datar, sizeof(datar));
+}
+
 
 // Re-implementation of ECB-mode * 64 encryption
 void
@@ -619,6 +737,47 @@ G3P_bcrypt_xs_output
   }
   explicit_bzero(&datal, sizeof(datal));
   explicit_bzero(&datar, sizeof(datar));
+}
+
+// ECB-mode * 64 decryption,
+int
+G3P_bcrypt_xs_revoutput
+( const G3P_blf_ctx *state,
+  const uint8_t *output, uint32_t outputbytes,
+  uint8_t *saltZ )
+{
+  if (  state == NULL || output == NULL || saltZ == NULL ||
+	outputbytes == 0 || outputbytes % 8 != 0 ) return 1;
+
+  uint32_t blocks = outputbytes >> 3;
+  uint32_t datal, datar;
+
+  for(uint32_t i = 0; i < blocks; i++) {
+    datal
+      = (uint32_t)output[8*i    ] << 24
+      | (uint32_t)output[8*i + 1] << 16
+      | (uint32_t)output[8*i + 2] << 8
+      | (uint32_t)output[8*i + 3];
+    datar
+      = (uint32_t)output[8*i + 4] << 24
+      | (uint32_t)output[8*i + 5] << 16
+      | (uint32_t)output[8*i + 6] << 8
+      | (uint32_t)output[8*i + 7];
+    for(int j = 0; j < 64; j++) {
+      G3P_Blowfish_decipher(state, &datal, &datar);
+    }
+    saltZ[8*i    ] = (uint8_t)((datal >> 24) & 0xff);
+    saltZ[8*i + 1] = (uint8_t)((datal >> 16) & 0xff);
+    saltZ[8*i + 2] = (uint8_t)((datal >>  8) & 0xff);
+    saltZ[8*i + 3] = (uint8_t)( datal        & 0xff);
+    saltZ[8*i + 4] = (uint8_t)((datar >> 24) & 0xff);
+    saltZ[8*i + 5] = (uint8_t)((datar >> 16) & 0xff);
+    saltZ[8*i + 6] = (uint8_t)((datar >>  8) & 0xff);
+    saltZ[8*i + 7] = (uint8_t)( datar        & 0xff);
+  }
+  explicit_bzero(&datal, sizeof(datal));
+  explicit_bzero(&datar, sizeof(datar));
+  return 1;
 }
 
 uint32_t

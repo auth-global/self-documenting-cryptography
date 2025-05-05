@@ -60,10 +60,29 @@ typedef struct BlowfishContext {
 void G3P_Blowfish_encipher(const G3P_blf_ctx *, uint32_t *, uint32_t *);
 void G3P_Blowfish_decipher(const G3P_blf_ctx *, uint32_t *, uint32_t *);
 void G3P_Blowfish_initstate(G3P_blf_ctx *);
-void G3P_Blowfish_expand(G3P_blf_ctx *c,
-                         const uint8_t *key, uint16_t keybytes,
-                         const uint8_t *salt, uint16_t saltbytes,
-                         bool implicitNull);
+
+/* Compared to what is in the design documents, this combines
+ * XOR (key) with BLOWFISH-EXPAND (salt)
+ */
+void G3P_Blowfish_expand
+(G3P_blf_ctx *c,
+ const uint8_t *key, uint16_t keybytes,
+ const uint8_t *salt, uint16_t saltbytes,
+ bool implicitNull);
+
+void
+G3P_Blowfish_revexpand
+(G3P_blf_ctx *c,
+ const uint8_t *key, uint16_t keybytes,
+ const uint8_t *salt, uint16_t saltbytes,
+ bool implicitNull );
+
+void
+G3P_Blowfish_transcode
+(const uint8_t ain[G3P_BLF_CTX_LENGTH],
+ const uint8_t zin[G3P_BLF_CTX_LENGTH],
+ uint8_t transCode[G3P_BLF_CTX_LENGTH]);
+
 uint32_t
 G3P_Blowfish_expandCtr
 ( G3P_blf_ctx *const c,
@@ -118,6 +137,18 @@ G3P_bcrypt_xs_ctr_expand
 
 void
 G3P_bcrypt_xs_output
-( const G3P_blf_ctx * state,
+( const G3P_blf_ctx *state,
   const uint8_t *saltZ, uint32_t saltZbytes,
   uint8_t *output );
+
+int
+G3P_bcrypt_xs_revoutput
+( const G3P_blf_ctx *state,
+  const uint8_t *output, uint32_t outputbytes,
+  uint8_t *saltZ );
+
+void
+G3P_Blowfish_Pbox_xor
+(G3P_blf_ctx *c,
+ const uint8_t *key, uint16_t keybytes,
+ bool implicitNull );
