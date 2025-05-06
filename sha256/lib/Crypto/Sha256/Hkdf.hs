@@ -47,12 +47,44 @@ import qualified Crypto.HashString as HS
 import           Crypto.Sha256.Hmac
 import           Crypto.Sha256.Hkdf.Subtle
 
+-- | @hkdf salt ikm info len@ returns a hash of the given length in bytes.
+--   There are two useful partial applications, @hkdf salt@ and @hkdf salt ikm@.
+--   This function has been implemented in a point-free style so that these
+--   partial applications do actually perform partial evaluation.
+--
+--   Exactly like 'hmac', each reused application of @hkdf salt@ will save 2
+--   SHA256 block computations for keys up to 64 bytes long, or 4 blocks for
+--   keys 65-119 bytes long with one additional block computation for every 64
+--   bytes of key thereafter.
+--
+--   Each reused application of @hkdf salt ikm@ will save everything mentioned
+--   above, plus an additional 4 blocks for an ikm that is up to 55 bytes long,
+--   plus one additional block for every 64 bytes of ikm thereafter.
+--
+--   This results in a precomputed pseudorandom key. From this point, each
+--   output block requires 2 additional SHA256 block computations if the info
+--   tag is 0-22 bytes long, and one additional SHA256 block computation per
+--   output block for every 64 bytes of tag thereafter. Each output block is
+--   32 bytes long.
+--
+--   According to RFC 5869, hkdf-sha256 is only defined for up to 255 output
+--   blocks, resulting in a maximum output length of 8160 bytes. However, this
+--   implementation extends the definition to arbitrary output lengths by
+--   wrapping the output counter. According to NIST SP 800-108, this mode of
+--   operation is not recommended for more than 256 blocks of output, resulting
+--   in a maximum output length of 8196 bytes.
+--
+--   Note that if you request two outputs with the same parameters other than
+--   length, then the shorter output will be a prefix of the longer output.
+
 hkdf :: HmacKeyPlain -- ^ salt
      -> ByteString -- ^ initial keying material
      -> ByteString -- ^ info tag
      -> Int -- ^ desired output length
      -> ByteString
 hkdf = (fmap . fmap . fmap . fmap $ HS.toByteString) hkdf'
+
+-- | variation of 'hkdf' that returns a 'HashString'
 
 hkdf' :: HmacKeyPlain -- ^ salt
       -> ByteString -- ^ initial keying material
@@ -63,12 +95,18 @@ hkdf' = (fmap . fmap . fmap $ \gen len ->
            mconcat (HS.takeBytes len (hkdfGen_toList' gen))
         ) hkdfGen
 
+-- | variation of 'hkdf' that returns an unbounded stream of 32-byte output
+--   blocks.
+
 hkdfList
   :: HmacKeyPlain -- ^ salt
   -> ByteString -- ^ initial keying material
   -> ByteString -- ^ info tag
   -> [ByteString]
 hkdfList = (fmap . fmap . fmap $ hkdfGen_toList) hkdfGen
+
+-- | variation of 'hkdf' that returns an unbounded stream of 32-byte output
+--   blocks as 'HashString's
 
 hkdfList'
   :: HmacKeyPlain -- ^ salt
@@ -77,6 +115,8 @@ hkdfList'
   -> [HashString]
 hkdfList' = (fmap . fmap . fmap $ hkdfGen_toList') hkdfGen
 
+-- | variation of 'hkdf' that returns a plain-old-data representation of
+--   the output generator.
 
 hkdfGen
   :: HmacKeyPlain -- ^ salt
