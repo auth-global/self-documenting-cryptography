@@ -6,42 +6,45 @@
 -- Copyright:   (c) 2024 Auth Global
 -- License:     Apache2
 --
---    A very minimal binding to the core of the bcrypt algorithm, adapted from
---    OpenBSD's implementation. The Global Password Prehash Protocol version
---    G3Pb1 cannot be implemented in terms of standard bcrypt interfaces for
---    several reasons:
+-- A very minimal binding to the core of the bcrypt algorithm, adapted from
+-- OpenBSD's implementation. The Global Password Prehash Protocol version
+-- G3Pb1 cannot be implemented in terms of standard bcrypt interfaces for
+-- several reasons:
 --
---    1.  Standard bcrypt hashes are truncated to 23 bytes.  The G3P depends
---        on all 24 output bytes.
+-- 1.  Standard bcrypt hashes are truncated to 23 bytes.  The G3P depends
+--     on all 24 output bytes.
 --
---    2.  Standard bcrypt must specify a number of rounds that is a power of
---        two. The G3P allows any number of rounds between 1 and 2^32 inclusive.
+-- 2.  Standard bcrypt must specify a number of rounds that is a power of
+--     two. The G3P allows any number of rounds between 1 and 2^32 inclusive.
 --
---    3.  the G3P needs unimpeded access to the full 72 byte password input.
---        This is not doable with all bcrypt variants.
+-- 3.  the G3P needs unimpeded access to the full 72 byte password input.
+--     This is not doable with all bcrypt variants.  Furthermore, the G3P
+--     must be able to use null bytes without truncating everything after
+--     that null byte, which is not doable with any standard version of bcrypt.
+--     Futhermore, Version 2 requires the use of 4168-byte passwords.
 --
---    4.  Standard bcrypt limits salt length to 16 bytes. Version 1 of the G3P
---        depends on 72 byte salt parameters, and Version 2 depends on 4168 byte
---        salts.
+-- 4.  Standard bcrypt limits salt length to 16 bytes. Version 1 of the G3P
+--     depends on 72 byte salt parameters, and Version 2 depends on 4168 byte
+--     salts.
 --
---    5.  In addition to the standard salt parameter, Version 2 of the G3P
---        depends on two additional 4168 byte salt parameters which are
---        assumed to be filled with null bytes by standard bcrypt.
+-- 5.  In addition to the standard salt parameter, Version 2 of the G3P
+--     depends on two additional 4168 byte salt parameters which are
+--     assumed to be filled with null bytes by standard bcrypt.
 --
---    6.  G3Pb2 also implements a counter at the start of the excess salt
+-- 6.  G3Pb2 also implements a counter at the start of the excess salt
 --
---    For this reason, this binding completely removes the code for handling
---    unix-style bcrypt hashes, which has repeatedly proven problematic. One
---    of the major design motifs of the G3P is to replace this cruft with PHKDF,
---    which is intended to be bulletproof.
+-- For this reason, this binding removed and then eventually reimplemented
+-- the code for handling unix-style bcrypt hashes, which has repeatedly proven
+-- problematic. One of the major design motifs of the G3P is to replace this
+-- cruft with PHKDF, which is intended to be bulletproof.
 --
---    Note that this binding doesn't (currently?) support the @2a@ and @2x@
---    variants.  On the other hand, at least the 2a variant depends on
---    overflow, which as undefined behavior in C is allowed to compile to
---    whatever it wants... so there might be multiple variants of the @2a@
---    "variant" of bcrypt floating around out there, depending on particular
---    C implementations and possibly even specific to architectures, compiler
---    flags, and versions
+-- Note that this binding doesn't (currently?) support the @2a@ and @2x@
+-- variants.  On the other hand, at least the 2a variant depends on overflow.
+-- This is undefined behavior in C, thus is technically allowed to compile to
+-- whatever it wants... so there might be multiple variants of the @2a@
+-- "variant" of bcrypt floating around out there, depending on particular
+-- C implementations and possibly even specific to architectures, compiler
+-- flags, and versions.
 --
 -------------------------------------------------------------------------------
 
@@ -99,7 +102,7 @@ bcrypt key saltString =
 --   hash.
 
 bcrypt_formatSaltString
-   :: Char -- ^ Variant, must be @\'b\'@ for now
+   :: Char -- ^ Variant, must be @\'b\'@ or @\'y\'@
    -> Word8 -- ^ Cost factor, must be between 4 and 31 inclusive
    -> ByteString -- ^ Binary salt, must be 16 bytes long
    -> ByteString -- ^ Binary hash, must be 0 or 23 bytes long
@@ -108,7 +111,7 @@ bcrypt_formatSaltString variant cost salt hash
   | B.length salt /= 16 = Nothing
   | B.length hash `notElem` [0,23] = Nothing
   | not ( 4 <= cost && cost <= 31 ) = Nothing
-  | variant `notElem` ['b'] = Nothing
+  | variant `notElem` ['b', 'y'] = Nothing
   | otherwise =
       Just (B.concat [ "$2", B.singleton (c2w variant),
                         "$", x, y, "$",
@@ -122,15 +125,15 @@ toDigit a = B.singleton (fromIntegral a + c2w '0')
 
 -- | Given a salt string (e.g. "@\$2b\$12\$...@") in the OpenBSD format,
 --   returns (variant, work cost, binary salt, binary hash). The only supported
---   variant is currently @\'b\'@. The cost must be between 4 and 31, and the
---   input string must be either 29 or 60 bytes long, depending on whether the
---   salt string includes a password hash.
+--   variants are currently @\'b\'@ and @\'y\'@. The cost must be between 4 and
+--   31, and the input string must be either 29 or 60 bytes long, depending on
+--   whether the salt string includes a password hash.
 
 bcrypt_parseSaltString :: ByteString -> Maybe (Char, Word8, ByteString, ByteString)
 bcrypt_parseSaltString salt
   | not (B.length salt `elem` [29, 60]) = Nothing
   | not ("$2" `B.isPrefixOf` salt
-         && w2c variant `elem` [ 'b' ]
+         && w2c variant `elem` [ 'b', 'y' ]
          && B.index salt 3 == c2w '$' ) = Nothing
   | not (  Char.isDigit (w2c (B.index salt 4))
         && Char.isDigit (w2c (B.index salt 5))

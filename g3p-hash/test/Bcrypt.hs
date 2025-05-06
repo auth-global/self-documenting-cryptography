@@ -21,8 +21,7 @@ tests =
       ]
   ]
   where
-    run (pass,salt) =  bcrypt pass (B.take 29 salt') @?= Just salt'
-      where salt' = "$2b" <> B.drop 3 salt
+    run (pass,salt) =  bcrypt pass (B.take 29 salt) @?= Just salt
     runRef (pass,salt) = hashPassword pass (B.take 29 salt) @?= Just salt
 
 -- test vectors copied from
@@ -113,22 +112,22 @@ testVectors =
     ),
     (
         "U*U",
-        "$2a$05$CCCCCCCCCCCCCCCCCCCCC.E5YPO9kmyuRGyh0XouQYb4YMJKvyOeW"
+        "$2y$05$CCCCCCCCCCCCCCCCCCCCC.E5YPO9kmyuRGyh0XouQYb4YMJKvyOeW"
     ),
     (
         "U*U*",
-        "$2a$05$CCCCCCCCCCCCCCCCCCCCC.VGOzA784oUp/Z0DY336zx7pLYAy0lwK"
+        "$2y$05$CCCCCCCCCCCCCCCCCCCCC.VGOzA784oUp/Z0DY336zx7pLYAy0lwK"
     ),
     (
         "U*U*U",
-        "$2a$05$XXXXXXXXXXXXXXXXXXXXXOAcXxm9kjPGEMsLznoKqmqw7tc8WCx4a"
+        "$2y$05$XXXXXXXXXXXXXXXXXXXXXOAcXxm9kjPGEMsLznoKqmqw7tc8WCx4a"
     ),
     (
         B.concat
           [ "0123456789abcdefghijklmnopqrstuvwxyz"
           , "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
           , "chars after 72 are ignored" ],
-        "$2a$05$abcdefghijklmnopqrstuu5s2v8.iXieOjg/.AySBTTZIIVFJeBui"
+        "$2y$05$abcdefghijklmnopqrstuu5s2v8.iXieOjg/.AySBTTZIIVFJeBui"
     ),
     (
         B.concat
@@ -139,11 +138,11 @@ testVectors =
           , "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
           , "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
           , "chars after 72 are ignored as usual" ],
-        "$2a$05$/OK.fbVrR/bpIqNJ5ianF.swQOIzjOiJ9GHEPuhEkvqrUyvWhEMx6"
+        "$2y$05$/OK.fbVrR/bpIqNJ5ianF.swQOIzjOiJ9GHEPuhEkvqrUyvWhEMx6"
     ),
     (
         "\xa3",
-        "$2a$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq"
+        "$2y$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq"
     ),
     (
         "pass\x00word",

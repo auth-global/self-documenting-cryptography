@@ -7,9 +7,7 @@
 -- License:     Apache2
 --
 -------------------------------------------------------------------------------
-
-{- |
-
+{-|
 Bcrypt with an excessive amount of freedom and salt, appropriate for
 our excessively salty era. This module exports bindings that are
 potentially cryptographically unsafe to lower-level functions written in C.
@@ -53,8 +51,11 @@ of bcrypt-xs-ctr is to add enough restrictions to how these transition codes
 are chosen and used to tame excessively long tags and keep everything secure.
 
 The first and safest recommendation is to include the excess salt in the
-derivation of other inputs to bcrypt, thus enforcing the requirement
-that the tags be chosen before the inputs are examined.
+derivation of other inputs to bcrypt, thus enforcing the requirement that the
+tags be chosen before the inputs are examined. For example, the G3P integration
+performs local commitments to parts of the long tag, and the entire long tag is
+intended to be committed to before the beginning of the PHKDF key-stretching
+phase.
 
 As a fallback, the bcryptXsCtrSuperRound has a couple of design features that
 somewhat naively attempt to address this issue:
@@ -66,12 +67,14 @@ somewhat naively attempt to address this issue:
 
     (This argument assumes @length key0 + length key1 <= 72@ bytes long)
 
-2.  The first N bytes of the p-box are protected by the function name, which
-    exists primarily to prohibit nearly all possible transition codes, to
-    ensure the firt N bytes of the transition code aren't under any possible
-    control of external input.
+2.  Except for the very first bcrypt-state XOR operation of a superround in
+    the initial call to @expand@, the first N bytes of the P-box are protected
+    by key0, key1, the function name, and the counter, and thus outside the
+    direct control of the long tag. This also serves to restrict the space of
+    possible bcrypt-state transitions by prohibiting almost all of them within
+    the context of a single computation.
 
-    (This argument assumes @length name == N@)
+    (This argument assumes @length key0 == length key1 == length name == N@)
 
 3.  Every bcrypt round (a miniround within the superround) repeats the same
     4168 - N external bytes in four different places, each in the same relative
