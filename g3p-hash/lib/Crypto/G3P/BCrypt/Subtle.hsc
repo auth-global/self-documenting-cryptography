@@ -130,10 +130,11 @@ module Crypto.G3P.BCrypt.Subtle
   , base64Decode
   , BlowfishContextRef(..)
   , blowfishInit
-  , blowfishEncode
-  , blowfishDecode
-  , blowfishExpand
-  , blowfishRevexpand
+  , blowfishEncodeRef
+  , blowfishDecodeRef
+  , blowfishExpandRef
+  , blowfishRevexpandRef
+  , blowfishEncryptECB64Ref
   , blowfishEncryptECB64
   ) where
 
@@ -191,9 +192,9 @@ data BCryptXsCtr = BCryptXsCtr
 
 foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs"
   c_bcrypt_xs
-    :: CString -> Word16 -> CString -> Word16
-    -> CString -> Word16 -> CString -> Word16
-    -> CString -> Word16 -> CString -> Word16
+    :: CString -> Word32 -> CString -> Word32
+    -> CString -> Word32 -> CString -> Word32
+    -> CString -> Word32 -> CString -> Word32
     -> CString -> Word32 -> Word32 -> Ptr Word8 -> IO ()
 
 foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs_ctr_superround"
@@ -223,10 +224,12 @@ instance Storable BlfCtx where
   alignment _ = 8
   sizeOf _  = #{size G3P_blf_ctx}
 
+newtype BlowfishContext = BlowfishContext { unBlowfishContext :: ForeignPtr BlfCtx }
+
 newtype BlowfishContextRef st = BlowfishContextRef { unBlowfishContextRef :: ForeignPtr BlfCtx }
 
-blowfishInit :: ST s (BlowfishContextRef s)
-blowfishInit =
+blowfishInitRef :: ST s (BlowfishContextRef s)
+blowfishInitRef =
   unsafeIOToST $ do
     fp <- mallocForeignPtr
     withForeignPtr fp $ \p -> do
@@ -283,14 +286,14 @@ foreign import capi "g3p_bcrypt.h G3P_Blowfish_encodestate"
 --   code trivially allows full control over the resulting state, as
 --   illustrated by 'blowfishTranscode'.
 
-blowfishExpand
+blowfishExpandRef
   :: BlowfishContextRef s
   -> Bool  -- ^ does the key have an implicit null byte?
   -> ByteString -- ^ key to be xor'ed into the P-box
   -> ByteString -- ^ salt to be encrypted via blowfish
   -> ST s ()
-blowfishExpand (BlowfishContextRef ctx) !implicitNull
-               (B.take 72 -> key) (B.take 4168 -> salt) =
+blowfishExpandRef (BlowfishContextRef ctx) !implicitNull
+                  (B.take 72 -> key) (B.take 4168 -> salt) =
   unsafeIOToST $ do
     withForeignPtr ctx $ \xp ->
       myUseAsCString key $ \kp ->
@@ -302,8 +305,8 @@ blowfishExpand (BlowfishContextRef ctx) !implicitNull
 foreign import capi "g3p_bcrypt.h G3P_Blowfish_expand"
   c_blowfish_expand
     :: Ptr BlfCtx
-    -> CString -> Word16
-    -> CString -> Word16
+    -> CString -> Word32
+    -> CString -> Word32
     -> Bool -> IO ()
 
 -- | a reverse blowfish-expand, then XOR.  Undoes the action of
@@ -315,14 +318,14 @@ foreign import capi "g3p_bcrypt.h G3P_Blowfish_expand"
 --   and illustrates the downside of transferring a bcryptXsCtr computation
 --   in the middle of a super round.
 
-blowfishRevexpand
+blowfishRevexpandRef
   :: BlowfishContextRef s
   -> Bool  -- ^ does the key have an implicit null byte?
   -> ByteString -- ^ key to be xor'ed into the P-box
   -> ByteString -- ^ salt to be encrypted via blowfish
   -> ST s ()
-blowfishRevexpand (BlowfishContextRef ctx) !implicitNull
-                  (B.take 72 -> key) (B.take 4168 -> salt) =
+blowfishRevexpandRef (BlowfishContextRef ctx) !implicitNull
+                     (B.take 72 -> key) (B.take 4168 -> salt) =
   unsafeIOToST $ do
     withForeignPtr ctx $ \xp ->
       myUseAsCString key $ \kp ->
@@ -334,8 +337,8 @@ blowfishRevexpand (BlowfishContextRef ctx) !implicitNull
 foreign import capi "g3p_bcrypt.h G3P_Blowfish_revexpand"
   c_blowfish_revexpand
     :: Ptr BlfCtx
-    -> CString -> Word16
-    -> CString -> Word16
+    -> CString -> Word32
+    -> CString -> Word32
     -> Bool -> IO ()
 
 -- | given a desired starting state and ending state, this function produces
@@ -367,10 +370,89 @@ foreign import capi "g3p_bcrypt.h G3P_Blowfish_transcode"
     -> IO ()
 
 -- | Encrypt a short-ish string using a blowfish context as the key
---   in Electronic Codebook (ECB) mode iterated 64 times.
+--   in Electronic Codebook (ECB) mode iterated 64 times. This does
+--   not mutate the blowfish state.
 
-blowfishEncryptECB64 :: BlowfishContextRef s -> ByteString -> ST s ByteString
-blowfishEncryptECB64 (BlowfishContextRef ctx) str =
+blowfishEncryptECB64Ref :: BlowfishContextRef s -> ByteString -> ST s ByteString
+blowfishEncryptECB64Ref (BlowfishContextRef ctx) str =
+  unsafeIOToST $ do
+    withForeignPtr ctx $ \p -> do
+      myUseAsCString str $ \inp -> do
+        B.create len $ \outp -> do
+          c_bcrypt_xs_output p inp (fromIntegral len) (castPtr outp)
+  where
+    len = B.length str
+
+foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs_output"
+  c_bcrypt_xs_output
+    :: Ptr BlfCtx
+    -> CString
+    -> Word32
+    -> CString
+    -> IO ()
+
+-- | Unsafely creates a mutable reference of a pure value without copying it.
+--   This is entirely safe to use if you never mutate the reference, or if you
+--   are guaranteed to never refer to the pure value again. Otherwise you'll
+--   break Haskell's referential transparency, thus inhibiting your ability to
+--   algebraically reason about the behavior of a Haskell program.
+blowfishUnsafeThaw :: BlowfishContext -> BlowfishContextRef s
+blowfishUnsafeThaw (BlowfishContext x) = BlowfishContextRef x
+
+blowfishEncryptECB64 :: BlowfishContext -> ByteString -> ByteString
+blowfishEncryptECB64 ctx str =
+  runST $ blowfishEncryptECB64Ref (blowfishUnsafeThaw ctx) str
+
+blowfishEncryptECB64Ref :: BlowfishContextRef s -> ByteString -> ST s ByteString
+blowfishEncryptECB64Ref (BlowfishContextRef ctx) str =
+  unsafeIOToST $ do
+    withForeignPtr ctx $ \p -> do
+      myUseAsCString str $ \inp -> do
+        B.create len $ \outp -> do
+          c_bcrypt_xs_output p inp (fromIntegral len) (castPtr outp)
+  where
+    len = B.length str
+
+foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs_output"
+  c_bcrypt_xs_output
+    :: Ptr BlfCtx
+    -> CString
+    -> Word32
+    -> CString
+    -> IO ()
+
+-- | Decrypt a short-ish string using a blowfish context as the key in
+--   Electronic Codebook (ECB) mode iterated 64 times. This string must be an
+--   exact multiple of 8. This routine does not mutate the blowfish state.
+
+blowfishDecryptECB64Ref :: BlowfishContextRef s -> ByteString -> ST s (Maybe ByteString)
+blowfishDecryptECB64Ref (BlowfishContextRef ctx) str =
+  | len `mod` 8 /= 0 =
+    return Nothing
+  | otherwise =
+    unsafeIOToST $ do
+      withForeignPtr ctx $ \p -> do
+        myUseAsCString str $ \inp -> do
+          Just <$> B.create len $ \outp -> do
+            _ <- c_bcrypt_xs_revoutput p inp (fromIntegral len) (castPtr outp)
+	    return ()
+  where
+    len = B.length str
+
+foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs_revoutput"
+  c_bcrypt_xs_revoutput
+    :: Ptr BlfCtx
+    -> CString
+    -> Word32
+    -> CString
+    -> IO ()
+
+blowfishDecryptECB64 :: BlowfishContext -> ByteString -> Maybe ByteString
+blowfishDecryptECB64 ctx str =
+  runST $ blowfishDecryptECB64Ref (blowfishUnsafeThaw ctx) str
+
+blowfishEncryptECB64Ref :: BlowfishContextRef s -> ByteString -> ST s ByteString
+blowfishEncryptECB64Ref (BlowfishContextRef ctx) str =
   unsafeIOToST $ do
     withForeignPtr ctx $ \p -> do
       myUseAsCString str $ \inp -> do
@@ -410,7 +492,7 @@ bcryptXsCtr_outputLength = (#const G3P_BLF_CTX_LENGTH)
 --   lightly generalized bcryptRaw.
 --
 --   This was the starting point for 'bcryptXsCtrSuperRound' and 'bcryptXsFree'
-{-
+
 bcryptXs :: BCryptXs -> ByteString
 bcryptXs x = if B.null sZ then "" else unsafePerformIO $ do
   myUseAsCString k0 $ \k0' -> do
@@ -422,33 +504,12 @@ bcryptXs x = if B.null sZ then "" else unsafePerformIO $ do
               myUseAsCString sZ $ \sZ' -> do
                 B.create (B.length sZ) $ \out' -> do
                     (c_bcrypt_xs
-                        k0' (len16 k0) s0' (len16 s0)
-                        kL' (len16 kL) sL' (len16 sL)
-                        kR' (len16 kR) sR' (len16 sR)
-                        sZ' (len32 sZ) rounds out')
+                        k0' (len k0) s0' (len s0)
+                        kL' (len kL) sL' (len sL)
+                        kR' (len kR) sR' (len sR)
+                        sZ' (len sZ) rounds out')
   where
-    k0 = bcryptXs_key0 x
-    s0 = bcryptXs_salt0 x
-    kL = bcryptXs_keyL x
-    sL = bcryptXs_saltL x
-    kR = bcryptXs_keyR x
-    sR = bcryptXs_saltR x
-    sZ = bcryptXs_saltZ x
-    rounds = bcryptXs_rounds x
--}
-
-bcryptXs :: BCryptXs -> ByteString
-bcryptXs x =
-  runST $ do
-    ctx <- blowfishInit
-    blowfishExpand ctx True k0 s0
-    -- FIXME: support more than 2^31 rounds on 32-bit platforms
-    sequence_ . replicate (fromIntegral rounds + 1) $ do
-      blowfishExpand ctx True kL sL
-      blowfishExpand ctx False kR sR
-    blowfishEncryptECB64 ctx sZ
-    -- FIXME: explicit_bzero the context
-  where
+    len = fromIntegral . B.length
     k0 = bcryptXs_key0 x
     s0 = bcryptXs_salt0 x
     kL = bcryptXs_keyL x
@@ -482,12 +543,6 @@ bcryptXsCtrSuperRound x tagPos rounds ctr mst = unsafePerformIO $ do
     tt = bcryptXsCtr_tag x
     nn = bcryptXsCtr_name x
     st = maybe "" bcryptState_toByteString mst
-
-maxLen16 :: Int
-maxLen16 = fromIntegral (maxBound :: Word16)
-
-len16 :: ByteString -> Word16
-len16 x = fromIntegral (min maxLen16 (B.length x))
 
 maxWord32 :: Int64
 maxWord32 = fromIntegral (maxBound :: Word32)
