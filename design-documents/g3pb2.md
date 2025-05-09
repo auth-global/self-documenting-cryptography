@@ -6,20 +6,23 @@ This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 Intern
 
 # Introduction
 
-The Global Password Prehash Protocol (G3P) version 2 (G3Pb2) is a slow password
-hash and key derivation function based on HMAC-SHA256 and blowfish, using
-variants of PBKDF2, HKDF, and bcrypt that have been minimally modified in order
-to better support self-documenting cryptography. Also, the G3P is explicitly
-designed to support keying end-to-end encryption (E2EE) off of the password,
-so long as the G3P is deployed as a client-side prehash.
+The Global Password Prehash Protocol (G3P) version 2 (G3Pb2) is designed to
+adversarially pass messages inside its algorithm via the mathematics of
+game theory. It a slow password hash and key derivation function based on
+HMAC-SHA256 and blowfish, using variants of PBKDF2, HKDF, and bcrypt that have
+been minimally modified in order to better support the goal of self-documenting
+cryptography. Also, the G3P is explicitly designed to support keying end-to-end
+encryption (E2EE) off of the password, so long as the G3P is deployed as a
+client-side prehash.
 
 In this context, self-documenting cryptography aims to make password
 hashes[^comparable-to-hashes] _traceable_ or _useless_ after they have been
 stolen by an eavesdropper.
 
 The basic idea is to add "this password is for Acme Corporation, Inc." as a
-**tag** onto the end of every password before it is hashed. This happens
-automatically and outside the control of the user, leaving an indelible
+**tag**[^tag-definition] onto the end of every password before it is hashed.
+This [domain separation](https://en.wikipedia.org/wiki/Domain_separation)
+happens automatically and outside the control of the user, leaving an indelible
 fingerprint on the resulting hash.
 
 This fingerprint means that a password cracker must add on "this password is
@@ -44,7 +47,7 @@ letting Craig run Alice's algorithm himself.
 Here's a few examples how self-documenting password hash functions can help
 your organization:
 
-## The Muskian Cybercoup
+### The Muskian Cybercoup
 
 When Mr. Big Balls parades into your organization's server room and copies all
 of your password hashes, self-documenting tags prevents him from usefully
@@ -56,7 +59,7 @@ Here, Mr. Big Balls is acting as Eve, and The Com is acting as Craig.
 If somebody among The Com were to betray the effort and report the stolen
 hashes back to your organization, then they'd be acting as a friendly Craig.
 
-## The Botnet Cracker
+### The Botnet Cracker
 
 If The Com then decides to use stolen computing resources in an attempt to
 crack your passwords, then there is an unavoidable risk of the computation
@@ -70,30 +73,33 @@ hashes
 Here, The Com is acting as Eve, and the stolen computing resource is acting as
 Craig.
 
-Also in this story, the stolen computing resource is acting as an Eve, and the
-security analyst is acting as a friendly Craig.
+Also in this story, the stolen computing resource is acting as a kind of Eve,
+and the security analyst is acting as a friendly Craig.
 
-## The Professional Cracker
+### The Professional Cracker
 
 There are certainly legitimate use cases for password cracking. Without the use
 of self-documenting tags to securely enforce the origin of password hashing
 data, many who are involved in legitimate password cracking activities are at
 risk of unknowingly participating in unethical and/or illicit activities.
 
-For example, let's say a corporation outsources legitimate password cracking
-work to a professional who is interested in staying above board. Today's
-password hashing technology does not itself impose any impediment to a corrupt
-IT worker who wishes to commingle outside password hashes into the data being
-forwarded to the professional password cracker.
+For example, let's say you are a password cracking professional who wants to
+stay above board, and a corporation wants to hire your services for legitimate
+work. Today's password hashing technology does not itself impose any impediment
+to a corrupt IT worker at that corporation who wishes to commingle outside
+password hashes into the data being forwarded to you.
 
 The best case scenario would be that self-documenting domain separation has
 been applied to all the legitimate data to be cracked. Self-documenting tags
 prevent all outside data from getting in, greatly reducing the scope of abuse
-of legitimate password cracking services.
+of your legitimate password cracking services.
 
 On the other hand, applying self-documenting domain separation to outside data
 also prevents it from getting cracked by legitimate, professional crackers,
-even if they cannot robustly restrict their efforts to only legitimate data.
+even if they cannot robustly restrict their efforts to only legitimate data in
+a particular engagement. If you are the organzation that applied the tags,
+then your password hashes cannot be usefully commingled without creating a
+significant risk of discovery.
 
 # Combinatorics of Cryptographic Continuations
 
@@ -127,7 +133,8 @@ _almost surely_ injective.
 
 This idealized model is agnostic to how salt is interleaved: every distinct
 interleaving will result in a distinct random oracle, but this naive model
-offers no way to distinguish how the salt is interleaved with the input.
+otherwise offers no practical way of distinguishing among the resulting random
+oracles.
 
 However this naive view is misleading: practical hash functions usually support
 streaming input. For example, SHA256 uses a compression function that applies
@@ -137,8 +144,7 @@ is more or less how most cryptographic hash functions are structured.[^not-blake
 
 Even if we assume the compression function is an idealized random oracle, this
 structure reveals that with prefixed salts, finding a single collision on the
-compression function can be enough to produce an infinite family of collisions,
-as a single collision can propagate throughout the rest of the computation.
+compression function is enough to produce an infinite family of collisions.
 This is something that does not happen with suffixed salts. Some variation of
 this argument is inherent to any streaming implementation.
 
@@ -154,10 +160,10 @@ appending it to both salts. Because these functions are pointwise equal,
 they are two different descriptions of the same underlying function.
 
 Partial evaluation of SHA256 demonstrates there cannot be more than 2^256
-functionally distinct prefixed salts without leaving some salt in the input
-buffer, or suffixing some salt after the password. Even though the input space
-of prefixed salts is much larger than 256 bits, collisions on the compression
-function propagate throughout the remainder of the computation.
+functionally distinct prefixed salts without leaving some salt prefixed in the
+input buffer, or suffixing some salt after the password. Even though the input
+space of prefixed salts is much larger than 256 bits, collisions on the
+compression function propagate throughout the remainder of the computation.
 
 Similarly, the G3P processes the plaintext password in a single pass near the
 beginning of the hash computation. Applying the previous argument means that
@@ -180,7 +186,7 @@ definition of what a password function "is".[^excludes-many-existing-password-ha
 
 On the other hand, any leftover prefixed salt,[^low-entropy-inputs] and all
 suffixed salt, cannot be processed without first choosing a value for the
-password input. This forces the full plaintext of any appended salt to be
+password input. This forces the full plaintext of any suffixed salt to be
 available to any ordinary implementation capable of computing hashes for
 arbitrary passwords.
 
@@ -194,10 +200,10 @@ salt cannot be processed until the password has been chosen, the functions
 `λx → hash(x + Y)` and `λx → hash(x + Z)` don't readily admit non-trivial
 partial evaluations.
 
-Moreover, colliding the function that results from this suffixed salt is highly
-implausible. Because the salts `Y` and `Z` must be distinct, a counterexample
-would be able to create a very large number of cryptographically distinct
-collisions for free.
+Moreover, colliding the function that results from this partial application is
+highly implausible. Because the salts `Y` and `Z` must be distinct, just by
+picking any choice of `x`, a counterexample would be able to create a very large
+number of cryptographically distinct collisions for free.
 
 Because these collisions are distinct, finding a counterexample remains
 implausible even if we assume access to another oracle that grants a small
@@ -221,21 +227,21 @@ is also injective in practice. After all, a collision on SHA256 has never been
 publically demonstrated, which might make this argument seem purposeless and
 pendantic. But I have two responses: firstly, suffixed salts are injective
 in practice in a significantly stronger sense than prefixed salts. Secondly,
-much of the design work around the G3P revolves around understanding and
-controlling partial evaluation!
+this is intimately tied to partial evaluation, and much of the design work
+around the G3P revolves around understanding and controlling partial evaluation!
 
 For example, we want to enhance the utility of legitimate forms of partial
 evaluation, which is why the G3P adopts fully incremental key-stretching as a
 design goal. Also, we don't want to allow the possibility of partially
 evaluating away the plaintext of any parameter called a "tag", therefore
 prefixed salts cannot be tags, which is the reason the G3P's "username"
-parameter doesn't have "tag" anywhere in the name.
+parameter doesn't have "tag" anywhere in the name.[^username-padding]
 
 **Observation:** Remember that our goal is to adversarially pass messages inside
-algorithms via the mathematics of game theory. Our primary communications
-objectives are the domain tag and long tags. One or both of these is expected
-to typically be on the order of one hundred to a few hundred bytes long, which
-is much longer than the 256-bit SHA256 state machine.
+algorithms via the mathematics of game theory. At least one of our primary
+communications objectives is expected to typically be on the order of one
+hundred to a few hundred bytes long, which is much longer than the 256-bit
+SHA256 state machine.
 
 We need to argue that our message is implied by the algorithm we specify. Thus
 we should prefer to argue that our message describes a unique algorithm in a
@@ -266,17 +272,30 @@ This is the reason why the G3P uses "username" as the name of the prefixed
 salt parameter; these parameter names do not prescribe a particular usage, but
 they do suggest an intended usage.
 
-# Simplified Overview
+# Overview of the G3P
+
+Note that any identifier written in `UpperCamelCase` is an external parameter
+that must be filled in before hashing can be completed, any identifer written
+in `lowerCamelCase` is some intermediate or final result of the password
+hashing computation, and any identifier written in `ALL-CAPS` is a standard
+cryptographic routine or a syntax-generating routine.
+
+`+` is sort of a generic concatination, except when it clearly refers to
+integer arithmetic, but don't take concatination too literally as
+this section elides certain details, including some of the auxiliary inputs
+and all length-related padding.
+
+This length padding encodes the bitlength of every external argument so that
+one cannot create cryptographically trivial collisions by shifting bytes
+between them. The length padding often repeats (parts of) other plaintext tags
+as message fillers.
+
+Thus this section is not suitable as an implementation reference, nor
+is it intended to be. Rather, it is intended to give an accurate overview
+of what the overall construction looks like, so that it may be more easily
+understood.
 
 ## Iterated HMAC preprocessing
-
-This section elides certain details, including some of the auxiliary inputs and
-all length-related padding, from the construction of the G3P. Thus this section
-is not intended to be suitable as an implementation reference.
-
-This length padding includes the bitlength of every argument so that one cannot
-create cryptographically trivial collisions by shifting bytes between
-parameters, and often repeats other plaintext tags as message fillers.
 
 The key-stretching phase of the G3P is an iterated HMAC-SHA256 construction.
 The first form of key-stretching is very PBKDF2-like.[^pbkdf2-tagged-hmac]
@@ -301,22 +320,23 @@ Here is PBKDF2's cryptographically secure pseudorandum number generator
 These modifications take much inspiration from HKDF, which inspired the
 name PHKDF.  The most significant departure from PBKDF2-HMAC-SHA256 is the
 addition of a counter and tag to salt every round of PHKDF: this is literally
-just taking bytes that in PBKDF2 would be null, and using them as supplemental
+just taking bytes that PBKDF2 specifies as null, and using them as supplemental
 salt in the same vein as HKDF's info parameter.
 
 One of the more obvious differences is that the parameter that PBKDF2 calls the
 "password" is now called the "seguid". Instead of using the actual password as
-an HMAC key, the G3P recommends using a seguid as a supplemental salt that
-identifies the deployment, and moves the password into the parameter the G3P
-that PBKDF2 calls the "salt".  Given that PBKDF2's standard mode of operation
-tweaks the salt repeatedly to generate cryptographically independent outputs,
-this should be a totally safe thing to do.
+an HMAC key, the G3P recommends using a self-documenting globally unique
+identifer (or seguid) as a supplemental salt that identifies the deployment,
+and moves the password into the parameter the G3P that PBKDF2 calls the "salt".
+Given that PBKDF2's standard mode of operation tweaks the salt repeatedly to
+generate cryptographically independent output blocks, this should be a totally
+safe thing to do.
 
 A practical advantage to this alternate mode of operation for PBKDF2 is that
-the password need not be preserved until the end of key-stretching, but can be
-forgotten as soon as it has been hashed the first time. This isn't true at all
-in classic bcrypt: the plaintext password must be known up until the middle of
-the very last bcrypt round.
+the password can be forgotten as soon as it has been hashed the first time,
+which happens right at the start of the computation before key stretching.
+This isn't true at all in classic bcrypt: the plaintext password must be known
+up until the middle of the very last bcrypt round.
 
 Using precomputed HMAC keys avoids the need to preserve the literal plaintext
 of PBKDF2's nominal "password" parameter throughout the key-stretching
@@ -405,10 +425,11 @@ also parameterizes of the right 32 bytes of the output key as well as the
 32-byte initial generator state.
 
 Note a trivial collision can be obtained by feeding an output block back into
-the Header parameter and by incrementing the counter by one, which is the same
-thing as the next output block. There are other issues the Header parameter is
-associated with, but it is also not particularly difficult to use safely: see
-the reference implementation's API documentation for details and suggestions.
+the `EchoHeader` parameter and by incrementing the counter by one, which is the
+same thing as the next output block. There truncation and other issues that
+the `EchoHeader` parameter is associated with, but it is also not particularly
+difficult to use safely: see the reference implementation's API documentation
+for details and suggestions.
 
 Very much like HKDF-SHA256, these final steps perform no key-stretching, so
 they are very fast relative to the computations required to compute the seed.
@@ -718,17 +739,20 @@ FHE-based implementation of this initial call to Blake2, and return the
 plaintext hash needed for key-stretching.
 
 Deploying Fully Homomorphic Encryption might inflate the cost on that initial
-Blake2 call from a few microseconds to a second or two. However, that would
-only be a multiplier of 2 or 3 or so, as ideally argon2's key-stretching
-computation should itself cost about one second. That cost mulitplier does not
+Blake2 call from a few microseconds to a second or two, and might inflate
+the otherwise trivial memory consumption to a few hundred megabytes.  However,
+that would be an overall cost multiplier of 2 or 3 or so, as ideally argon2's
+key-stretching computation should itself cost about one second and require
+a few hundred megabytes of random-access memory. That cost mulitplier does not
 seem nearly high enough to throughly dissuade Eve from deploying a practical
 tag obfuscation attack, especially if it's running on stolen resources!
 
-If you really want to use argon2, you might consider using the G3P, possibl
-y with a reduced number of rounds, as a preprocessing and/or postprocessing
-step. While it would be preferable to someday have an argon2 variant that
-carries plaintext tags all the way through the key-stretching computation,
-this is likely a more than adequate workaround for now.
+If you want to use argon2, which is a good idea for the additional memory
+consumption, you might consider using the G3P, possibly with a reduced number
+of rounds, as a preprocessing and/or postprocessing step. While it would be
+preferable to someday have an argon2 variant that carries plaintext tags all
+the way through the key-stretching computation, this is likely a more
+than adequate workaround for now.
 
 In the argon2-only scenario, Craig _might_ be able to still determine the
 parameters hidden inside FHE by computing a hash with a known password and
@@ -761,7 +785,7 @@ run the algorithm, then you have access to the plaintext of a tag. Thus
 cryptoacoustics is a logical converse of cryptography, not unlike the way
 statistics is a logical converse of probability.
 
-Conventional cryptography can't ignore the converse, but it is also filled with
+Conventional cryptography cannot ignore the converse, but it is also filled with
 concrete examples, including the HMAC construction, where the ability to run an
 algorithm implies access only to something derived from the key, which usually
 isn't suitable for communicating messages.
@@ -772,17 +796,18 @@ any ordinary implementation of SHA256 and blowfish-expand. Thus any truly
 secure tag obfuscation attack by Eve must incorporate some form of Homomorphic
 Encryption to prevent Craig from observing those memory replays.
 
-If you can pass messages, then there must be some kind of transmission medium.
-Though in late 2020 I had some insights that lead to the vaguest conceptions
-that it should be possible to improve the service provided by "Have I Been
-Pwned" by insourcing it[^have-i-been-pwned], my eureka moment came shortly
-after writing about the novel queueing disciplines exhibited by Joe Taylor's
-WSJT suite of amateur radio protocols.
+If you can pass messages, then there must be some kind of transmission medium,
+in this case it is the mathematics of cryptography and game theory. Though in
+late 2020 I had some insights that lead to the vaguest conceptions that it
+should be possible to improve the service provided by "Have I Been Pwned" by
+insourcing it[^have-i-been-pwned], my eureka moment came shortly after writing
+about the novel queueing disciplines exhibited by Joe Taylor's WSJT suite of
+amateur radio protocols.
 
 The unexpected insight I was starting from was "Write it down. Make it real",
 which I implicitly understood as "Writing something down [in the cryptoacoustic
 transmission medium] makes it real [in that medium], now write this idea down
-and make it real."  I was missing the phrases in brackets with only the vaguest
+and make it real." I was missing the phrases in brackets with only the vaguest
 conception that I needed to create them to flesh out my concept. I had a clear
 understanding of what I needed to do, but I lacked the language to describe
 it and was highly uncertain of any details.
@@ -794,9 +819,15 @@ what I would eventually come to call "plaintext tags" needed to be recoverable
 (i.e. "undoable") from a memory trace of the cryptographic hash function itself.
 
 Furthermore, as an undergraduate at Case Western Reserve University, I had
-written a toy stepping interpreter based on continuations, based on Friedman,
-Wand, and Haynes "Essentials of Programming Languages, 2nd Ed.", which
-quickly became my mental model for thinking about the problem.
+written a toy stepping debugger implmented as a continuation-passing
+interpreter, based on Friedman, Wand, and Haynes "Essentials of Programming
+Languages, 2nd Ed.", which quickly became my mental model for thinking about
+the problem.
+
+I had been long aware of the existence and capabilities of Homomorphic
+Encryption. I was immediately aware that cryptoacoustics and HE are natural
+adversaries,[^cryptacoustics-and-he-as-allies] even if I still don't have any
+deep understanding of HE itself.
 
 And to make all that work, I knew I would need to learn and understand more of
 the underlying structure of at least a few cryptographic constructions. Because
@@ -819,20 +850,15 @@ sort of exotic modem capable of guaranteeing the delivery of messages exactly
 in the most relevant situations and incapable of making any other guarantees
 regarding delivery or non-delivery in other situations.
 
-I had been long aware of the existence and capabilities of Homomorphic
-Encryption. I was immediately aware that cryptoacoustics and HE are
-adversaries, even if I still don't have any deep understanding of HE itself.
-
 And yet, my concious mind was resolutely in denial about the connections
 between what I was doing and communications theory. The penny finally dropped
 when I had to finally admit to myself why I needed to acknowledge Dr. Doiron.
 
-The art of encoding plaintext messages into cryptographic algorithms is an
-important enough technique that it warrants a memorable name. I chose the name
-"cryptoacoustics" because sound is the primary means of communication that
-humans use to physically communicate with each other. It also honors my
-deceased friend Duncan Lowne, who was a DJ interested in electronic music and
-computer engineering and was a DPhil student at Oxford when he passed.
+I chose the name "cryptoacoustics" because sound is the primary means of
+communication that humans use to physically communicate with each other. It
+also honors my deceased friend Duncan Lowne, who was a DJ interested in
+electronic music and computer engineering and was a DPhil student at Oxford
+when he passed.
 
 The analogy between cryptographic hash algorithms and communications theory is
 not formalized in my mind, but I'm reasonably confident that time will prove
@@ -867,7 +893,7 @@ cannot deliver messages. Instead, it creates constraints on real-world patterns
 of communication. Much like a virus is dependent upon other forms of life for
 reproduction, cryptoacoustics is dependent on physical methods of communication
 to actually deliver its messages. Thus one could say that adversarially encoding
-plaintext messages into algorithms is literally a mind virus.
+plaintext messages into algorithms is literally creating a mind virus.
 
 Because Alice's mind virus cannot possibly be relevant to one's interests unless
 one is interested in running Alice's algorithm, and cannot possibly be adversely
@@ -1016,6 +1042,13 @@ domain separation constant in the computation of HMAC's outer pad.
     Or anything comparable to a password hash, such as a server-side PAKE
     credential.
 
+[^tag-definition]:
+    Though the word "tag" has been used by others to refer to domain separation
+    in cryptographic hashing, for the purposes of this document a "tag" is that
+    and more: a tag is any kind of cryptographic key where the ability to
+    compute the tagged algorithm implies knowledge of the plaintext of the tag
+    itself. A tag can be secret, but often is public knowledge.
+
 [^pbkdf2-tagged-hmac]:
     Except for the addition of a counter that is incremented every round, the
     modified PHKDF key-stretching phase would literally be PBKDF2 instantiated
@@ -1116,6 +1149,12 @@ domain separation constant in the computation of HMAC's outer pad.
     leftover prefixed salt, the length of this leftover is usually 32 bytes
     long. There is one exception that is only 29 bytes.
 
+[^username-padding]:
+     G3P insers some padding in between the username and password parameters
+     to ensure that the username parameter can always be fully consumed
+     by partial evaluation, and never leaves some leftover prefixed salt
+     before the password.
+
 [^seguids]:
     It is sometimes possible to communicate a message via a prefixed salt.
     This is more or less what self-documenting globally unique identifiers
@@ -1140,11 +1179,22 @@ domain separation constant in the computation of HMAC's outer pad.
     specific password hash security events back to an organization that
     prepared sufficiently.
 
+[^cryptacoustics-and-he-as-allies]:
+    Although, cryptoacoustics and homomorphic encryption can be allies too:
+    finding ways of applying cryptoacoutic tags to Homomorphic Encryption
+    schemes so that the ability to run some instance of a homomorpically
+    encrypted algorithm does imply knowledge of a plaintext message could be
+    very useful indeed.
+
 [^unlike-a-watermark]:
     Unlike a watermark, a cryptoacoustic tag is kind of sigil that cannot be
     read directly from a passsword hash, but rather represents a belief about
     its origin, thus preserving plausible deniability. This belief must be
     correct for that password hash to be both genuine and crackable.
+
+    Also, digital watermarks traditionally seek to covertly embed a signal into
+    documents, pictures, video, and audio, whereas cryptoacoustics seeks to
+    overtly embed a signal into a cryptographic state changes.
 
 [^domain-tag-length]:
     This assumes a short domain tag of less than 20 bytes. For example, a
