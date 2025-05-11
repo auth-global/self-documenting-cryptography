@@ -90,9 +90,9 @@ to a corrupt IT worker at that corporation who wishes to commingle outside
 password hashes into the data being forwarded to you.
 
 The best case scenario would be that self-documenting domain separation has
-been applied to all the legitimate data to be cracked. Self-documenting tags
-prevent all outside data from getting in, greatly reducing the scope of abuse
-of your legitimate password cracking services.
+been applied to all the legitimate data to be cracked. These tags prevent all
+outside data from getting in, greatly reducing the scope of abuse of your
+legitimate password cracking services.
 
 On the other hand, applying self-documenting domain separation to outside data
 also prevents it from getting cracked by legitimate, professional crackers,
@@ -140,7 +140,7 @@ However this naive view is misleading: practical hash functions usually support
 streaming input. For example, SHA256 uses a compression function that applies
 an input block of 64 bytes to a state of 32 bytes, resulting in a new state.
 This allows arbitrarily long inputs to be processed one block at a time, and
-is more or less how most cryptographic hash functions are structured.[^not-blake3]
+is more or less how most cryptographic hash functions are structured.[^not-blake]
 
 Even if we assume the compression function is an idealized random oracle, this
 structure reveals that with prefixed salts, finding a single collision on the
@@ -202,7 +202,7 @@ partial evaluations.
 
 Moreover, colliding the function that results from this partial application is
 highly implausible. Because the salts `Y` and `Z` must be distinct, just by
-picking any choice of `x`, a counterexample would be able to create a very large
+picking any choice of `x` a counterexample would be able to create a very large
 number of cryptographically distinct collisions for free.
 
 Because these collisions are distinct, finding a counterexample remains
@@ -232,10 +232,10 @@ around the G3P revolves around understanding and controlling partial evaluation!
 
 For example, we want to enhance the utility of legitimate forms of partial
 evaluation, which is why the G3P adopts fully incremental key-stretching as a
-design goal. Also, we don't want to allow the possibility of partially
-evaluating away the plaintext of any parameter called a "tag", therefore
-prefixed salts cannot be tags, which is the reason the G3P's "username"
-parameter doesn't have "tag" anywhere in the name.[^username-padding]
+design goal. Also, we want to prohibit the possibility of partially evaluating
+away the plaintext of any tag, therefore prefixed salts cannot be tags, which
+is the reason the G3P's "username" parameter doesn't have "tag" anywhere in
+the name.[^username-padding]
 
 **Observation:** Remember that our goal is to adversarially pass messages inside
 algorithms via the mathematics of game theory. At least one of our primary
@@ -256,17 +256,16 @@ versus computational security. Moreover, the act of making the latter argument
 is (at the very least) a brown M&M suggesting that partial evaluation may be
 possible, which we wish to prevent in the case of tags!
 
-Suffixing salts after a password plausibly achieves the properties necessary to
+Salts suffixed after a password plausibly achieves the properties necessary to
 make our preferred argument work, whereas prefixed salts clearly do not.
 Furthermore, partial evaluation provides a method of obscuring (part of) a
 prefixed salt, meaning that arbitrary messages cannot be robustly passed via
 a prefixed salt alone.[^seguids]
 
 On the other hand, prefixed salts are still useful, especially for account
-separation purposes. This ensures that the password hash function has fully
-committed to a particular account before the plaintext of the password can be
-processed. In effect, the password serves as a tag relative to the prefixed
-salt.
+separation purposes. This ensures that the password hash function has committed
+to a particular account before the plaintext of the password can be processed.
+In effect, the password serves as a tag relative to the prefixed salt.
 
 This is the reason why the G3P uses "username" as the name of the prefixed
 salt parameter; these parameter names do not prescribe a particular usage, but
@@ -274,33 +273,52 @@ they do suggest an intended usage.
 
 # Overview of the G3P
 
+This section is intended to give an accurate overview of the G3P's major
+cryptographic constructions, but also tries to not get lost in the finer
+details. Thus this section is not suitable as an implementation reference.
+
 Note that any identifier written in `UpperCamelCase` is an external parameter
 that must be filled in before hashing can be completed, any identifer written
 in `lowerCamelCase` is some intermediate or final result of the password
 hashing computation, and any identifier written in `ALL-CAPS` is a standard
 cryptographic routine or a syntax-generating routine.
 
-`+` is sort of a generic concatination, except when it clearly refers to
-integer arithmetic, but don't take concatination too literally as
-this section elides certain details, including some of the auxiliary inputs
-and all length-related padding.
+`+` is string concatination, except when it clearly refers to unsigned
+machine-word arithmetic. Don't take concatination too literally as this
+section elides certain auxiliary inputs and all length-related padding.
 
-This length padding encodes the bitlength of every external argument so that
-one cannot create cryptographically trivial collisions by shifting bytes
-between them. The length padding often repeats (parts of) other plaintext tags
-as message fillers.
+This length padding encodes the bitlength of every external argument, which
+prevents shifting bytes between them in order to create cryptographically
+trivial collisions. The length padding also repeats (parts of) the plaintext
+of various tags as message filler.
 
-Thus this section is not suitable as an implementation reference, nor
-is it intended to be. Rather, it is intended to give an accurate overview
-of what the overall construction looks like, so that it may be more easily
-understood.
+The G3P operates on bitstrings. The syntax generators used never look at the
+content of any bitstring, only it's length. Thus by [parametricity](https://en.wikipedia.org/wiki/Parametricity)
+there cannot be any data-dependent truncations such as bcrypt's null byte. And,
+with handful of documented exceptions[^truncations-in-the-G3P], most of the
+bitstring inputs may be of arbitrary length and will never be truncated.
+
+The G3P's maximum theoretical password length is very nearly SHA256's length
+limit: 2.3 million terabytes. However, the password is prefixed with its length.
+Being forced to commit to the exact length of a password up front limits
+opportunities for streaming absurdly long passwords into the G3P, as would be
+necessary in this case.
+
+Also by parametricity, inspecting only the length implies that any reasonable
+implementation of the G3P's syntax generators cannot be solely or directly
+responsible for introducing data-dependent side-channels. With unavoidable
+exceptions, significant effort was put into making the G3P take a constant
+number of cryptographic operations regardless of the length of its bitstring
+parameters.
 
 ## Iterated HMAC preprocessing
 
 The key-stretching phase of the G3P is an iterated HMAC-SHA256 construction.
-The first form of key-stretching is very PBKDF2-like.[^pbkdf2-tagged-hmac]
+The first form of key-stretching is essentially PBKDF2.[^pbkdf2-tagged-hmac]
 Here is PBKDF2's cryptographically secure pseudorandum number generator
-(CSPRNG) on top, followed by the modified generator on bottom.
+(CSPRNG) on top, followed by the modified generator on bottom.  Both are
+examples of a "KDF in feedback mode" from [NIST SP 800-108: Recommendation
+for Key Derivation Using Pseudorandom Functions](https://csrc.nist.gov/pubs/sp/800/108/upd1/final)
 
     i = (output block number, typically 0 but also [1..] for longer outputs)
     U 1 = HMAC (Password, Salt + INT_32_BE(i))
@@ -317,17 +335,17 @@ Here is PBKDF2's cryptographically secure pseudorandum number generator
     ⋮
     T c = HMAC (Seguid, T (c-1) + INT_32_BE(i + c) + DomainTag )
 
-These modifications take much inspiration from HKDF, which inspired the
-name PHKDF.  The most significant departure from PBKDF2-HMAC-SHA256 is the
-addition of a counter and tag to salt every round of PHKDF: this is literally
-just taking bytes that PBKDF2 specifies as null, and using them as supplemental
-salt in the same vein as HKDF's info parameter.
+These modifications take much inspiration from HKDF and [RFC 5869](https://datatracker.ietf.org/doc/html/rfc5869),
+which inspired the name PHKDF. The most significant departure from
+PBKDF2-HMAC-SHA256 is the addition of a counter and tag to salt every round of
+PHKDF: this is literally just taking bytes that were specified as null, and
+using them as supplemental salt in the same vein as HKDF's info parameter.
 
 One of the more obvious differences is that the parameter that PBKDF2 calls the
 "password" is now called the "seguid". Instead of using the actual password as
-an HMAC key, the G3P recommends using a self-documenting globally unique
-identifer (or seguid) as a supplemental salt that identifies the deployment,
-and moves the password into the parameter the G3P that PBKDF2 calls the "salt".
+an HMAC key, the G3P recommends using a [self-documenting globally unique
+identifer](seguid.md) as a supplemental salt that identifies the deployment,
+and moves the password into the parameter that PBKDF2 calls the "salt".
 Given that PBKDF2's standard mode of operation tweaks the salt repeatedly to
 generate cryptographically independent output blocks, this should be a totally
 safe thing to do.
@@ -409,9 +427,9 @@ therefore it is very fast relative to computing the seed itself.
 
     keyL = HMAC ( SproutSeguid, seed + Role + "KEYL" + SproutTag )
 
-    out0 = HMAC ( keyL + KeyR, EchoHeader + INT_32_BE(EchoCounter) + EchoTag )
-    out1 = HMAC ( keyL + KeyR, out0 + INT_32_BE(EchoCounter + 1) + EchoTag )
-    out2 = HMAC ( keyL + KeyR, out1 + INT_32_BE(EchoCounter + 2) + EchoTag )
+    out0 = HMAC ( keyL + EchoKey, EchoHeader + INT_32_BE(EchoCounter) + EchoTag )
+    out1 = HMAC ( keyL + EchoKey, out0 + INT_32_BE(EchoCounter + 1) + EchoTag )
+    out2 = HMAC ( keyL + EchoKey, out1 + INT_32_BE(EchoCounter + 2) + EchoTag )
     ...
 
 This final key derivation function resembles HKDF-SHA256, with the computation
@@ -421,15 +439,27 @@ to HKDF-Expand.
 However, there are a handful of mostly minor changes: we are using a
 parameterized 4-byte counter before the domain tag, whereas HKDF uses a
 hardcoded 1-byte counter after the info tag. Furthermore, this construction
-also parameterizes of the right 32 bytes of the output key as well as the
-32-byte initial generator state.
+also parameterizes of the right 32 bytes of the output key.
 
-Note a trivial collision can be obtained by feeding an output block back into
-the `EchoHeader` parameter and by incrementing the counter by one, which is the
-same thing as the next output block. There truncation and other issues that
-the `EchoHeader` parameter is associated with, but it is also not particularly
-difficult to use safely: see the reference implementation's API documentation
-for details and suggestions.
+However, the most significant change by far is parameterizing the 32-byte
+initial generator state. Note a trivial collision can be obtained by feeding an
+output block back into the `EchoHeader` parameter and by incrementing the
+counter by one, which is the same thing as the next output block.
+
+Also, important new secrets must _not_ be introduced via the `EchoHeader`
+alone whenever more than one output block is revealed to an adversary, as
+this re-reveals cracking attacks on everything except that important new
+secret. Also, the `EchoHeader` is truncated to 32 bytes.
+
+Despite these issues, the `EchoHeader` is not a difficult parameter to use
+safely. The default recommendation is to duplicate the input to `EchoKey`
+and `EchoHeader`, which is one of several ways any possible issue can be
+avoided.
+
+The `EchoHeader` parameter exists to regularize timing side channels regarding
+the length of the `EchoTag` parameter, because it is a strategically location
+to leave a plaintext tag, and because it could be potentially rather useful
+when you want very efficient random-access output.
 
 Very much like HKDF-SHA256, these final steps perform no key-stretching, so
 they are very fast relative to the computations required to compute the seed.
@@ -446,8 +476,8 @@ minimal need for revision.
 
 Our goal is to compute `bcryptOutput`, which is one or more fixed-length
 binary blobs, each longer than 12 kiB, consisting of bcrypt's P-box and S-box
-interspersed with portions of the bcrypt long tag.  There is one blob for
-every super-round, and one super-round for every 128 bcrypt rounds rounded up.
+interspersed with portions of the bcrypt long tag. There is one blob for every
+super-round, and one super-round for every 128 bcrypt rounds rounded up.
 
     msg   = ""
     state = (classic bcrypt initial state based on digits of pi)
@@ -561,9 +591,9 @@ This simplified overview demonstrates that the G3P's modifications to bcrypt
 also requisitions previously unused null bytes, much in the same way that PHKDF
 requisitions previously unused null bytes found in PBKDF2 for tagging purposes.
 
-If two states collide, then modifying that state with XOR(x) will always be
-different than that same state modified by XOR(y) for distinct x and y. This
-observation is also true of BLOWFISH-EXPAND.
+If two states collide, then the result of modifying that state with XOR(x) will
+always be different than that same state modified by XOR(y) for distinct x and
+y. This observation is also true of BLOWFISH-EXPAND.
 
 For this reason, any state collisions in the original bcrypt will get pushed
 back apart at least once per round, because in order to be a collision, the
@@ -579,8 +609,8 @@ collisions on the bcrypt state will be pushed apart twice per round.
 
 Finally, the addition of the counter breaks all loops, because if a single
 bcrypt state is ever reentered in the course of a single key-stretching
-computation, the counter guarantees the following state _will_ be different
-than all previous following states.
+computation, the counter guarantees the subsequent state _will_ be different
+than all previous subsequent states.
 
 Both the original and modified bcrypt have a half-round state initialization
 phase. In the original bcrypt, it runs at the beginning of every computation.
@@ -615,6 +645,12 @@ In the modified bcrypt, it runs once at the beginning of every super-round.
 
     S_2 (starting state for the first round of a super-round)
 
+The XOR operation of the initial round of a superround moves the incoming
+`key0` from the left side of blowfish's P-box to the right side of the P-box.
+Paired with inserting `key1` as the first 32 bytes of the salt to
+BLOWFISH-EXPAND ensures that all 512 bits of the incoming keys are encoded
+relative to the subsequent state in just four blowfish block operations.
+
 The transitions between two super-rounds are designed to be synchronization
 points, and it doesn't make much sense to transfer a bcrypt key-stretching
 computation from one device to another outside these transitions.
@@ -625,27 +661,43 @@ could attack these keys directly and would not need to compute any portion of
 the current super-round.
 
 Also, the bcrypt state machine can be run in reverse. There is an efficient
-implementation of BLOWFISH-COEXPAND that will produce a starting state given
+implementation of BLOWFISH-REVEXPAND that will produce a starting state given
 a final state. This computation can be shared across multiple guesses, meaning
 that a cracker can instead attack the final bcrypt state of the previous
-super-round. Compared to cracking key0, this saves a half-round of bcrypt and
+super-round. Compared to cracking `key0`, this saves a half-round of bcrypt and
 more than 12 kilobytes of SHA256 input processing.
 
 These keys are forgotten as part of the transition between super-rounds, which
-prevents moving backwards across the XOR steps and prevents moving backwards
-across the call to BCRYPT-EXPAND in the initializing half-round. The act of
-forgetting these keys enables the key-stretching ratchet to make forward
-progress.
+prevents moving backwards across every XOR steps and the initial call to
+BCRYPT-EXPAND in the initial half-round. The act of forgetting these things
+enables the key-stretching ratchet to make forward progress.
 
 There is also an efficient implementation of BLOWFISH-TRANSCODE which takes
 as input any single pair of starting and ending states, and produces the unique
-transition code that can be used with EXPAND and COEXPAND to move directly
-between those two states.
+transition code that can be used with EXPAND and REVEXPAND to move directly
+between those two states. The existence of BLOWFISH-TRANSCODE demonstrates
+that the salt being provided to BLOWFISH-EXPAND can be efficiently inferred
+from any memory-tracing debugger that reveals the before-and-after states.
 
-These three functions implies that the bcrypt state machine forms a quasigroup
-with 2^33334 elements. This observation both suggests attacks if one is allowed
-too much control over the transition code, and informed the modifications to
-bcrypt in an attempt to avoid these issues.
+These three functions imply that the bcrypt state machine forms an efficiently
+computable [quasigroup](https://en.wikipedia.org/wiki/Quasigroup) with 2^33334
+elements. This algebraic structure demonstrates how to one can control the
+final output state of this generalized bcrypt if one is allowed full control
+over BCRYPT-EXPAND's salt after looking at the other input parameters.
+
+This is a pretty serious attack against the conventional cryptographic
+properties of a generalized bcrypt. This informed these modifications in an
+attempt to avoid these issues, in particular by requiring that the substring
+of the `BcryptLongTag` that affects any given round is repeated verbatim in
+four different operations within that round.
+
+Of course, the intended use of the `BcryptLongTag` salt is that it is to be
+chosen without looking at the incoming keys, which renders these concerns
+moot. Furthermore, parts of this tag are mixed into the SHA256 function that
+derives the incoming keys. This forms a local commitment scheme that ensures
+that one cannot look at the incoming keys and then choose substrings of the
+`BcryptLongTag` that affect the first one-and-a-half rounds and the last round
+of a super-round.
 
 # Tag Obfuscation Attacks
 
@@ -665,14 +717,14 @@ contact Acme Corporation.
 But Eve could try to hide Alice's documentation in the binary using various
 obfuscation techniques. The International Obfuscated C Code Contest is
 particularly famous, but the techniques demonstrated there cannot defeat
-a competent and persistent reverse engineer attempting to recover the tags
-from an implementation of the G3P.
+a persistent reverse engineer attempting to recover the tags from an
+implementation of the G3P.
 
 In the G3P, the tags can be inferred by watching the transitions of the SHA256
-and blowfish-expand state machines. Thus, in order to be secure against the
-best reverse engineers on their best days, Eve must implement these state
-machines in such a way that the transitions cannot be observed by those who
-are physically running the machines.
+and blowfish-expand state machines with a memory debugger. Thus, in order to be
+secure against the best reverse engineers on their best days, Eve must
+implement those machines in such a way that the state transitions cannot be
+observed by those who are physically running the machines.
 
 In theory it should be possible for Eve to use some flavor of Homomorphic
 Encryption (HE) to conduct a secure  _tag obfuscation attack_. For example,
@@ -685,80 +737,77 @@ blocks within a few seconds even on modest hardware. The overhead of even
 state-of-the-art FHE is extreme, often increasing the time and resources needed
 to perform a computation by a factor of a 100,000 or more.
 
-However, the suprising existence of FHE, and the fact that it can in theory
+However, the surprising existence of FHE, and the fact that it can in theory
 obscure any computable algorithm whose output itself doesn't give away secrets,
 suggests that it might not even be possible to stake Adversarial Literate
 Programming's security goal on an asymptotic difference in the complexity of
 algorithms.
 
-Rather, Adversarial Literate Programming may be limited to a linear
-factor, making its security margin relatively weak for cryptography. I would
-even say that acheiving a traditionally-strong security margin in the context
-of Adversarial Literate Programming seems implausible.
+Rather, Adversarial Literate Programming may be limited to a linear factor,
+making its security margin relatively weak for cryptography. I would even say
+that acheiving a traditionally-strong security margin in the context of
+Adversarial Literate Programming seems implausible.
 
 On the other hand, that linear factor is quite large, and password cracking is
 sensitive to even modest overhead. In this context, FHE doesn't seem to be any
 immediate threat to Adversarial Literate Programming based on standard
 cryptographic primitives like SHA-256 and blowfish-expand.
 
-In fact, a topic of research in FHE is the construction of homomorphic
-transciphers, which are alternative cryptographic primitives designed to be
-relatively efficient when executed inside FHE. Perhaps alternative cryptographic
-primitives designed to be particularly _inefficient_ when executed inside any
-suitable method of homomorphic encryption should also be pursued as an
-anti-problem.
-
-Studying this anti-problem could potentially offer insight into homomorphic
-transciphers and/or homomorphic encryption, as well as possibly extend the
-applicability of Adversarial Literate Programming outside of password hashing.
-
-While I don't know how much better future Homomorphic Encryption schemes might
+While I don't know how much better future homomorphic encryption schemes might
 be able to perform on SHA-256 and blowfish, I'm not expecting revolutionary
-improvements in efficiency in the near future, and thus I'm expecting FHE will
-remain a less-than-practical threat to the G3P for some time to come. On the
-other hand, the threat of FHE is also significant enough that the design of the
-G3P needs to take it into account.
+improvements in efficiency in the near future. I am expecting FHE will remain a
+less-than-practical threat to the G3P for some time to come. On the other hand,
+the threat of FHE is also significant enough that the design of the G3P needs
+to take it into account.
 
-In particular, in argon2, you can append tags to the end of passwords, and
-an obfuscation attack would then require Homomorphic Encryption to be truly
-secure. This provides effective domain separation, so argon2 alone should be
-sufficient to protect a professional password cracker from illicitly commingled
-hashes, as it would be unethical to knowingly run a password cracker that
-incorporates Homomorphic Encryption.
+In particular, in argon2, you can append tags to the end of passwords, and an
+obfuscation attack would then require Homomorphic Encryption to be truly secure.
+This provides effective domain separation, so argon2 alone should be sufficient
+to protect a professional password cracker from illicitly commingled hashes, as
+it would be unethical to knowingly run a password cracker that incorporate
+Homomorphic Encryption.
 
-However, this argon2-based construct is not particularly secure in the sense
+However, a argon2-based suffixed salts are not particularly secure in the sense
 of Adversarial Literate Programming. This is because in more adversarial
 scenarios, such as password crackers running on botnets and other stolen
 compting resources, it's very important to maximize the overhead inflicted
 on Craig by Alice and Eve.
 
-All of the inputs to argon2 are hashed in a single call to Blake2, and that
-resulting hash is the only thing needed to compute argon2's key-stretching
-phase. Eve could simply hide Alice's tag and other parameters inside an
-FHE-based implementation of this initial call to Blake2, and return the
-plaintext hash needed for key-stretching.
+All of argon2's bytestring inputs are hashed in a single call to Blake2b[^argon2-spec],
+and that resulting hash is the only thing needed to compute argon2's
+key-stretching phase. Eve could simply hide Alice's tag and other parameters
+inside an FHE-based implementation of this initial call to Blake2, and return
+the plaintext hash needed for key-stretching.
 
-Deploying Fully Homomorphic Encryption might inflate the cost on that initial
-Blake2 call from a few microseconds to a second or two, and might inflate
-the otherwise trivial memory consumption to a few hundred megabytes.  However,
-that would be an overall cost multiplier of 2 or 3 or so, as ideally argon2's
-key-stretching computation should itself cost about one second and require
-a few hundred megabytes of random-access memory. That cost mulitplier does not
-seem nearly high enough to throughly dissuade Eve from deploying a practical
-tag obfuscation attack, especially if it's running on stolen resources!
+Deploying FHE might inflate the cost on that initial Blake2 call from a few
+microseconds to a second or two, and might inflate the otherwise trivial
+memory consumption to a few hundred megabytes. However, that might be an
+overall cost multiplier of 2 or 3 or so, as ideally argon2's key-stretching
+computation should itself cost about one second and require a few hundred
+megabytes of random-access memory.
 
-If you want to use argon2, which is a good idea for the additional memory
-consumption, you might consider using the G3P, possibly with a reduced number
-of rounds, as a preprocessing and/or postprocessing step. While it would be
-preferable to someday have an argon2 variant that carries plaintext tags all
-the way through the key-stretching computation, this is likely a more
-than adequate workaround for now.
+That cost mulitplier does not seem nearly high enough to throughly dissuade
+Eve from deploying a practical tag obfuscation attack, especially if it's
+running on stolen resources!
 
-In the argon2-only scenario, Craig _might_ be able to still determine the
-parameters hidden inside FHE by computing a hash with a known password and
-then cracking the unknowns. This approach can be facilitated when Craig is
-aware of Alice's documentation but is not yet aware that Alice's documentation
-is immediately relevant to the hash function he is reverse engineering, so it
+Relative to the G3P, argon2 is desirable because it requires a lot more RAM
+to compute. You could get the best of both worlds by using the G3P, possibly
+with a reduced number of rounds, as a preprocessing and/or postprocessing step
+for argon2.
+
+While it would be preferable to someday have an argon2 variant that carries
+plaintext tags all the way through the key-stretching computation, combining
+the G3P and argon2 is likely a more than adequate workaround for now. Catena
+and yescrypt appear to have significant potential for a self-documenting
+memory-hard password hash function, though this appears to be accidental and
+this potential could almost certainly be improved, much like the partial
+cache-hardness of classic bcrypt.
+
+In the argon2-only FHE scenario, Craig _might_ be able to still determine the
+parameters hidden inside by computing a hash with a known password and then
+cracking the unknowns. This approach can be facilitated when Craig is aware
+of Alice's documentation but is not yet aware that Alice's documentation is
+immediately relevant to the hash function he is reverse engineering, so it
 helps to be open and notorious about your deployments of self-documenting
 cryptography.
 
@@ -787,30 +836,33 @@ statistics is a logical converse of probability.
 
 Conventional cryptography cannot ignore the converse, but it is also filled with
 concrete examples, including the HMAC construction, where the ability to run an
-algorithm implies access only to something derived from the key, which usually
+algorithm implies access only to something derived from the key, which often
 isn't suitable for communicating messages.
 
 Cryptoacoustics pays scrupulous attention to the converse. In the context of
-the G3P, the plaintext of any tag can be inferred from the memory replay of
-any ordinary implementation of SHA256 and blowfish-expand. Thus any truly
-secure tag obfuscation attack by Eve must incorporate some form of Homomorphic
-Encryption to prevent Craig from observing those memory replays.
+the G3P, a the plaintext of any tag can be inferred from a memory trace of any
+ordinary implementation of SHA256 and blowfish-expand. Thus any truly secure
+tag obfuscation attack by Eve must incorporate some form of Homomorphic
+Encryption to prevent Craig from using a memory debugger to see those traces.
 
 If you can pass messages, then there must be some kind of transmission medium,
-in this case it is the mathematics of cryptography and game theory. Though in
-late 2020 I had some insights that lead to the vaguest conceptions that it
-should be possible to improve the service provided by "Have I Been Pwned" by
-insourcing it[^have-i-been-pwned], my eureka moment came shortly after writing
-about the novel queueing disciplines exhibited by Joe Taylor's WSJT suite of
-amateur radio protocols.
+in this case it is the mathematics of game theory and cryptographic state
+transitions. In late 2020 I had some insights that lead to the vaguest
+conceptions that it should be possible to improve the service provided by
+"Have I Been Pwned" by insourcing it[^have-i-been-pwned], and had clues that
+salts could become indicators of compromise that would have to follow the
+password hash around. My eureka moment came in July of 2022 shortly after
+writing a trio of essays about relevance logic, the early childhood math
+curriculum, and the novel queueing disciplines exhibited by Joe Taylor's
+WSJT suite of amateur radio protocols.
 
 The unexpected insight I was starting from was "Write it down. Make it real",
 which I implicitly understood as "Writing something down [in the cryptoacoustic
-transmission medium] makes it real [in that medium], now write this idea down
-and make it real." I was missing the phrases in brackets with only the vaguest
-conception that I needed to create them to flesh out my concept. I had a clear
-understanding of what I needed to do, but I lacked the language to describe
-it and was highly uncertain of any details.
+transmission medium] makes it real, now write this idea down and make it real."
+I was missing the phrase in brackets with only the vaguest conception that I
+needed to create it to flesh out my concept. I had a clear understanding o
+f what I needed to do, but I lacked the language to describe it and was highly
+uncertain of any details.
 
 It was immediately clear that I needed to take Dan Friedman's wise advice that
 "everytime you write a program to do something, you should write a program to
@@ -819,15 +871,14 @@ what I would eventually come to call "plaintext tags" needed to be recoverable
 (i.e. "undoable") from a memory trace of the cryptographic hash function itself.
 
 Furthermore, as an undergraduate at Case Western Reserve University, I had
-written a toy stepping debugger implmented as a continuation-passing
+written a toy stepping debugger implemented as a continuation-passing
 interpreter, based on Friedman, Wand, and Haynes "Essentials of Programming
 Languages, 2nd Ed.", which quickly became my mental model for thinking about
 the problem.
 
 I had been long aware of the existence and capabilities of Homomorphic
 Encryption. I was immediately aware that cryptoacoustics and HE are natural
-adversaries,[^cryptacoustics-and-he-as-allies] even if I still don't have any
-deep understanding of HE itself.
+adversaries, even if I still don't have any deep understanding of HE itself.
 
 And to make all that work, I knew I would need to learn and understand more of
 the underlying structure of at least a few cryptographic constructions. Because
@@ -850,12 +901,12 @@ sort of exotic modem capable of guaranteeing the delivery of messages exactly
 in the most relevant situations and incapable of making any other guarantees
 regarding delivery or non-delivery in other situations.
 
-And yet, my concious mind was resolutely in denial about the connections
+And yet, my conscious mind was resolutely in denial about the connections
 between what I was doing and communications theory. The penny finally dropped
 when I had to finally admit to myself why I needed to acknowledge Dr. Doiron.
 
 I chose the name "cryptoacoustics" because sound is the primary means of
-communication that humans use to physically communicate with each other. It
+communication xhat humans use to physically communicate with each other. It
 also honors my deceased friend Duncan Lowne, who was a DJ interested in
 electronic music and computer engineering and was a DPhil student at Oxford
 when he passed.
@@ -886,14 +937,47 @@ overhead of 1000x, or 30dB, was a much more comfortable margin.
 
 Rigorously integrating a diversity of plausible cryptoacoustic constructions
 allows me to hedge my bets, increasing the likelihood of achieving a good
-cryptoacoustic advantage.
+cryptoacoustic advantage. Depending on how you count, there are 2 to 4 notably
+different tagging constructions in the G3P: seguids and suffixed salts applied
+to HMAC-SHA256, and the XOR and BLOWFISH-EXPAND operations that make up the
+state transitions in each modified bcrypt key-stretching round.
+
+A topic of research in FHE is the construction of homomorphic transciphers,
+which are alternative cryptographic primitives designed to be relatively
+efficient when executed inside FHE. Perhaps alternative cryptographic
+primitives designed to be particularly _inefficient_ when executed inside any
+suitable method of homomorphic encryption should also be pursued as a
+cryptoacoustic anti-problem.
+
+Studying cryptoacoustics as an anti-problem could potentially offer insight
+into homomorphic transciphers and/or homomorphic encryption. Password hashing
+is something of a best-case scenario when it comes to trying to solve the
+Adversarial Literate Programming problem: while self-documenting domain
+separation seems a valuable thing to incorporate into fast key derivation
+functions, some amount of key stretching seems neccessary to convincingly
+tackle some of the more adversarial scenarios. Primitive hash algorithms with
+enhanced cryptoacoustic advantage could potentially reduce or eliminate the
+need for this key-stretching, thus extending the applicability of
+cryptoacoustics.
+
+Though cryptoacoustics and homomorphic encryption are in some sense
+anti-problems and thus are natural adversaries, they could possibly be
+allies too: it could be very useful if you were able to tag your instances of
+homomorphically encrypted algorithms so that anybody who can run your
+algorithm must have your contact information.
+
+Fully homomorphic encryption already has high overhead, which would presumably
+be greatly amplified by running inside a second layer of FHE. Thus like
+password hashing, homomorpic encryption also seems something of a best-case
+scenario for the application of cryptoacoustics.
 
 Because the cryptoacoustic transmission medium is purely mathematical, it
-cannot deliver messages. Instead, it creates constraints on real-world patterns
-of communication. Much like a virus is dependent upon other forms of life for
-reproduction, cryptoacoustics is dependent on physical methods of communication
-to actually deliver its messages. Thus one could say that adversarially encoding
-plaintext messages into algorithms is literally creating a mind virus.
+cannot deliver messages itself. Instead, it creates constraints on real-world
+patterns of communication. Much like a virus is dependent upon other forms of
+life for reproduction, cryptoacoustics is dependent on physical methods of
+communication to actually deliver its messages. Thus one could say that
+adversarially encoding plaintext messages into algorithms is literally
+creating a mind virus.
 
 Because Alice's mind virus cannot possibly be relevant to one's interests unless
 one is interested in running Alice's algorithm, and cannot possibly be adversely
@@ -905,9 +989,9 @@ not unlike an fingerprint or watermark[^unlike-a-watermark] that cannot be
 removed or deleted from the result. Thus cryptoacoustics is a transmission
 medium of indelible woke mind viruses.
 
-As reporting the stolen password hashes back to your organization must be very
-woke indeed, cryptoacoustics tags are mind viruses intent on zombifying woke
-Craigs into assisting the counterintelligence goals of your organization.
+As reporting stolen password hashes back to your organization must be very woke
+indeed, cryptoacoustic tags are mind viruses intent on zombifying woke Craigs
+into assisting the counterintelligence goals of your organization.
 
 # Deployment Considerations:
 
@@ -1047,12 +1131,19 @@ domain separation constant in the computation of HMAC's outer pad.
     in cryptographic hashing, for the purposes of this document a "tag" is that
     and more: a tag is any kind of cryptographic key where the ability to
     compute the tagged algorithm implies knowledge of the plaintext of the tag
-    itself. A tag can be secret, but often is public knowledge.
+    itself. The phrase "plaintext tag" emphasizes this difference. A tag can be
+    secret, but often is public knowledge.
+
+[^truncations-in-the-G3P]:
+    The `EchoHeader` and `EchoKey` are truncated at 32 bytes, and the
+    `BcryptLongTag` is truncated at `(BcryptRounds + 1) * 4136` bytes.
+    Technically an implementation may choose to return an error rather than
+    perform any of these truncations.
 
 [^pbkdf2-tagged-hmac]:
     Except for the addition of a counter that is incremented every round, the
     modified PHKDF key-stretching phase would literally be PBKDF2 instantiated
-    with a tagged PRF, namely HMAC(key, msg + DomainTag)`.
+    with a tagged pseudorandom function, namely HMAC(key, msg + DomainTag)`.
 
     Assuming the domain tag is less than 20 bytes long, the only algorithmic
     change that PHKDF's key-stretching phase makes to PBKDF2 is that some of
@@ -1097,11 +1188,11 @@ domain separation constant in the computation of HMAC's outer pad.
     totals to ~4204 bytes, possibly less given that the number of rounds would
     typically be storable in one or two bytes instead of four.
 
-[^not-blake3]:
-    Blake3 is a notable exception, in that the input isn't processed
-    block-by-block from start to end, but rather in a more complicated tree
-    structure that allows for parallelism and for certain kinds of incremental
-    updates.
+[^not-blake]:
+    Blake3 and the parallel variants of Blake2 are notable exceptions, in that
+    the input isn't processed block-by-block from start to end, but rather in a
+    more complicated tree structure that allows for parallelism and for certain
+    kinds of incremental updates.
 
 [^extracting-entropy-with-sha256]:
     It is technically possible to use SHA256 to extract more than 256 bits of
@@ -1173,6 +1264,10 @@ domain separation constant in the computation of HMAC's outer pad.
     NMAC keys, a.k.a. precomputed HMAC keys. Thus the name was chosen to hint
     at the intended use of the parameter.
 
+[^argon2-spec]:
+    See [Argon2: the memory-hard function for password hashing and other applications](https://github.com/P-H-C/phc-winner-argon2/blob/master/argon2-specs.pdf)
+    by Alex Biryukov, Daniel Dinu, and Dmitry Khovratovich
+    
 [^have-i-been-pwned]:
     Or at leat ensure that "Have I Been Pwned" would have in their possession
     sufficiently reliable information to be able to responsibly disclose
