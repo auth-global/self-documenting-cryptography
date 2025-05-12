@@ -50,7 +50,7 @@ your organization:
 ### The Muskian Cybercoup
 
 When Mr. Big Balls parades into your organization's server room and copies all
-of your password hashes, self-documenting tags prevents him from usefully
+of your password hashes, your self-documenting tags prevents him from usefully
 giving your password hashes to his cybercriminal buddies at The Com
 without being honest about where those hashes originally came from.
 
@@ -61,14 +61,15 @@ hashes back to your organization, then they'd be acting as a friendly Craig.
 
 ### The Botnet Cracker
 
-If The Com then decides to use stolen computing resources in an attempt to
+If The Com then decides to use a [botnet](https://arstechnica.com/security/2024/03/attack-wrangles-thousands-of-web-users-into-a-password-cracking-botnet/)
+or [other stolen computing resources](https://www.reddit.com/r/aws/comments/x03vay/hacked_aws_account_is_facing_200000_in_charges/) in an attempt to
 crack your passwords, then there is an unavoidable risk of the computation
 being observed, and the payload given to a security analyst.
 
-Thanks to self-documenting domain separation, the security analyst will be able
-to take The Com's implementation of your password hash algorithm, and from it
+Thanks to self-documenting cryptography, the security analyst will be able to
+take The Com's implementation of your password hash algorithm, and from it
 reverse engineer your invitation to contact your organzation about the stolen
-hashes
+hashes.
 
 Here, The Com is acting as Eve, and the stolen computing resource is acting as
 Craig.
@@ -105,11 +106,11 @@ significant risk of discovery.
 
 How many password hash functions are there? Cryptographic hash functions
 aspire to be a "good enough" approximation of an idealized random oracle.
-Random oracles cannot exist in reality, but they provide a useful model for
-analyzing cryptographic constructions.
+Random oracles cannot exist in reality, but they provide a useful mathematical
+model for analyzing cryptographic constructions.
 
 An idealized random oracle is a pure function whose input space is all finite
-strings, and whose output space is several hundred fair coin flips.  As there
+strings, and whose output space is several hundred fair coin flips. As there
 are a countable infinity of finite strings, there are an uncountable infinity
 of idealized random oracles.
 
@@ -370,15 +371,15 @@ _synchronization point_.
 
 Synchronization points are intermediate states of a password hash computation
 whose minimal continuation[^minimal-continuation-phkdf] reveals as little as
-possible about the original passsword. Because this continuation must include
+possible about the original password. Because this continuation must include
 all information necessary for computing the final hash, it necessarily provides
 a cracking attack against the password, or worse.
 
-Sometimes cracking isn't really necessary. In classic bcrypt, any continuation
-will reveal the plaintext of the password directly, as it is needed throughout
-the key-stretching process. In other cases, such as PBKDF2's classic mode of
-operation, such a continuation must reveal a hashed version of the password
-with no key stretching applied.
+Sometimes cracking isn't really necessary. In classic bcrypt, nearly any
+continuation will reveal the plaintext of the password directly, as it is
+needed throughout the key-stretching process. In other cases, such as PBKDF2's
+classic mode of operation, such a continuation must reveal a hashed version of
+the password with no key stretching applied.
 
 A synchronization point is a continuation whose most efficient cracking attack
 costs almost as much _per guess_ as the work required to create that
@@ -446,20 +447,21 @@ initial generator state. Note a trivial collision can be obtained by feeding an
 output block back into the `EchoHeader` parameter and by incrementing the
 counter by one, which is the same thing as the next output block.
 
-Also, important new secrets must _not_ be introduced via the `EchoHeader`
-alone whenever more than one output block is revealed to an adversary, as
-this re-reveals cracking attacks on everything except that important new
-secret. Also, the `EchoHeader` is truncated to 32 bytes.
+Also, the `EchoHeader` parameter violates HKDF's strict principle of cleanly
+separating entropy extraction and final output expansion.  Important new
+secrets must _not_ be introduced via the `EchoHeader` alone whenever more than
+one output block is revealed to an adversary, as doing so allows a cracker to
+bypass the `EchoHeader`, re-revealing a cracking attack on the original keying
+material alone.
 
-Despite these issues, the `EchoHeader` is not a difficult parameter to use
-safely. The default recommendation is to duplicate the input to `EchoKey`
-and `EchoHeader`, which is one of several ways any possible issue can be
-avoided.
+Despite these issues, the `EchoHeader` is not difficult to use safely. The
+default recommendation is to duplicate the input to `EchoKey` and
+`EchoHeader`, which is one of several ways this issue can be avoided.
 
 The `EchoHeader` parameter exists to regularize timing side channels regarding
-the length of the `EchoTag` parameter, because it is a strategically location
-to leave a plaintext tag, and because it could be potentially rather useful
-when you want very efficient random-access output.
+the length of the `EchoTag` parameter, because it can be a strategic location
+to leave a plaintext tag, and because it could be potentially rather useful when
+you want very efficient random-access output.
 
 Very much like HKDF-SHA256, these final steps perform no key-stretching, so
 they are very fast relative to the computations required to compute the seed.
@@ -479,7 +481,7 @@ binary blobs, each longer than 12 kiB, consisting of bcrypt's P-box and S-box
 interspersed with portions of the bcrypt long tag. There is one blob for every
 super-round, and one super-round for every 128 bcrypt rounds rounded up.
 
-    msg   = ""
+    msg   = (portions of BcryptLongTag)
     state = (classic bcrypt initial state based on digits of pi)
 
     for each super-round:
@@ -487,14 +489,13 @@ super-round, and one super-round for every 128 bcrypt rounds rounded up.
                  ( BcryptSeguid,
                    "G3Pb2 charlie" + keyB + msg +
                    BcryptContextTags + "KEY0" + BcryptDomainTag )
-       msg   += key0
        key1   = HMAC
                  ( BcryptSeguid,
-                   "G3Pb2 charlie" + keyB + msg +
+                   "G3Pb2 charlie" + keyB + msg + key0
                    BcryptContextTags + "KEY1" + BcryptDomainTag )
-       msg   += key1
+       msg   += (key1 then key0 interleaved with portions of BCryptLongTag)
        state := bcryptSuperRound ( state, key0, key1, BcryptLongTag )
-       msg   += state
+       msg   += (state interleaved with portions of BCryptLongTag)
 
     bcryptOutput = msg
 
@@ -587,13 +588,19 @@ bcrypt round on top with the modified round on bottom:
 
     S_4 = (state for next round and/or input for HMAC-SHA256)
 
+In actuality, the cyclic extension of `BcryptLongTag` is processed across
+rounds, so that moderately long tags have their bytes processed more evenly,
+and so that very long tags are truncated at `(rounds + 1) * 4136` bytes instead
+of 4136 bytes. However, the substring that affects a single round is repeated
+verbatim in four different operations within that round.
+
 This simplified overview demonstrates that the G3P's modifications to bcrypt
 also requisitions previously unused null bytes, much in the same way that PHKDF
 requisitions previously unused null bytes found in PBKDF2 for tagging purposes.
 
-If two states collide, then the result of modifying that state with XOR(x) will
-always be different than that same state modified by XOR(y) for distinct x and
-y. This observation is also true of BLOWFISH-EXPAND.
+If two states collide, then the result of modifying that state with `XOR(x)`
+will always be different than that same state modified by `XOR(y)` for distinct
+`x` and `y`. This observation is also true of `BLOWFISH-EXPAND`.
 
 For this reason, any state collisions in the original bcrypt will get pushed
 back apart at least once per round, because in order to be a collision, the
@@ -649,7 +656,7 @@ The XOR operation of the initial round of a superround moves the incoming
 `key0` from the left side of blowfish's P-box to the right side of the P-box.
 Paired with inserting `key1` as the first 32 bytes of the salt to
 BLOWFISH-EXPAND ensures that all 512 bits of the incoming keys are encoded
-relative to the subsequent state in just four blowfish block operations.
+relative to the previous state in just four blowfish block operations.
 
 The transitions between two super-rounds are designed to be synchronization
 points, and it doesn't make much sense to transfer a bcrypt key-stretching
@@ -687,9 +694,10 @@ over BCRYPT-EXPAND's salt after looking at the other input parameters.
 
 This is a pretty serious attack against the conventional cryptographic
 properties of a generalized bcrypt. This informed these modifications in an
-attempt to avoid these issues, in particular by requiring that the substring
-of the `BcryptLongTag` that affects any given round is repeated verbatim in
-four different operations within that round.
+attempt to avoid these issues, in particular by not allowing the `BcryptLongTag`
+to directly affect the first 32 bytes of the state, and by requiring that the
+substring that affects any given round is repeated verbatim in two XOR
+operations and two BLOWFISH-EXPAND operations within that round.
 
 Of course, the intended use of the `BcryptLongTag` salt is that it is to be
 chosen without looking at the incoming keys, which renders these concerns
@@ -790,15 +798,15 @@ That cost mulitplier does not seem nearly high enough to throughly dissuade
 Eve from deploying a practical tag obfuscation attack, especially if it's
 running on stolen resources!
 
-Relative to the G3P, argon2 is desirable because it requires a lot more RAM
-to compute. You could get the best of both worlds by using the G3P, possibly
-with a reduced number of rounds, as a preprocessing and/or postprocessing step
-for argon2.
+Relative to the G3P, argon2 is desirable because it can be made to require  a
+lot more RAM to compute. You could get the best of both worlds by using the
+G3P, possibly with a reduced number of rounds, as a preprocessing and/or
+postprocessing step for argon2.
 
 While it would be preferable to someday have an argon2 variant that carries
 plaintext tags all the way through the key-stretching computation, combining
 the G3P and argon2 is likely a more than adequate workaround for now. Catena
-and yescrypt appear to have significant potential for a self-documenting
+and yescrypt appear to have significant potential for being a self-documenting
 memory-hard password hash function, though this appears to be accidental and
 this potential could almost certainly be improved, much like the partial
 cache-hardness of classic bcrypt.
@@ -1191,7 +1199,7 @@ domain separation constant in the computation of HMAC's outer pad.
 [^not-blake]:
     Blake3 and the parallel variants of Blake2 are notable exceptions, in that
     the input isn't processed block-by-block from start to end, but rather in a
-    more complicated tree structure that allows for parallelism and for certain
+    more complicated structure that allows for parallelism and for certain
     kinds of incremental updates.
 
 [^extracting-entropy-with-sha256]:
@@ -1267,7 +1275,7 @@ domain separation constant in the computation of HMAC's outer pad.
 [^argon2-spec]:
     See [Argon2: the memory-hard function for password hashing and other applications](https://github.com/P-H-C/phc-winner-argon2/blob/master/argon2-specs.pdf)
     by Alex Biryukov, Daniel Dinu, and Dmitry Khovratovich
-    
+
 [^have-i-been-pwned]:
     Or at leat ensure that "Have I Been Pwned" would have in their possession
     sufficiently reliable information to be able to responsibly disclose
