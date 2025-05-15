@@ -202,12 +202,12 @@ results =
       -- work performed thus far, and return it to the client:
 
       userStoragePrekey = foxtrot' [myStorageDomain, "storage-prekey"] (word32 "KEY\x00")
-
-      -- Note that the userStoragePrekey needs to be re-combined with the
-      -- original client-side seed before end-to-end encrypted files can be
-      -- unlocked. This makes the prekey useless on its own, and therefore the
-      -- auth server never gains the information needed to unlock the files
-      -- without first guessing "correct horse battery staple".
+      -- The userStoragePrekey is an emphemeral value that needs to be
+      -- re-combined with the original client-side seed before end-to-end
+      -- encrypted files can be unlocked. This makes the prekey useless on its
+      -- own, and therefore the auth server never gains the information needed
+      -- to unlock the files without first guessing "correct horse battery
+      -- staple"
 
       -- An attacker who has access to the user's encrypted files but does not
       -- have that user's secret server-side salt would not be able to confirm
@@ -215,8 +215,8 @@ results =
       -- without talking to the auth server, unless the user has a backup
       -- method to unlock that particular file that bypasses the auth server,
       -- and that backup method reused the user's password. Being required to
-      -- talk to an auth server implies that two-factor authentication can be
-      -- used to protect encrypted files.
+      -- talk to an auth server implies that existing standards for two-factor
+      -- authentication can be used to protect encrypted files.
 
       userStorageKey = mySprout
                       ["disk",myStorageDomain,myLongTag,

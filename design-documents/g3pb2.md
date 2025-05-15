@@ -293,6 +293,11 @@ prevents shifting bytes between them in order to create cryptographically
 trivial collisions. The length padding also repeats (parts of) the plaintext
 of various tags as message filler.
 
+Most input values and field lengths can be robustly decoded from the `HMAC`
+input message alone, and those that cannot are either HMAC keys or can be
+decoded from the inputs to BLOWFISH-EXPAND. Thus all collisions on the G3P
+are cryptographically non-trivial.
+
 The G3P operates on bitstrings. The syntax generators used never look at the
 content of any bitstring, only it's length. Thus by [parametricity](https://en.wikipedia.org/wiki/Parametricity)
 there cannot be any data-dependent truncations such as bcrypt's null byte. And,
@@ -426,7 +431,7 @@ which provides a last-minute opportunity for domain separation before final
 output expansion. This function performs no additional key stretching, so
 therefore it is very fast relative to computing the seed itself.
 
-    keyL = HMAC ( SproutSeguid, seed + Role + "KEYL" + SproutTag )
+    keyL = HMAC ( SproutSeguid, "G3Pb2 delta" + seed + Role + "KEYL" + SproutTag )
 
     out0 = HMAC ( keyL + EchoKey, EchoHeader + INT_32_BE(EchoCounter) + EchoTag )
     out1 = HMAC ( keyL + EchoKey, out0 + INT_32_BE(EchoCounter + 1) + EchoTag )
@@ -448,15 +453,16 @@ output block back into the `EchoHeader` parameter and by incrementing the
 counter by one, which is the same thing as the next output block.
 
 Also, the `EchoHeader` parameter violates HKDF's strict principle of cleanly
-separating entropy extraction and final output expansion.  Important new
-secrets must _not_ be introduced via the `EchoHeader` alone whenever more than
-one output block is revealed to an adversary, as doing so allows a cracker to
-bypass the `EchoHeader`, re-revealing a cracking attack on the original keying
-material alone.
+separating entropy extraction and final output expansion. As a result,
+important new secrets must _not_ be introduced via the `EchoHeader` alone
+whenever more than one output block is revealed to an adversary. Doing so
+allows a cracker to bypass the `EchoHeader`, re-revealing a cracking attack on
+the original keying material alone.
 
-Despite these issues, the `EchoHeader` is not difficult to use safely. The
-default recommendation is to duplicate the input to `EchoKey` and
-`EchoHeader`, which is one of several ways this issue can be avoided.
+Despite these issues and the fact it is truncated to 32 bytes, the `EchoHeader`
+is not difficult to use safely. The default recommendation is to duplicate the
+input to `EchoKey` and `EchoHeader`, which is one of several ways this issue
+can be avoided.
 
 The `EchoHeader` parameter exists to regularize timing side channels regarding
 the length of the `EchoTag` parameter, because it can be a strategic location
@@ -590,9 +596,9 @@ bcrypt round on top with the modified round on bottom:
 
 In actuality, the cyclic extension of `BcryptLongTag` is processed across
 rounds, so that moderately long tags have their bytes processed more evenly,
-and so that very long tags are truncated at `(rounds + 1) * 4136` bytes instead
-of 4136 bytes. However, the substring that affects a single round is repeated
-verbatim in four different operations within that round.
+and so that very long tags are truncated at `(rounds + 1) * 4136 + N` bytes
+instead of `4136` bytes. However, the substring that affects a single round is
+repeated verbatim in four different operations within that round.
 
 This simplified overview demonstrates that the G3P's modifications to bcrypt
 also requisitions previously unused null bytes, much in the same way that PHKDF
@@ -654,9 +660,9 @@ In the modified bcrypt, it runs once at the beginning of every super-round.
 
 The XOR operation of the initial round of a superround moves the incoming
 `key0` from the left side of blowfish's P-box to the right side of the P-box.
-Paired with inserting `key1` as the first 32 bytes of the salt to
-BLOWFISH-EXPAND ensures that all 512 bits of the incoming keys are encoded
-relative to the previous state in just four blowfish block operations.
+Paired with using `key1` as the first 32 bytes of the salt to `BLOWFISH-EXPAND`,
+this ensures that all 512 bits of the incoming keys are encoded relative to the
+previous state in just four blowfish block operations.
 
 The transitions between two super-rounds are designed to be synchronization
 points, and it doesn't make much sense to transfer a bcrypt key-stretching
@@ -668,29 +674,28 @@ could attack these keys directly and would not need to compute any portion of
 the current super-round.
 
 Also, the bcrypt state machine can be run in reverse. There is an efficient
-implementation of BLOWFISH-REVEXPAND that will produce a starting state given
+implementation of `BLOWFISH-REVEXPAND` that will produce a starting state given
 a final state. This computation can be shared across multiple guesses, meaning
 that a cracker can instead attack the final bcrypt state of the previous
 super-round. Compared to cracking `key0`, this saves a half-round of bcrypt and
-more than 12 kilobytes of SHA256 input processing.
+more than 12 kilobytes of SHA256 input processing per guess.
 
 These keys are forgotten as part of the transition between super-rounds, which
-prevents moving backwards across every XOR steps and the initial call to
-BCRYPT-EXPAND in the initial half-round. The act of forgetting these things
-enables the key-stretching ratchet to make forward progress.
+prevents moving backwards across every XOR. This act of forgetting enables the
+key-stretching ratchet to make forward progress.
 
-There is also an efficient implementation of BLOWFISH-TRANSCODE which takes
+There is also an efficient implementation of `BLOWFISH-TRANSCODE` which takes
 as input any single pair of starting and ending states, and produces the unique
-transition code that can be used with EXPAND and REVEXPAND to move directly
-between those two states. The existence of BLOWFISH-TRANSCODE demonstrates
-that the salt being provided to BLOWFISH-EXPAND can be efficiently inferred
+transition code that can be used with `EXPAND` and `REVEXPAND` to move directly
+between those two states. The existence of `BLOWFISH-TRANSCODE` demonstrates
+that the salt being provided to `BLOWFISH-EXPAND` can be efficiently inferred
 from any memory-tracing debugger that reveals the before-and-after states.
 
 These three functions imply that the bcrypt state machine forms an efficiently
 computable [quasigroup](https://en.wikipedia.org/wiki/Quasigroup) with 2^33334
 elements. This algebraic structure demonstrates how to one can control the
 final output state of this generalized bcrypt if one is allowed full control
-over BCRYPT-EXPAND's salt after looking at the other input parameters.
+over `BCRYPT-EXPAND`'s salt after looking at the other input parameters.
 
 This is a pretty serious attack against the conventional cryptographic
 properties of a generalized bcrypt. This informed these modifications in an
@@ -706,6 +711,405 @@ derives the incoming keys. This forms a local commitment scheme that ensures
 that one cannot look at the incoming keys and then choose substrings of the
 `BcryptLongTag` that affect the first one-and-a-half rounds and the last round
 of a super-round.
+
+# Deployment Considerations
+
+A deployment designer may notice that the Global Password Prehash Protocol has
+21 parameters. This may seem excessive, but the thing to remember is that the
+G3P is carefully designed so that almost every parameter must be an exact match.
+Any difference means the outputs will be cryptographically independent to any
+efficient observer who isn't privy to enough of the inputs.
+
+There are a few exceptions, but to the best of my knowledge they are all
+documented: there are some trivial (but largely uninteresting) "collisions"
+involving HMAC-SHA256 keys. This behavior is externally dictated by relevant
+standards. Additionally, there are truncations of the `EchoHeader`, `EchoKey`,
+and `BcryptLongTag` parameters. All other collisions on the G3P are
+cryptographically non-trivial.
+
+Also, introducing new secrets via the `EchoHeader` alone is not necessarily
+secure, providing a slight caveat to the claim of cryptographic independence.
+
+All parameters fall into one of five categories: things needed only _once_ near
+the beginning of the computation, things needed _sporadically_ throughout a
+computation, things needed _constantly_ throughout a computation, parameters
+that determine how _expensive_ a key stretching phase will be to compute, and
+parameters that can be used to efficiently _tweak_ the output after
+key-stretching has been performed. Honestly, I suspect at least 8-12
+parameters are necessary even for a more minimal design.
+
+Additionally, there is a visibility graph between parameters. For example,
+being able to specify the "username" and compute the output hash yourself on
+your own hardware implies that your computer must know every other parameter.
+Being able to specify the "password" implies knowledge of every parameter
+other than the "username", the plaintext of which can be hidden using partial
+evaluation.
+
+Your computer must know the plaintext of any "tag", if you are specifying
+either the username or password. However, plaintext HMAC-SHA256 keys can always
+be replaced with two intermediate SHA256 states via partial evaluation, which
+is why "tag" doesn't appear in "seguid".
+
+Finally, I recommend taking a look at [MyCorpExample.hs](../g3p-hash/test/MyCorpExample.hs)
+in the G3P's test suite, as it is a slowly-evolving example of what a typical
+deployment might look like.
+
+## Second Secrets
+
+It is a good idea to officially support second secrets, akin to 1password's
+2SKD. One of the primary intended purposes of the G3P's `Credentials` vector is
+to support second secrets.
+
+In this context, a second secret is basically a second password, though
+often there's a connotation that is selected randomly for the user, instead
+of something chosen by the user.
+
+Second secrets should be optional. A security-minded user might choose to use a
+reasonably long passphrase as a second secret, and then use a relatively short
+and convenient passphrase as the password.
+
+The user could persist the second secret to their device, and the user might
+expect to type the password on a semi-regular basis. This gives significant
+protection against shoulder-surfing attacks, while providing a modicum of
+protection against software-based credential stealers.
+
+Before it is persisted, the second secret should be hashed, key-stretched,
+and domain separated, so that the only thing that the uncracked hash could
+possibly be useful for is within the context of your deployment.
+
+Thus, the G3P could be used to hash the second secret at about the same
+cost as your chosen cost parameters for hashing the user's password.  That
+hash could then be included in the G3P's `Credentials` vector to support 2SKD.
+
+## Account Separation
+
+### Public Salts
+
+Assoming your deployment will have more than one user, your deployment should
+almost certainly be applying a unique salt per account as domain separation,
+and should do so up-front. This per-account salt achieves exactly the same
+effect as what traditional salts achieve: in effect, every account gets to use
+its own unique password hash function. Ideally this salt would be applied early
+on in the hashing process, preferably before the password is even hashed.
+
+Handling per-account salt is a significantly more complicated when client-side
+prehashing is involved, as the client will have to somehow know which salt to
+use. The remainder of this section should be understood within this prehashing
+context.
+
+There's two basic categories of approaches: transparently deriving a salt from
+a login name, or storing a random salt directly in a database. In the former
+scenario, there is an unbreakable connection between login names and derived
+salts, which can be guessed offline. In the latter scenario, members of the
+general public need to be able query the salt associated with a specific login
+name via a public salt server.
+
+In either case, security can be substantially improved by having login names
+that are untethered (at least in part) from public identifiers. Otherwise, if
+the password hash of a high-profile account gets leaked, it won't be difficult
+for a cracker to find the login name from the salt alone no matter what approach
+you take.
+
+The simplest possible transparently-derived salt might use a normalized login
+name as the input to the `Username` parameter only. The G3P ensures that the
+entire plaintext of this parameter can be partially evaluated away, so in this
+scenario it's always possible for an eavesdropper to give individual accounts
+a modicum of privacy when they turn the hashes over to crackers.
+
+However, this partial evaluation doesn't apply any key-stretching to the
+login name, so it would be relatively inexpensive for a cracker to try to guess
+the login name. Furthermore, the password and the login name could be cracked
+one at a time.
+
+One could apply key-stretching to the login name, possibly via the G3P, to
+derive a salt in a transparent way. That derived salt should be included in
+both the `Username` and `ContextTags` parameters, but probably omitted from the
+`BcryptContextTags` parameter. This might make it much more expensive for
+a cracker to guess a login name from a transparently-derived salt.
+
+The advantage is that transparently derived salts avoid possibilities for
+account existence attacks, account enumeration attacks, and other pitfalls of
+running a public salt server. The downside is that a cracker who has obtained
+one of your salts could crack the login name offline, without ever talking to
+your public salt server.
+
+Furthermore, you will probably want or need to normalize the login name in one
+or more ways. For example, if you want to support case-insensitive login names,
+you might choose to convert the login name to all lower case, or all upper case.
+Supporting Unicode login names potentially brings its own normalization issues.
+
+Transparently deriving a salt means you will will need to robustly apply these
+normalization rules. Prehashing scenarios require that this normalization be
+performed on the client, or at least as an RPC call to the server. Having the
+option of verifying a normalization via RPC is highly recommend. Fortunately,
+username normalization issues can be almost entirely avoided when setting
+a password via dynamic testing.
+
+On the other hand, if you use random salts, login names cannot possibly be
+guessed from the salt without talking to your public salt server. Just like a
+key-stretched username, this salt should be included in both the `Username`and
+`ContextTags` parameters but not the `BcryptContextTags` parameter.
+
+Futhermore, you wouldn't have to deal with login name normalization issues on
+the client: this could be confined to server-side computations where you have a
+lot more control over what ultimately happens. Moreover, this approach need not
+carry a cryptographic commitment to your normalization scheme.
+
+The downside of running a public salt server is that it could provide an
+account existence oracle, or even worse, an account enumeration oracle, to
+attackers. This is addition to the more generic attack surface that running an
+online service represents.
+
+A reasonable length for a random public salt might be 8-16 bytes. There's
+no need for long salts if your database can enforce uniqueness. Moreover,
+cross-domain collisions on this salt will not be an issue if you are using
+deployment-identifying domain separation as well.
+
+It is highly recommended that the public salts be sampled or derived from a
+high-quality cryptographically secure source and stored directly in a database.
+In particular, the public salt should not be derived from non-public seeds and
+keys.[^ephemeral-derivations] This avoids any possibility of an eavesdropper
+stealing that non-public information and using it as evidence to third parties
+that they have actually compromised your infrastructure, preserving your
+plausible deniability regarding the incident.
+
+Handling queries for accounts that don't exist is the most complicated aspect
+of running a public salt server. You should endeavor to hide the existence or
+non-existence of an account from members of the general public, so you will need
+to generate a fake answer for non-existent accounts. Moreover, this fake answer
+needs to be stable over time, and we'd prefer not to have to maintain a large
+database of non-existent random salts for every login name ever asked about.
+
+The obvious solution is to compute something akin to `HMAC(SecretKey, Username)`
+on the normalized, non-existent username. This requires essentially no storage,
+and would be sufficient to provide a stable, consistent answer that could not
+be distinguished from random strings as long as your key remains secret.
+
+However, leaking this key would allow the existence or non-existence of any
+account to be inferred via your public salt server, thus granting its holders
+an account-existence oracle. Thus you need to be able to start a migration to a
+new key without disturbing fake salts that have already been provided. This can
+be accomplished using [bloom filters](https://en.wikipedia.org/wiki/Bloom_filter)[^bloom-example]
+to avoid the need of storing every non-existent username ever asked about.
+Perhaps there would be one or more bloom filters per key, each tracking the
+nonexistent usernames that key has very likely seen.
+
+### Private Salts
+
+It's highly recommended that in addition to a public salt, that your deployment
+also use some kind of unique _private_ salt per account.
+
+Unlike public salts, these private salts would not normally be acknowledged as
+belonging to your organization, therefore there is no downside to deriving
+private salts from secrets and other non-public information.
+
+In fact, it's recommended that you store a secret seed per account, maybe ~16-24
+random bytes, and then use a relatively small number of secret keys stored
+outside the database to derive an ephemeral private salt. Not only can this
+decrease the storage requirements for your private salt database, it also can
+make it harder to steal.
+
+That way, if an eavesdropper steals your keys and not your seeds, then the
+seeds prevent the disclosure of any of your private salts. If there wasn't a
+secret per account, then the eavesdropper who steals your keys may have stolen
+your entire private salt database, possibly including salts not yet in use!
+
+Similarly, if a eavesdropper steals your database of seeds, but not your keys,
+then the keys prevent the disclosure of your private salts. Given that database
+exploits are shockingly common, this seems like a wise thing to do.
+
+You need to be able to support multiple secret keys, because you need to be
+able to start migrating away from existing keys to new keys at any time,
+and you often won't be able to establish any specific timeframe after which
+you can delete your existing keys.
+
+It is highly recommended to apply self-documenting tags on the server side
+as well as the client side. Unfortunately argon2 is not particularly secure
+in the sense of Adversarial Literate Programming, as none of it's bytestring
+inputs are required to compute its key-stretching phase.
+
+Using the G3P, or it's simplified "foxtrot" variant, as a preprocessing
+and/or postprocessing step to argon2 should be an adequate workaround for
+those wanting to integrate argon2 into their password database.
+
+## Dynamic Testing
+
+There are many moving parts that go into a password hash implementation. If
+something goes wrong with the hash computation when a password is set, this
+can lead to a major inconvenience or even data loss. This may lead to the need
+to reset the password in the case of a traditional website, or lead to the
+inability to decrypt an end-to-end encrypted file.
+
+Dynamic testing can greatly reduce the probability of this happening. Moreover,
+failed tests build operational awareness of relevant implementation issues
+affecting your deployment.
+
+When the G3P is deployed as a client-side prehash, you often won't have full
+control of the stack its running on. Thus a dynamically-generated dry-run test,
+akin to a theatrical full dress rehearsal, is highly recommended whenever
+setting or changing a password.
+
+Here, every parameter should be as close as possible to what it will look like
+in the actual password hash computation. In most cases, this means every
+parameter other than the password and second secret should be exactly as it
+will be for the actual computation.
+
+The server should generate a random nonce, possibly encoded as a passphrase, to
+use as the password and/or second secret inputs. This nonce should have at
+least 128 bits of entropy, and it should be sampled or derived from a
+cryptographically-secure source. The server then sends the password and say,
+the first 16 bytes of the hash resulting from the test.
+
+The client should then run the G3P on the password with the full number of
+rounds, and then use the outputs as further inputs to the G3P and its key
+derivation function. By chaining together outputs and inputs, one can
+consolidate many test vectors into a single test vector.
+
+After the first computation, key-stretching can and probably should be run with
+a reduced number of rounds. Typical deployments should include a test with a
+password input that is exactly 31 bytes long, a password that is exactly 32
+bytes long, tests with and without a second secret if your deployment officially
+supports 2SKD, and further tests of the final, fast key derivation function as
+suited to your deployment.
+
+Once a final hash has been computed, the client application can compare the
+first 16 bytes to verify that it has passed this full dress rehearsal, and
+sends the resulting hash in response to the server as part of the password
+change process. The server can then use the last 16 bytes of the output hash to
+verify that the client has indeed performed and passed its full dress rehearsal.
+
+## Login Page Testing
+
+It is a good idea to run a largely-static tech rehearsal of the G3P whenever a
+user is trying to log in, in addition to a more fully-dynamic full dress
+rehearsal as a prerequisite for setting a password.
+
+A temporary login failure is typically much less consequential in the long term
+than a failure when setting a password. For this reason, there's much less need
+to test the G3P with the exact same parameters that will be used in an actual
+production computation, outside of the user's actual inputs of course.
+
+Even so, a quick self-test of the G3P can save the user potentially a lot of
+confusion, frustration, and anger of not being to log in with their correct
+password. Furthermore, the user's misdiagnoses could lead to unnecessary and
+counterproductive "remedial" actions by that user, such as password resets,
+possibly causing further harm. Finally, test failures build operational
+awareness of implementation issues affecting your deployment.
+
+A full dress rehearsal should include at least one test of the exact parameters
+specified by the deployment for that specific account, including all salt and
+cost parameters.
+
+A login tech rehearsal should follow the same testing script, and should still
+try to keep the parameters as close or at least as representative as possible
+to what will actually be used, but there also isn't the need (or necessarily
+ability) to include the user's exact public salt, for example. In particular,
+I recommend running the G3P with a reduced number of rounds for this test.
+
+## Passphrase Generation
+
+It is highly recommended that you encourage your users to adopt [random
+passphrases](https://www.eff.org/dice). One of the best ways you could do this
+is to include a secure passphrase generator in any user interface that allows
+you to set a password. I believe that passphrase generation should be a
+standard feature expected of any form that sets a password.
+
+The [EFF's Short Wordlist #1](https://www.eff.org/files/2016/09/08/eff_short_wordlist_1.txt)
+seems like a reasonable default choice of wordlists, however the user should be
+allowed to select from a list of standard wordlists, and provide their own
+should they choose to do so. A good default passphrase length would be about
+five or six words in the case of this wordlist.
+
+Moreover, setting a password entails dynamic testing of the G3P, which entails
+sending a cryptographically-secure random nonce from the server to the client
+as part of this full dress rehearsal. This should be reused to protect against
+weaknesses in the client's source of cryptographically-secure randomness.
+
+Substantial key-stretching is applied to this nonce as part of a full dress
+rehearsal, and there and there is no reason not to use an output derived from
+this key stretching computation. Then we sample data from the client's
+cryptographically-secure random sources, and hash those samples with the
+output. The result can be used to seed a CSPRNG, and all source material
+needs to then be permanently forgotten.
+
+The client should sample from whatever cryptographically secure random sources
+are available. Ideally a client would sample both `/dev/urandom` (or comparable
+on Windows) *and* employ `RdRand` or comparable CPU instructions if available.
+On browsers, you'd be typically be limited to WebCrypto's `getRandomValues`.
+
+## Passphrase Assistance
+
+One of the downsides of random passphrases are that they are longer than a
+comparably strong random string of letters and digits. This means there are
+more opportunities to mistype your passphrase. On the other hand, experienced
+typists find it easier to type familiar words than random letters. Futhermore,
+the entropic redundancy also implies that we can apply useful levels of error
+correction to a passphrase before it is hashed.
+
+Following the principle of least suprise, the default should be to have no
+assistance. Perhaps a checkbox that says "I use a passphrase and I want
+misspellings corrected automatically", which would then reveal further UI
+elements with some default wordlist selected, and the option to select from
+among a few other standard wordlists or to provide your own.
+
+Of course, the login page should offer a convenient and relatively obvious
+way of saving these as defaults for the computer and/or account in question.
+Futhermore, no spelling corrections should ever be automatically applied when
+setting a password, though you can alert the user to the fact that there are
+misspellings.
+
+Also, one might consider using an external checksum on the second secret to
+alert the users to most mistypings earlier, especially if they will type the
+second secret before the password. Yet, we don't want our checksum to assume
+anything about the form or content of the second secret, and we don't want the
+existence of our external checksum to be able to speed up a cracking attack
+against the second secret.[^have-i-been-pwned-lookup]
+
+My suggestion is to apply some domain separation after key stretching to
+obtain an external checksum, and then check that the first 12 bits are zero.
+This automatically invalidates all but 1 out of 4096 passwords. "Mining" a
+password by repeatedly trying enough different passwords until you get lucky is
+the only practical way of finding something that passes this checksum. Another
+output hash can then be derived from the seed to be used as an input to the
+the G3P's `Credentials` vector.
+
+Incidentally, external checksums can be used to solve the problem of users not
+trusting their RNG, and system administrators not trusting the randomness of
+their users. For particularly sensitive second secrets, one might use dice to
+manually generate a partial passphrase, which is then run through a password
+miner that inserts one or more words to complete that passphrase.
+
+## On-screen keyboards
+
+Passwords and passphrases have a nasty habit of appearing in the assistance
+features of on-screen keyboards. Thus smartphone apps and webpages that handle
+password inputs must take all reasonable precautions[^unreasonable-precautions]
+to try to prevent this from happening.
+
+## Virtual Memory
+
+Passwords and have a nasty habit of showing up in swap files. Any program that
+ever handles a password should endeavor to try to prevent this from happening.
+Administrators of authentication servers need to be aware of this issue and
+take steps to mitigate it.
+
+Implementors can improve the situation by using `mlock` system call on Linux to
+try to prevent certain memory pages from being written to swap, or whatever the
+best solution is on modern Linux. There are presumably comparable features
+offered by many other operating systems.
+
+Administrators of authentication servers might consider disabling swap on that
+server, or at least ensuring that it is encrypted with a truly ephemeral key.
+
+I do realize that comprehensively tackling this issue isn't realistic in many
+contemporary scenarios, especially when client-side devices or virtual machines
+are involved, but this lamentable state of affairs can always be improved by
+ensuring that passwords do not persist for long in memory, and are zeroed
+out as soon as possible.
+
+Thus the G3P is designed such that the password can be permanently forgotten
+before 99.99% of the hashing algorithm has been computed. Professional password
+handling  implementations should strongly consider adopting this approach.
 
 # Tag Obfuscation Attacks
 
@@ -772,8 +1176,8 @@ In particular, in argon2, you can append tags to the end of passwords, and an
 obfuscation attack would then require Homomorphic Encryption to be truly secure.
 This provides effective domain separation, so argon2 alone should be sufficient
 to protect a professional password cracker from illicitly commingled hashes, as
-it would be unethical to knowingly run a password cracker that incorporate
-Homomorphic Encryption.
+it would be unethical to knowingly run a password cracker that incorporates
+homomorphic encryption.
 
 However, a argon2-based suffixed salts are not particularly secure in the sense
 of Adversarial Literate Programming. This is because in more adversarial
@@ -801,21 +1205,22 @@ running on stolen resources!
 Relative to the G3P, argon2 is desirable because it can be made to require  a
 lot more RAM to compute. You could get the best of both worlds by using the
 G3P, possibly with a reduced number of rounds, as a preprocessing and/or
-postprocessing step for argon2.
+postprocessing step for argon2. In fact, the reference implementation offers
+a simplified `g3pFoxtrot` hash function intended for this purpose.
 
 While it would be preferable to someday have an argon2 variant that carries
 plaintext tags all the way through the key-stretching computation, combining
 the G3P and argon2 is likely a more than adequate workaround for now. Catena
-and yescrypt appear to have significant potential for being a self-documenting
-memory-hard password hash function, though this appears to be accidental and
+and yescrypt appear to have significant potential for being self-documenting
+memory-hard password hash functions, though this appears to be accidental and
 this potential could almost certainly be improved, much like the partial
-cache-hardness of classic bcrypt.
+cache-hardness of bcrypt.
 
 In the argon2-only FHE scenario, Craig _might_ be able to still determine the
 parameters hidden inside by computing a hash with a known password and then
 cracking the unknowns. This approach can be facilitated when Craig is aware
 of Alice's documentation but is not yet aware that Alice's documentation is
-immediately relevant to the hash function he is reverse engineering, so it
+immediately relevant to the hash functin he is reverse engineering, so it
 helps to be open and notorious about your deployments of self-documenting
 cryptography.
 
@@ -860,23 +1265,25 @@ conceptions that it should be possible to improve the service provided by
 "Have I Been Pwned" by insourcing it[^have-i-been-pwned], and had clues that
 salts could become indicators of compromise that would have to follow the
 password hash around. My eureka moment came in July of 2022 shortly after
-writing a trio of essays about relevance logic, the early childhood math
-curriculum, and the novel queueing disciplines exhibited by Joe Taylor's
-WSJT suite of amateur radio protocols.
+writing a trio of essays about [relevance logic](https://github.com/constructive-symmetry/constructive-symmetry/blob/master/T002_Tools_of_Math_Construction/Part02_Deconstructing_Bertrand_Russell.md),
+[the early childhood math curriculum](https://github.com/constructive-symmetry/constructive-symmetry/blob/master/T002_Tools_of_Math_Construction/Part03_Aggregate_Theory.md#suggestions-for-further-study),
+and another mentioning the [novel queueing disciplines](https://github.com/constructive-symmetry/constructive-symmetry/blob/master/T002_Tools_of_Math_Construction/Part04_Physics_and_Metaphones.md#physics-and-metaphones)
+exhibited by Joe Taylor's WSJT suite of amateur radio protocols.
 
 The unexpected insight I was starting from was "Write it down. Make it real",
 which I implicitly understood as "Writing something down [in the cryptoacoustic
 transmission medium] makes it real, now write this idea down and make it real."
 I was missing the phrase in brackets with only the vaguest conception that I
-needed to create it to flesh out my concept. I had a clear understanding o
-f what I needed to do, but I lacked the language to describe it and was highly
+needed to create it to flesh out my concept. I had a clear understanding of
+what I needed to do, but I lacked the language to describe it and was highly
 uncertain of any details.
 
 It was immediately clear that I needed to take Dan Friedman's wise advice that
 "everytime you write a program to do something, you should write a program to
-undo that thing" and adapt it to cryptographic hash functions in a novel way:
-what I would eventually come to call "plaintext tags" needed to be recoverable
-(i.e. "undoable") from a memory trace of the cryptographic hash function itself.
+undo that thing"[^math-education] and adapt it to cryptographic hash functions
+in a novel way: what I would eventually come to call "plaintext tags" needed to
+be recoverable (i.e. "undoable") from a memory trace of the cryptographic hash
+function itself.
 
 Furthermore, as an undergraduate at Case Western Reserve University, I had
 written a toy stepping debugger implemented as a continuation-passing
@@ -894,12 +1301,13 @@ I was hoping to keep my cryptographic work compatible with contemporary versions
 of WebCrypto, a goal that got yeeted away several months later, I set out to
 learn HMAC-SHA256 and relearn PBKDF2 in this new context.
 
-While in the process of understanding my eureka moment and formulating the
-goals, I was obsessed about learning a little bit about loudspeaker design. I
-didn't think much of it at the time, but as I finally formulated PHKDF and I
-was writing acknowledgements I realized I needed to thank a deceased teacher
-of mine, Dr. David Doiron, who I had for Optics at the Indiana Academy for
-Science, Mathematics, and Humanities at Ball State University in Indiana.
+While in the process of understanding my eureka moment, teasing out plausible
+solutions, and formulating the goals, I was obsessed about learning a little
+bit about loudspeaker design. I didn't think much of it at the time, but as I
+finally formulated PHKDF and I was writing acknowledgements I realized I needed
+to thank a deceased teacher of mine, Dr. David Doiron, who I had for Optics at
+the Indiana Academy for Science, Mathematics, and Humanities at Ball State
+University in Indiana.
 
 In retrospect, that class was my introduction to signals and communication
 theory. While I was unravelling this puzzle, I basically thought of the
@@ -914,7 +1322,7 @@ between what I was doing and communications theory. The penny finally dropped
 when I had to finally admit to myself why I needed to acknowledge Dr. Doiron.
 
 I chose the name "cryptoacoustics" because sound is the primary means of
-communication xhat humans use to physically communicate with each other. It
+communication that humans use to physically communicate with each other. It
 also honors my deceased friend Duncan Lowne, who was a DJ interested in
 electronic music and computer engineering and was a DPhil student at Oxford
 when he passed.
@@ -926,7 +1334,7 @@ that it can be a reasonably deep and fruitful analogy.
 For example, the decibel is a logarithmic scale, but is otherwise dimensionless.
 Thus it is sensible and convenient to use decibels to talk about overhead
 inflicted on Craig by Alice and Eve when secure tag obfuscation attacks are
-carried out via Homomorphic Encryption.  For example, a 2x cost multiplier
+carried out via Homomorphic Encryption. For example, a 2x cost multiplier
 corresponds to 3 dB, as the base-10 logarithm of 2 is approximately 0.3.
 
 **Cryptoacoustic advantage**, often talked about in decibels, is the cost
@@ -954,19 +1362,20 @@ A topic of research in FHE is the construction of homomorphic transciphers,
 which are alternative cryptographic primitives designed to be relatively
 efficient when executed inside FHE. Perhaps alternative cryptographic
 primitives designed to be particularly _inefficient_ when executed inside any
-suitable method of homomorphic encryption should also be pursued as a
-cryptoacoustic anti-problem.
+suitable method of homomorphic encryption should also be pursued as an
+anti-problem.
 
 Studying cryptoacoustics as an anti-problem could potentially offer insight
 into homomorphic transciphers and/or homomorphic encryption. Password hashing
 is something of a best-case scenario when it comes to trying to solve the
-Adversarial Literate Programming problem: while self-documenting domain
-separation seems a valuable thing to incorporate into fast key derivation
-functions, some amount of key stretching seems neccessary to convincingly
-tackle some of the more adversarial scenarios. Primitive hash algorithms with
-enhanced cryptoacoustic advantage could potentially reduce or eliminate the
-need for this key-stretching, thus extending the applicability of
-cryptoacoustics.
+Adversarial Literate Programming problem.
+
+While self-documenting domain separation seems a valuable thing to incorporate
+into fast key derivation functions, some amount of key stretching seems
+neccessary to convincingly tackle some of the more adversarial scenarios.
+Primitive hash algorithms with enhanced cryptoacoustic advantage could
+potentially reduce or eliminate the need for this key-stretching, thus
+extending the applicability of cryptoacoustics.
 
 Though cryptoacoustics and homomorphic encryption are in some sense
 anti-problems and thus are natural adversaries, they could possibly be
@@ -976,8 +1385,8 @@ algorithm must have your contact information.
 
 Fully homomorphic encryption already has high overhead, which would presumably
 be greatly amplified by running inside a second layer of FHE. Thus like
-password hashing, homomorpic encryption also seems something of a best-case
-scenario for the application of cryptoacoustics.
+password hashing, FHE also seems something of a best-case scenario for the
+application of cryptoacoustics.
 
 Because the cryptoacoustic transmission medium is purely mathematical, it
 cannot deliver messages itself. Instead, it creates constraints on real-world
@@ -1000,47 +1409,6 @@ medium of indelible woke mind viruses.
 As reporting stolen password hashes back to your organization must be very woke
 indeed, cryptoacoustic tags are mind viruses intent on zombifying woke Craigs
 into assisting the counterintelligence goals of your organization.
-
-# Deployment Considerations:
-
-A deployment designer may notice that the Global Password Prehash Protocol has
-21 parameters. This may seem excessive, but the thing to remember
-is that the G3P is carefully designed so that almost every parameter must be
-an exact match. Any difference means the outputs will be cryptographically
-independent to any efficient observer who isn't privy to enough of the inputs.
-
-There are a few exceptions, but to the best of my knowledge they are all
-documented: there are some trivial (but largely uninteresting) "collisions"
-involving HMAC-SHA256 keys. This behavior is externally dictated by relevant
-standards. Additionally, there are truncation and other gotchas associated with
-the echo-header and echo-key parameters, which are used to tweak the final
-output hash. All other collisions on the G3P are cryptographically non-trivial.
-
-All parameters fall into one of five categories: things needed only _once_ near
-the beginning of the computation, things needed _sporadically_ throughout a
-computation, things needed _constantly_ throughout a computation, parameters
-that determine how _expensive_ a key stretching phase will be to compute, and
-parameters that can be used to efficiently _tweak_ the output after
-key-stretching has been performed. Honestly, I suspect at least 8-12
-parameters are necessary even for a more minimal design.
-
-Additionally, there is a visibility graph between parameters. For example,
-being able to specify the "username" and compute the output hash yourself on
-your own hardware implies that your computer must know every other parameter.
-Being able to specify the "password" implies knowledge of every parameter
-other than the "username", the plaintext of which can be hidden using partial
-evaluation.
-
-Your computer must know the plaintext of any "tag", if you are specifying
-either the username or password. However, plaintext HMAC-SHA256 keys can always
-be replaced with two intermediate SHA256 states via parital evaluation.
-
-These intermediate states are essentially two SHA256 hashes of the plaintext
-HMAC key. As these are constant and must be known to your computer, using
-self-documenting globally unique identifiers (seguids) as HMAC-SHA256 keys
-allow you to indirectly convey a message via these intermediate states.
-This approach happens to be the only way to include a self-documenting
-domain separation constant in the computation of HMAC's outer pad.
 
 # Major changes since Version 1:
 
@@ -1257,13 +1625,14 @@ domain separation constant in the computation of HMAC's outer pad.
 [^seguids]:
     It is sometimes possible to communicate a message via a prefixed salt.
     This is more or less what self-documenting globally unique identifiers
-    (seguids) were invented to do. However, relying on seguids for delivering
-    a message to Craig requires more detective work and sophistication on
-    Craig's part.
+    (seguids) were invented to do. However, relying on public seguids for
+    delivering a message to Craig requires more detective work and
+    sophistication on Craig's part.
 
-    Moreover, seguids are not suitable for account separation purposes, and
-    good account separation practices can make it easier for Eve to hide
-    prefixed seguids from Craig.
+    Moreover, public seguids are not suitable for account separation purposes,
+    as that would reveal a list of active accounts. Futhermore, good account
+    separation practices can make it easier for Eve to hide prefixed seguids
+    from Craig.
 
     The parameters that the G3P calls a "seguid" are actually HMAC keys, and
     HMAC keys are in effect both prefixed before and suffixed after an input
@@ -1271,7 +1640,77 @@ domain separation constant in the computation of HMAC's outer pad.
     HMAC keys, even though HMAC keys can always be partially evaluated into
     NMAC keys, a.k.a. precomputed HMAC keys. Thus the name was chosen to hint
     at the intended use of the parameter.
+ 
+[^ephemeral-derivations]:
+    Do feel free to derive public salts from _ephemeral_ values, though,
+    as long as they are quickly forgotten and include a high quality source of
+    randomness. You could even apply self-documenting tags to this derivation.
 
+[^bloom-example]:
+    Bloom filters may be space-efficient data structures, but they also have
+    rather high overhead, especially if you don't end up filling a filter up
+    to near it's intended capacity.
+
+    There are formulae for calculating the false positive rate of a given bloom
+    filter, and it turns out that this is error rate is largely determined by
+    the number of bytes per element that your ideally-loaded bloom filter would
+    represent.
+
+    For example, I think a reasonable target error rate is about one in ten
+    million, which works out to be somewhat more than 4 bytes per non-existent
+    login name. This seems reasonable if there are a relatively small number
+    of bloom filters on your public salt server, but as you add more and more
+    bloom filters, you may want an error rate of closer to one in billion, which
+    works out to somewhat more than 5 bytes per username.
+
+    However, bloom filters are created with a given table size, and cannot
+    be resized without access to the plaintext of every element added to it
+    thus far. Furthermore, it's convenient and efficient if all your bloom
+    filters use the same hash function.
+
+    Thus managing the overhead of bloom filters means picking a large enough
+    table size to cut down on the proliferation of bloom filters, but a small
+    enough table size that most tables are reasonably well utilized. One could
+    even have more than one bloom filter associated with a given key, if that
+    key's filter fills up before that key is rotated out of being assigned new
+    incoming non-existent usernames.
+
+    Multidimensional bloom filters offer efficient algorithms for searching
+    large numbers of bloom filters, which may eventually become important
+    for some public salt servers.
+
+    Choosing an optimal size for a bloom filter depends upon the particular
+    workloads experienced by a public salt server, which can vary from day
+    to day as bots who try to scrape your public salts anyway come and go.
+
+    A reasonable starting point might be to store 125,000 fake usernames in
+    a 512 KiB table, achieving a error rate of about one in ten million.
+
+    You might want to keep a long-term log of fake usernames and the keyed hash
+    function that was used to generate the fake salt, so you can regenerate
+    your bloom filters with different parameters. This backup would not need
+    to exist on your public salt servers, reducing the chances of allowing
+    an eavesdropper to enumerate your fake accounts.
+
+[^have-i-been-pwned-lookup]:
+    Notably, the lookup method to see if a given password is in Have I Been
+    Pwned's password breach database does not exhibit this key-stretching
+    security property: if an eavesdropper manages to capture the first few
+    bytes of a sha256 hash of a plaintext password, and they know that a certain
+    severely truncated fast hash is associated with a usefully long but much
+    more expensive slow hash, then they can use the fast hash as a password
+    prefilter to speed up their attacks on slow hash by orders of magnitude.
+
+[^unreasonable-precautions]:
+    You should likely be taking a few unreasonable precautions as well. I
+    don't know how difficult solving this problem of on-screen keyboards
+    learning passwords really is, as I'm not familiar with mobile development,
+    but I do know the same situation with virtual memory is pretty horrendous.
+
+    I don't expect the situation to be good, given that there are so many
+    different on-screen keyboards. You should test against the most popular
+    reputable keyboards, at least.
+  
 [^argon2-spec]:
     See [Argon2: the memory-hard function for password hashing and other applications](https://github.com/P-H-C/phc-winner-argon2/blob/master/argon2-specs.pdf)
     by Alex Biryukov, Daniel Dinu, and Dmitry Khovratovich
@@ -1280,24 +1719,25 @@ domain separation constant in the computation of HMAC's outer pad.
     Or at leat ensure that "Have I Been Pwned" would have in their possession
     sufficiently reliable information to be able to responsibly disclose
     specific password hash security events back to an organization that
-    prepared sufficiently.
+    is sufficiently prepared.
 
-[^cryptacoustics-and-he-as-allies]:
-    Although, cryptoacoustics and homomorphic encryption can be allies too:
-    finding ways of applying cryptoacoutic tags to Homomorphic Encryption
-    schemes so that the ability to run some instance of a homomorpically
-    encrypted algorithm does imply knowledge of a plaintext message could be
-    very useful indeed.
+[^math-education]:
+    I did literally mention in my math education essay that the first thing
+    that came to my mind when Dan Friedman told me that was cryptographic
+    hashing. To be honest, cryptographic hashing is (to some degree or another)
+    a subtext of all three essays, as it was certainly among the things in the
+    back of my mind when I was writing them.
 
 [^unlike-a-watermark]:
     Unlike a watermark, a cryptoacoustic tag is kind of sigil that cannot be
-    read directly from a passsword hash, but rather represents a belief about
+    read directly from a password hash, but rather represents a belief about
     its origin, thus preserving plausible deniability. This belief must be
     correct for that password hash to be both genuine and crackable.
 
     Also, digital watermarks traditionally seek to covertly embed a signal into
-    documents, pictures, video, and audio, whereas cryptoacoustics seeks to
-    overtly embed a signal into a cryptographic state changes.
+    noise-tolerant data such as documents, pictures, video, and audio, whereas
+    cryptoacoustics seeks to overtly embed a signal into the noise-intolerant
+    medium of cryptographic state changes.
 
 [^domain-tag-length]:
     This assumes a short domain tag of less than 20 bytes. For example, a
