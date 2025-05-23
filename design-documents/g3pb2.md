@@ -44,8 +44,8 @@ letting Craig run Alice's algorithm himself.
 
 ## Example Scenarios
 
-Here's a few examples how self-documenting password hash functions can help
-your organization:
+Here's a few examples how Alice's self-documenting password hash functions can
+help your organization:
 
 ### The Muskian Cybercoup
 
@@ -62,9 +62,9 @@ hashes back to your organization, then they'd be acting as a friendly Craig.
 ### The Botnet Cracker
 
 If The Com then decides to use a [botnet](https://arstechnica.com/security/2024/03/attack-wrangles-thousands-of-web-users-into-a-password-cracking-botnet/)
-or [other stolen computing resources](https://www.reddit.com/r/aws/comments/x03vay/hacked_aws_account_is_facing_200000_in_charges/) in an attempt to
-crack your passwords, then there is an unavoidable risk of the computation
-being observed, and the payload given to a security analyst.
+or [other stolen computing resources](https://www.reddit.com/r/aws/comments/x03vay/hacked_aws_account_is_facing_200000_in_charges/)
+in an attempt to crack your passwords, then there is an unavoidable risk of the
+computation being observed, and the payload given to a security analyst.
 
 Thanks to self-documenting cryptography, the security analyst will be able to
 take The Com's implementation of your password hash algorithm, and from it
@@ -162,9 +162,10 @@ they are two different descriptions of the same underlying function.
 
 Partial evaluation of SHA256 demonstrates there cannot be more than 2^256
 functionally distinct prefixed salts without leaving some salt prefixed in the
-input buffer, or suffixing some salt after the password. Even though the input
-space of prefixed salts is much larger than 256 bits, collisions on the
-compression function propagate throughout the remainder of the computation.
+input buffer, which in effect is comparable to suffixing some salt after the
+password. Even though the input space of prefixed salts is much larger than 256
+bits, collisions on the compression function propagate throughout the remainder
+of the computation.
 
 Similarly, the G3P processes the plaintext password in a single pass near the
 beginning of the hash computation. Applying the previous argument means that
@@ -235,7 +236,7 @@ For example, we want to enhance the utility of legitimate forms of partial
 evaluation, which is why the G3P adopts fully incremental key-stretching as a
 design goal. Also, we want to prohibit the possibility of partially evaluating
 away the plaintext of any tag, therefore prefixed salts cannot be tags, which
-is the reason the G3P's "username" parameter doesn't have "tag" anywhere in
+is the reason the G3P's `Username` parameter doesn't have "tag" anywhere in
 the name.[^username-padding]
 
 **Observation:** Remember that our goal is to adversarially pass messages inside
@@ -268,7 +269,7 @@ separation purposes. This ensures that the password hash function has committed
 to a particular account before the plaintext of the password can be processed.
 In effect, the password serves as a tag relative to the prefixed salt.
 
-This is the reason why the G3P uses "username" as the name of the prefixed
+This is the reason why the G3P adopts `Username` as the name of the prefixed
 salt parameter; these parameter names do not prescribe a particular usage, but
 they do suggest an intended usage.
 
@@ -461,7 +462,7 @@ the original keying material alone.
 
 Despite these issues and the fact it is truncated to 32 bytes, the `EchoHeader`
 is not difficult to use safely. The default recommendation is to duplicate the
-input to `EchoKey` and `EchoHeader`, which is one of several ways this issue
+input to `EchoKey` and `EchoHeader`, which is one of several ways these issues
 can be avoided.
 
 The `EchoHeader` parameter exists to regularize timing side channels regarding
@@ -766,7 +767,7 @@ of something chosen by the user.
 
 Second secrets should be optional. A security-minded user might choose to use a
 reasonably long passphrase as a second secret, and then use a relatively short
-and convenient passphrase as the password.
+and convenient password.
 
 The user could persist the second secret to their device, and the user might
 expect to type the password on a semi-regular basis. This gives significant
@@ -778,7 +779,7 @@ and domain separated, so that the only thing that the uncracked hash could
 possibly be useful for is within the context of your deployment.
 
 Thus, the G3P could be used to hash the second secret at about the same
-cost as your chosen cost parameters for hashing the user's password.  That
+cost as your chosen cost parameters for hashing the user's password. That
 hash could then be included in the G3P's `Credentials` vector to support 2SKD.
 
 ## Account Separation
@@ -842,8 +843,8 @@ Transparently deriving a salt means you will will need to robustly apply these
 normalization rules. Prehashing scenarios require that this normalization be
 performed on the client, or at least as an RPC call to the server. Having the
 option of verifying a normalization via RPC is highly recommend. Fortunately,
-username normalization issues can be almost entirely avoided when setting
-a password via dynamic testing.
+dynamic testing can almost entirely prevent username normalization issues when
+setting a password.
 
 On the other hand, if you use random salts, login names cannot possibly be
 guessed from the salt without talking to your public salt server. Just like a
@@ -867,7 +868,8 @@ deployment-identifying domain separation as well.
 
 It is highly recommended that the public salts be sampled or derived from a
 high-quality cryptographically secure source and stored directly in a database.
-In particular, the public salt should not be derived from non-public seeds and
+In particular, because you cannot migrate away from a public salt in any
+kind of bounded timeframe, they should not be derived from non-public seeds and
 keys.[^ephemeral-derivations] This avoids any possibility of an eavesdropper
 stealing that non-public information and using it as evidence to third parties
 that they have actually compromised your infrastructure, preserving your
@@ -887,9 +889,10 @@ be distinguished from random strings as long as your key remains secret.
 
 However, leaking this key would allow the existence or non-existence of any
 account to be inferred via your public salt server, thus granting its holders
-an account-existence oracle. Thus you need to be able to start a migration to a
-new key without disturbing fake salts that have already been provided. This can
-be accomplished using [bloom filters](https://en.wikipedia.org/wiki/Bloom_filter)[^bloom-example]
+an account-existence oracle.[^also-evidence-of-compromise] Thus you need to be
+able to start a migration to a new key without disturbing fake salts that have
+already been provided. This can be accomplished using
+[bloom filters](https://en.wikipedia.org/wiki/Bloom_filter)[^bloom-example]
 to avoid the need of storing every non-existent username ever asked about.
 Perhaps there would be one or more bloom filters per key, each tracking the
 nonexistent usernames that key has very likely seen.
@@ -1026,11 +1029,12 @@ as part of this full dress rehearsal. This should be reused to protect against
 weaknesses in the client's source of cryptographically-secure randomness.
 
 Substantial key-stretching is applied to this nonce as part of a full dress
-rehearsal, and there and there is no reason not to use an output derived from
-this key stretching computation. Then we sample data from the client's
-cryptographically-secure random sources, and hash those samples with the
-output. The result can be used to seed a CSPRNG, and all source material
-needs to then be permanently forgotten.
+rehearsal. You could use an output derived from this key stretching computation,
+though it's also not strictly necessary if startup latency is a concern.
+
+Then we sample data from the client's cryptographically-secure random sources,
+and hash those samples with the output. The result can be used to seed a CSPRNG,
+and all source material needs to then be permanently forgotten.
 
 The client should sample from whatever cryptographically secure random sources
 are available. Ideally a client would sample both `/dev/urandom` (or comparable
@@ -1086,6 +1090,15 @@ features of on-screen keyboards. Thus smartphone apps and webpages that handle
 password inputs must take all reasonable precautions[^unreasonable-precautions]
 to try to prevent this from happening.
 
+AI assistant features are another, newer example of something that could
+possibly cause a password leak, so steps should be taken to prevent AI
+assistants from learning passwords as well.
+
+Your login interfaces should not block copy-and-paste, and should endeavor to
+interact nicely with password managers. This support is particularly important,
+as password managers can help keep passwords secure from clipboard
+eavesdroppers.
+
 ## Virtual Memory
 
 Passwords and have a nasty habit of showing up in swap files. Any program that
@@ -1109,7 +1122,7 @@ out as soon as possible.
 
 Thus the G3P is designed such that the password can be permanently forgotten
 before 99.99% of the hashing algorithm has been computed. Professional password
-handling  implementations should strongly consider adopting this approach.
+handling implementations should strongly consider adopting this approach.[^incremental-key-stretching]
 
 # Tag Obfuscation Attacks
 
@@ -1198,11 +1211,11 @@ overall cost multiplier of 2 or 3 or so, as ideally argon2's key-stretching
 computation should itself cost about one second and require a few hundred
 megabytes of random-access memory.
 
-That cost mulitplier does not seem nearly high enough to throughly dissuade
+That cost multiplier does not seem nearly high enough to throughly dissuade
 Eve from deploying a practical tag obfuscation attack, especially if it's
 running on stolen resources!
 
-Relative to the G3P, argon2 is desirable because it can be made to require  a
+Relative to the G3P, argon2 is desirable because it can be made to require a
 lot more RAM to compute. You could get the best of both worlds by using the
 G3P, possibly with a reduced number of rounds, as a preprocessing and/or
 postprocessing step for argon2. In fact, the reference implementation offers
@@ -1266,7 +1279,7 @@ conceptions that it should be possible to improve the service provided by
 salts could become indicators of compromise that would have to follow the
 password hash around. My eureka moment came in July of 2022 shortly after
 writing a trio of essays about [relevance logic](https://github.com/constructive-symmetry/constructive-symmetry/blob/master/T002_Tools_of_Math_Construction/Part02_Deconstructing_Bertrand_Russell.md),
-[the early childhood math curriculum](https://github.com/constructive-symmetry/constructive-symmetry/blob/master/T002_Tools_of_Math_Construction/Part03_Aggregate_Theory.md#suggestions-for-further-study),
+[linear algebra in the early childhood math curriculum](https://github.com/constructive-symmetry/constructive-symmetry/blob/master/T002_Tools_of_Math_Construction/Part03_Aggregate_Theory.md#suggestions-for-further-study),
 and another mentioning the [novel queueing disciplines](https://github.com/constructive-symmetry/constructive-symmetry/blob/master/T002_Tools_of_Math_Construction/Part04_Physics_and_Metaphones.md#physics-and-metaphones)
 exhibited by Joe Taylor's WSJT suite of amateur radio protocols.
 
@@ -1640,11 +1653,34 @@ into assisting the counterintelligence goals of your organization.
     HMAC keys, even though HMAC keys can always be partially evaluated into
     NMAC keys, a.k.a. precomputed HMAC keys. Thus the name was chosen to hint
     at the intended use of the parameter.
- 
+
 [^ephemeral-derivations]:
     Do feel free to derive public salts from _ephemeral_ values, though,
     as long as they are quickly forgotten and include a high quality source of
     randomness. You could even apply self-documenting tags to this derivation.
+
+[^also-evidence-of-compromise]:
+    Moreover, leaking such a key would grant its holders the ability to prove
+    that they do have some kind of non-public insight into your system.
+    However, compared to a genuine salt, you can also simply stop using a key
+    used to generate fake public salts at any point in time with relatively
+    mild consequences.
+
+    Moreover, it should be possible to rotate salts of active accounts once in
+    a while, so observing a salt change wouldn't necessarily imply that an
+    account doesn't exist, or didn't exist and was then created. One could also
+    keep a relatively small number of long-term fake salts around, possibly
+    stored as random salts in a database, so that an never-changing salt does
+    not imply that an account does exist.
+
+    Of course, there's many things that can be done to improve the illusion
+    that a public salt server should maintain, but even a very simple solution
+    that can generate fake salts from a single secret key would go a long way
+    towards protecting the privacy of your accounts.
+
+    If you take this approach, you may want to at least maintain a log of fake
+    usernames that have been inquired about, so that you have the option of
+    smoothly migrating away from your simple solution as your needs grow.
 
 [^bloom-example]:
     Bloom filters may be space-efficient data structures, but they also have
@@ -1710,7 +1746,22 @@ into assisting the counterintelligence goals of your organization.
     I don't expect the situation to be good, given that there are so many
     different on-screen keyboards. You should test against the most popular
     reputable keyboards, at least.
-  
+
+[^incremental-key-stretching]:
+    The design principle of incremental key stretching makes the G3P more
+    resistant to a memory eavesdropper who adversarially captures a snapshot of
+    an in-progress G3P computation, as a quality implementation of the G3P will
+    repeatedly forget all of the data that reveals the most efficient cracking
+    attack on the password well before the key-stretching computation has
+    completed.
+
+    Virtual memory can approximate this kind of eavesdropper, though admittedly
+    it would seem to be a rather unusual situation for an in-progress hash
+    computation to get swapped out to disk, especially relative to the common
+    scenario where  a forgotten or otherwise not strictly necessary copy of
+    your password is hanging out in some inactive bit of memory long enough to
+    get swapped out to disk.
+
 [^argon2-spec]:
     See [Argon2: the memory-hard function for password hashing and other applications](https://github.com/P-H-C/phc-winner-argon2/blob/master/argon2-specs.pdf)
     by Alex Biryukov, Daniel Dinu, and Dmitry Khovratovich
