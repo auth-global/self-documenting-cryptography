@@ -1,5 +1,5 @@
 name:                sha256
-version:             0.1.0.2
+version:             0.1.0.3
 synopsis:
   A modern binding to SHA256, HMAC, HKDF, and PBKDF2
 description:

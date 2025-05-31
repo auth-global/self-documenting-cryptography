@@ -1,5 +1,11 @@
 # Revision history for sha256
 
+## 0.1.0.3 -- 2025-05-31
+
+* Added documentation for hkdf
+
+* Improved support for GHC < 9.4
+
 ## 0.1.0.2 -- 2025-01-21
 
 * Duplicate a C function used from the hash-string package, because hackage's
