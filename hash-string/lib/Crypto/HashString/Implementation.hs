@@ -79,9 +79,7 @@ instance Show HashString where
 
 xorLeft :: HashString -> HashString -> HashString
 xorLeft (HashString strl@(ByteArray ptrl)) (HashString strr@(ByteArray ptrr))
-  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = fromShort (SB.replicate (SB.length (SBS ptrl)) 0)
-  | otherwise =
-    unsafePerformIO . IO $ \st ->
+  = unsafePerformIO . IO $ \st ->
       let !lenl0@(I# lenl) = SB.length (SBS ptrl)
           !lenr0@(I# lenr) = SB.length (SBS ptrr)
           !(# st0, a #) = newByteArray# lenl st
@@ -95,9 +93,7 @@ xorLeft (HashString strl@(ByteArray ptrl)) (HashString strr@(ByteArray ptrr))
 
 xorMin :: HashString -> HashString -> HashString
 xorMin (HashString strl@(ByteArray ptrl)) (HashString strr@(ByteArray ptrr))
-  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = fromShort (SB.replicate (SB.length (SBS ptrl)) 0)
-  | otherwise =
-    unsafePerformIO . IO $ \st ->
+  = unsafePerformIO . IO $ \st ->
       let !minlen0@(I# minlen) = min (SB.length (SBS ptrl)) (SB.length (SBS ptrr))
           !(# st0, a #) = newByteArray# minlen st
           !(# st1, () #) = unIO (c_xormin_ba ptrl ptrr (fromIntegral minlen0) a) st0
@@ -110,9 +106,7 @@ xorMin (HashString strl@(ByteArray ptrl)) (HashString strr@(ByteArray ptrr))
 
 xorMax :: HashString -> HashString -> HashString
 xorMax (HashString strl@(ByteArray ptrl)) (HashString strr@(ByteArray ptrr))
-  | compareInt# 0# (unsafePtrEquality# ptrl ptrr) /= EQ = fromShort (SB.replicate (SB.length (SBS ptrl)) 0)
-  | otherwise =
-    unsafePerformIO . IO $ \st ->
+  = unsafePerformIO . IO $ \st ->
       let !lenl = SB.length (SBS ptrl)
           !lenr = SB.length (SBS ptrr)
           !(I# maxlen) = max lenl lenr

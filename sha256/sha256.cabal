@@ -39,6 +39,9 @@ library
                    , network-byte-order
                    , ghc-prim
 
+  if impl(ghc < 9.4)
+    build-depends: data-array-byte
+
   hs-source-dirs:    lib
   include-dirs:      csrc
   default-language:  Haskell2010

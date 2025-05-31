@@ -23,8 +23,12 @@ library
     other-modules:    Crypto.HashString.Implementation
 
     build-depends:    base < 5,
-                      bytestring,
+                      bytestring >= 0.11.3,
                       ghc-prim
+
+    if impl(ghc < 9.4)
+        build-depends: data-array-byte
+
     hs-source-dirs:   lib
     include-dirs:     csrc
 
