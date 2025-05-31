@@ -32,10 +32,11 @@ then it should be possible for the cracker to contact Acme and say, "Hey, we
 think we may have come across some of your stolen password hashes...".
 
 This is an example of **Adversarial Literate Programming**: Alice is an IT
-administrator who specifies a password hash function tagged with Acme's name.
-Eve has stolen some of Acme's password hashes, and she wants to provide Craig
-the ability to run Alice's algorithm on his own hardware, while denying Craig
-access to Alice's documentation that the hashes come from Acme.
+administrator who specifies a password hash function tagged with Acme's name
+and contact information. Eve has stolen some of Acme's password hashes, and
+she wants to provide Craig the ability to run Alice's algorithm on his own
+hardware, while denying Craig access to Alice's documentation that the hashes
+come from Acme.
 
 The security goal of Adversarial Literate Programming is to force Eve to
 provide Craig a sporting chance of recovering the invitation to contact Acme
@@ -51,8 +52,8 @@ help your organization:
 
 When Mr. Big Balls parades into your organization's server room and copies all
 of your password hashes, your self-documenting tags prevents him from usefully
-giving your password hashes to his cybercriminal buddies at The Com
-without being honest about where those hashes originally came from.
+giving your password hashes to his cybercriminal buddies at The Com without
+being honest about where those hashes originally came from.
 
 Here, Mr. Big Balls is acting as Eve, and The Com is acting as Craig.
 
@@ -321,7 +322,14 @@ parameters.
 ## Iterated HMAC preprocessing
 
 The key-stretching phase of the G3P is an iterated HMAC-SHA256 construction.
-The first form of key-stretching is essentially PBKDF2.[^pbkdf2-tagged-hmac]
+The first form of key-stretching would literally be PBKDF2 instantiated with
+the tagged pseudorandom function `HMAC(key, msg + DomainTag)`, except for the
+addition of a counter that is incremented every round.
+
+We also use an alternate mode of operation for PBKDF2, where the nominal
+`Password` input is used as a salt, and the password is included in the
+nominal `Salt` parameter.
+
 Here is PBKDF2's cryptographically secure pseudorandum number generator
 (CSPRNG) on top, followed by the modified generator on bottom.  Both are
 examples of a "KDF in feedback mode" from [NIST SP 800-108: Recommendation
@@ -343,16 +351,21 @@ for Key Derivation Using Pseudorandom Functions](https://csrc.nist.gov/pubs/sp/8
     T c = HMAC (Seguid, T (c-1) + INT_32_BE(i + c) + DomainTag )
 
 These modifications take much inspiration from HKDF and [RFC 5869](https://datatracker.ietf.org/doc/html/rfc5869),
-which inspired the name PHKDF. The most significant departure from
-PBKDF2-HMAC-SHA256 is the addition of a counter and tag to salt every round of
-PHKDF: this is literally just taking bytes that were specified as null, and
-using them as supplemental salt in the same vein as HKDF's info parameter.
+which inspired the name PHKDF. Assuming the domain tag is less than 20 bytes
+long, the only algorithmic change is that some of input bytes to HMAC-SHA256's
+compression function that were specified to be mostly null are now specified
+otherwise.
+
+In cases where the domain tag is 20 bytes or longer, this adds one or more
+additional SHA256 block computations per round,[^cyclic-extension] which
+shouldn't be an issue. In fact, it should be extremely safe to compensate for
+longer tags by specifying a smaller number of PHKDF rounds.
 
 One of the more obvious differences is that the parameter that PBKDF2 calls the
-"password" is now called the "seguid". Instead of using the actual password as
+`Password` is now called the `Seguid`. Instead of using the actual password as
 an HMAC key, the G3P recommends using a [self-documenting globally unique
 identifer](seguid.md) as a supplemental salt that identifies the deployment,
-and moves the password into the parameter that PBKDF2 calls the "salt".
+and moves the password into the parameter that PBKDF2 calls the `Salt`.
 Given that PBKDF2's standard mode of operation tweaks the salt repeatedly to
 generate cryptographically independent output blocks, this should be a totally
 safe thing to do.
@@ -364,7 +377,7 @@ This isn't true at all in classic bcrypt: the plaintext password must be known
 up until the middle of the very last bcrypt round.
 
 Using precomputed HMAC keys avoids the need to preserve the literal plaintext
-of PBKDF2's nominal "password" parameter throughout the key-stretching
+of PBKDF2's nominal `Password` parameter throughout the key-stretching
 computation. However, precomputed HMAC keys apply no key-stretching, so
 effectively none of the key-stretching work accrues to PBKDF2's intermediate
 state until the HMAC key is forgotten after the end of key-stretching.
@@ -618,8 +631,8 @@ plaintext password is needed throughout bcrypt's key-stretching phase.
 In modified bcrypt, differences in the long tag will cause any state collisions
 to be pushed apart four times per round. Moreover differences in the password
 or any other committed parameter will manifest as a cryptographically-guaranteed
-difference in key0 and key1, meaning that even if the long tag is the same, any
-collisions on the bcrypt state will be pushed apart twice per round.
+difference in `key0` and `key1`, meaning that even if the long tag is the same,
+any collisions on the bcrypt state will be pushed apart twice per round.
 
 Finally, the addition of the counter breaks all loops, because if a single
 bcrypt state is ever reentered in the course of a single key-stretching
@@ -669,7 +682,7 @@ The transitions between two super-rounds are designed to be synchronization
 points, and it doesn't make much sense to transfer a bcrypt key-stretching
 computation from one device to another outside these transitions.
 
-In the middle of a super-round, key0 and key1 would need to be transferred.
+In the middle of a super-round, `key0` and `key1` would need to be transferred.
 These values must be computed before a super-round can begin, thus a cracker
 could attack these keys directly and would not need to compute any portion of
 the current super-round.
@@ -740,20 +753,21 @@ key-stretching has been performed. Honestly, I suspect at least 8-12
 parameters are necessary even for a more minimal design.
 
 Additionally, there is a visibility graph between parameters. For example,
-being able to specify the "username" and compute the output hash yourself on
+being able to specify the `Username` and compute the output hash yourself on
 your own hardware implies that your computer must know every other parameter.
 Being able to specify the "password" implies knowledge of every parameter
-other than the "username", the plaintext of which can be hidden using partial
+other than the `Username`, the plaintext of which can be hidden using partial
 evaluation.
 
 Your computer must know the plaintext of any "tag", if you are specifying
-either the username or password. However, plaintext HMAC-SHA256 keys can always
-be replaced with two intermediate SHA256 states via partial evaluation, which
-is why "tag" doesn't appear in "seguid".
+either the `Username` or `Password`. While seguids can function as an indirect
+tag, the plaintext HMAC-SHA256 keys can always be replaced with two
+intermediate SHA256 states via partial evaluation, which is why "tag" doesn't
+appear in `Seguid`.
 
-Finally, I recommend taking a look at [MyCorpExample.hs](../g3p-hash/test/MyCorpExample.hs)
-in the G3P's test suite, as it is a slowly-evolving example of what a typical
-deployment might look like.
+Finally, I recommend taking a look at the [reference API documentation](https://hackage.haskell.org/package/g3p-hash-2.0.0.0/docs/Crypto-G3P-V2.html). Also the
+[MyCorpExample.hs](../g3p-hash/test/MyCorpExample.hs) in the G3P's test suite
+is a slowly-evolving example of what a typical deployment might look like.
 
 ## Second Secrets
 
@@ -1101,24 +1115,30 @@ eavesdroppers.
 
 ## Virtual Memory
 
-Passwords and have a nasty habit of showing up in swap files. Any program that
-ever handles a password should endeavor to try to prevent this from happening.
-Administrators of authentication servers need to be aware of this issue and
-take steps to mitigate it.
+Passwords and keying material have a nasty habit of showing up in swap files.
+Any program that ever handles ephemeral keys should endeavor to prevent this
+from happening. Administrators of authentication servers need to be aware of
+this issue and take steps to mitigate it.
+
+Administrators might consider disabling swap on authentication servers, or at
+least ensure that it is encrypted with a truly ephemeral key.
 
 Implementors can improve the situation by using `mlock` system call on Linux to
-try to prevent certain memory pages from being written to swap, or whatever the
-best solution is on modern Linux. There are presumably comparable features
-offered by many other operating systems.
+try to prevent certain memory pages from being written to swap.  This issue is
+particularly relevant when end-to-end encryption is involved. Consider an
+unlocked password manager or ssh agent running on an end-user device, for
+example.
 
-Administrators of authentication servers might consider disabling swap on that
-server, or at least ensuring that it is encrypted with a truly ephemeral key.
+Modern Linuxes might offer a better option than `mlock`, and there are
+comparable features offered by most other operating systems. Setting up a
+thread to increment a counter once a second in certain memory pages might be
+another solution worth considering.[^memory-polling]
 
 I do realize that comprehensively tackling this issue isn't realistic in many
 contemporary scenarios, especially when client-side devices or virtual machines
 are involved, but this lamentable state of affairs can always be improved by
-ensuring that passwords do not persist for long in memory, and are zeroed
-out as soon as possible.
+ensuring that passwords and other ephemeral keys do not persist for long in
+memory, and are zeroed out as soon as possible.
 
 Thus the G3P is designed such that the password can be permanently forgotten
 before 99.99% of the hashing algorithm has been computed. Professional password
@@ -1529,27 +1549,18 @@ into assisting the counterintelligence goals of your organization.
     Technically an implementation may choose to return an error rather than
     perform any of these truncations.
 
-[^pbkdf2-tagged-hmac]:
-    Except for the addition of a counter that is incremented every round, the
-    modified PHKDF key-stretching phase would literally be PBKDF2 instantiated
-    with a tagged pseudorandom function, namely HMAC(key, msg + DomainTag)`.
-
-    Assuming the domain tag is less than 20 bytes long, the only algorithmic
-    change that PHKDF's key-stretching phase makes to PBKDF2 is that some of
-    HMAC-SHA256's input bytes that were specified to be mostly null are now
-    specified otherwise.
-
-    In cases where the domain tag is 20 bytes or longer, this adds one or more
-    additional SHA256 block computations per round, which shouldn't be a real
-    issue. In fact, it should be extremely safe to compensate for longer tags
-    by specifying a smaller number of PHKDF rounds.
+[^cyclic-extension]:
+    Whenever a `DomainTag` is 20 bytes or longer, it is cyclically extended
+    out to the next block boundary. This helps to ensure that the last block
+    contains something interesting: for example, if the `DomainTag` was exactly
+    20 bytes long, then the last block would be filled with null bytes.
 
 [^minimal-continuation-phkdf]:
     During PHKDF key-stretching, every round provides a synchronization point.
     A minimal continuation would consist of the PHKDF generator state, the
     sum of states seen so far, the number of rounds performed, and all input
-    parameters other than the Username, Password, and Credentials. The total
-    transfer size is ~68 bytes in addition to the parameters, which will
+    parameters other than the `Username`, `Password`, and `Credentials`. The
+    total transfer size is ~68 bytes in addition to the parameters, which will
     themselves often exceed 68 bytes.
 
     Note that transferring a continuation before PHKDF key stretching is
@@ -1630,8 +1641,8 @@ into assisting the counterintelligence goals of your organization.
     long. There is one exception that is only 29 bytes.
 
 [^username-padding]:
-     G3P insers some padding in between the username and password parameters
-     to ensure that the username parameter can always be fully consumed
+     G3P insers some padding in between the `Username` and `Password` parameters
+     to ensure that the `Username` parameter can always be fully consumed
      by partial evaluation, and never leaves some leftover prefixed salt
      before the password.
 
@@ -1738,7 +1749,7 @@ into assisting the counterintelligence goals of your organization.
     prefilter to speed up their attacks on slow hash by orders of magnitude.
 
 [^unreasonable-precautions]:
-    You should likely be taking a few unreasonable precautions as well. I
+    You should consider taking a few unreasonable precautions as well. I
     don't know how difficult solving this problem of on-screen keyboards
     learning passwords really is, as I'm not familiar with mobile development,
     but I do know the same situation with virtual memory is pretty horrendous.
@@ -1746,6 +1757,24 @@ into assisting the counterintelligence goals of your organization.
     I don't expect the situation to be good, given that there are so many
     different on-screen keyboards. You should test against the most popular
     reputable keyboards, at least.
+
+[^memory-polling]:
+    Memory polling has the slight advantage that a kernel-level credential
+    stealer won't be able to use the status of memory-locked pages to more
+    easily zero in on the most interesting bits of data in a highly generic way.
+
+    This "advantage" might not be worth much, as an all-powerful memory
+    eavesdropper would be able to target your specific application. The only
+    robust defense against a kernel-level eavesdropper is a suitable hardware
+    security module.
+
+    Futhermore, a sufficiently sophisticated kernel exploit should be able to
+    detect the particular access patterns of your polled memory page in
+    a more generic way.
+
+    Finally, this polling strategy might not be sufficiently robust. A strong
+    spike in memory pressure could still end up writing the ephemeral keys to
+    disk. An attacker might even be able to cause this spike.
 
 [^incremental-key-stretching]:
     The design principle of incremental key stretching makes the G3P more
