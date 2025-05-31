@@ -96,7 +96,7 @@ bcrypt key saltString =
     key' =
       case (B.elemIndex 0 (B.take bcrypt_maxPasswordLength key)) of
         Nothing -> key
-	Just n -> B.take n key
+        Just n -> B.take n key
 
 -- | produce a standard salt string for bcrypt, with or without a password
 --   hash.

@@ -129,13 +129,15 @@ module Crypto.G3P.BCrypt.Subtle
   , base64Encode
   , base64Decode
   , BlowfishContextRef(..)
-  , blowfishInit
+  , blowfishInitRef
   , blowfishEncodeRef
   , blowfishDecodeRef
   , blowfishExpandRef
   , blowfishRevexpandRef
   , blowfishEncryptECB64Ref
   , blowfishEncryptECB64
+  , blowfishDecryptECB64Ref
+  , blowfishDecryptECB64
   ) where
 
 #include "g3p_bcrypt.h"
@@ -241,8 +243,8 @@ blowfishInitRef =
 --   in network byte order, the first 18 words comprising the P-box and the
 --   remaining 1024 comprising the S-box. Inverse of 'blowfishEncode'
 
-blowfishDecode :: ByteString -> ST s (Maybe (BlowfishContextRef s))
-blowfishDecode st
+blowfishDecodeRef :: ByteString -> ST s (Maybe (BlowfishContextRef s))
+blowfishDecodeRef st
   | B.length st /= bcryptXsCtr_outputLength = return Nothing
   | otherwise =
     unsafeIOToST $ do
@@ -263,8 +265,8 @@ foreign import capi "g3p_bcrypt.h G3P_Blowfish_decodestate"
 --   in network byte order, the first 18 words comprising the P-box and the
 --   remaining 1024 comprising the S-box. Inverse of 'blowfishDecode'
 
-blowfishEncode :: BlowfishContextRef s -> ST s ByteString
-blowfishEncode (BlowfishContextRef ctx) =
+blowfishEncodeRef :: BlowfishContextRef s -> ST s ByteString
+blowfishEncodeRef (BlowfishContextRef ctx) =
   unsafeIOToST $ do
     withForeignPtr ctx $ \p -> do
       B.create bcryptXsCtr_outputLength $ \st ->
@@ -383,14 +385,6 @@ blowfishEncryptECB64Ref (BlowfishContextRef ctx) str =
   where
     len = B.length str
 
-foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs_output"
-  c_bcrypt_xs_output
-    :: Ptr BlfCtx
-    -> CString
-    -> Word32
-    -> CString
-    -> IO ()
-
 -- | Unsafely creates a mutable reference of a pure value without copying it.
 --   This is entirely safe to use if you never mutate the reference, or if you
 --   are guaranteed to never refer to the pure value again. Otherwise you'll
@@ -403,39 +397,21 @@ blowfishEncryptECB64 :: BlowfishContext -> ByteString -> ByteString
 blowfishEncryptECB64 ctx str =
   runST $ blowfishEncryptECB64Ref (blowfishUnsafeThaw ctx) str
 
-blowfishEncryptECB64Ref :: BlowfishContextRef s -> ByteString -> ST s ByteString
-blowfishEncryptECB64Ref (BlowfishContextRef ctx) str =
-  unsafeIOToST $ do
-    withForeignPtr ctx $ \p -> do
-      myUseAsCString str $ \inp -> do
-        B.create len $ \outp -> do
-          c_bcrypt_xs_output p inp (fromIntegral len) (castPtr outp)
-  where
-    len = B.length str
-
-foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs_output"
-  c_bcrypt_xs_output
-    :: Ptr BlfCtx
-    -> CString
-    -> Word32
-    -> CString
-    -> IO ()
-
 -- | Decrypt a short-ish string using a blowfish context as the key in
 --   Electronic Codebook (ECB) mode iterated 64 times. This string must be an
 --   exact multiple of 8. This routine does not mutate the blowfish state.
 
 blowfishDecryptECB64Ref :: BlowfishContextRef s -> ByteString -> ST s (Maybe ByteString)
-blowfishDecryptECB64Ref (BlowfishContextRef ctx) str =
+blowfishDecryptECB64Ref (BlowfishContextRef ctx) str
   | len `mod` 8 /= 0 =
     return Nothing
   | otherwise =
     unsafeIOToST $ do
       withForeignPtr ctx $ \p -> do
         myUseAsCString str $ \inp -> do
-          Just <$> B.create len $ \outp -> do
+          (Just <$>) . B.create len $ \outp -> do
             _ <- c_bcrypt_xs_revoutput p inp (fromIntegral len) (castPtr outp)
-	    return ()
+            return ()
   where
     len = B.length str
 
@@ -450,16 +426,6 @@ foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs_revoutput"
 blowfishDecryptECB64 :: BlowfishContext -> ByteString -> Maybe ByteString
 blowfishDecryptECB64 ctx str =
   runST $ blowfishDecryptECB64Ref (blowfishUnsafeThaw ctx) str
-
-blowfishEncryptECB64Ref :: BlowfishContextRef s -> ByteString -> ST s ByteString
-blowfishEncryptECB64Ref (BlowfishContextRef ctx) str =
-  unsafeIOToST $ do
-    withForeignPtr ctx $ \p -> do
-      myUseAsCString str $ \inp -> do
-        B.create len $ \outp -> do
-          c_bcrypt_xs_output p inp (fromIntegral len) (castPtr outp)
-  where
-    len = B.length str
 
 foreign import capi "g3p_bcrypt.h G3P_bcrypt_xs_output"
   c_bcrypt_xs_output

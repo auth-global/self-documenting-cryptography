@@ -66,15 +66,15 @@ void G3P_Blowfish_initstate(G3P_blf_ctx *);
  */
 void G3P_Blowfish_expand
 (G3P_blf_ctx *c,
- const uint8_t *key, uint16_t keybytes,
- const uint8_t *salt, uint16_t saltbytes,
+ const uint8_t *key, uint32_t keybytes,
+ const uint8_t *salt, uint32_t saltbytes,
  bool implicitNull);
 
 void
 G3P_Blowfish_revexpand
 (G3P_blf_ctx *c,
- const uint8_t *key, uint16_t keybytes,
- const uint8_t *salt, uint16_t saltbytes,
+ const uint8_t *key, uint32_t keybytes,
+ const uint8_t *salt, uint32_t saltbytes,
  bool implicitNull );
 
 void
@@ -108,17 +108,17 @@ extern const G3P_blf_ctx g3p_blf_init;
 
 void
 G3P_bcrypt_xs
-( const uint8_t *key0, uint16_t key0bytes, const uint8_t *salt0, uint16_t salt0bytes,
-  const uint8_t *keyL, uint16_t keyLbytes, const uint8_t *saltL, uint16_t saltLbytes,
-  const uint8_t *keyR, uint16_t keyRbytes, const uint8_t *saltR, uint16_t saltRbytes,
+( const uint8_t *key0, uint32_t key0bytes, const uint8_t *salt0, uint32_t salt0bytes,
+  const uint8_t *keyL, uint32_t keyLbytes, const uint8_t *saltL, uint32_t saltLbytes,
+  const uint8_t *keyR, uint32_t keyRbytes, const uint8_t *saltR, uint32_t saltRbytes,
   const uint8_t *saltZ, uint32_t saltZbytes, uint32_t rounds, uint8_t *output );
 
 void
 G3P_bcrypt_xs_expand
 ( G3P_blf_ctx *state,
-  const uint8_t *key0, uint16_t key0bytes, const uint8_t *salt0, uint16_t salt0bytes,
-  const uint8_t *keyL, uint16_t keyLbytes, const uint8_t *saltL, uint16_t saltLbytes,
-  const uint8_t *keyR, uint16_t keyRbytes, const uint8_t *saltR, uint16_t saltRbytes,
+  const uint8_t *key0, uint32_t key0bytes, const uint8_t *salt0, uint32_t salt0bytes,
+  const uint8_t *keyL, uint32_t keyLbytes, const uint8_t *saltL, uint32_t saltLbytes,
+  const uint8_t *keyR, uint32_t keyRbytes, const uint8_t *saltR, uint32_t saltRbytes,
   uint32_t rounds );
 
 uint32_t
@@ -150,5 +150,5 @@ G3P_bcrypt_xs_revoutput
 void
 G3P_Blowfish_Pbox_xor
 (G3P_blf_ctx *c,
- const uint8_t *key, uint16_t keybytes,
+ const uint8_t *key, uint32_t keybytes,
  bool implicitNull );
