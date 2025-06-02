@@ -23,8 +23,8 @@
 
 #include <stddef.h>
 
-int  hs_hashstring_hexDecode     (void *dest, const char *src, size_t srcLen);
-int  hs_hashstring_hexDecodeLower(void *dest, const char *src, size_t srcLen);
-int  hs_hashstring_hexDecodeUpper(void *dest, const char *src, size_t srcLen);
-void hs_hashstring_hexEncode     (char *dest, const void *src, size_t srcLen);
-void hs_hashstring_hexEncodeUpper(char *dest, const void *src, size_t srcLen);
+int  hs_hashstring_hexDecode     (void *restrict dest, const char *restrict src, size_t srcLen);
+int  hs_hashstring_hexDecodeLower(void *restrict dest, const char *restrict src, size_t srcLen);
+int  hs_hashstring_hexDecodeUpper(void *restrict dest, const char *restrict src, size_t srcLen);
+void hs_hashstring_hexEncode     (char *restrict dest, const void *restrict src, size_t srcLen);
+void hs_hashstring_hexEncodeUpper(char *restrict dest, const void *restrict src, size_t srcLen);

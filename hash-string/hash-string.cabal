@@ -1,6 +1,6 @@
 cabal-version:      1.24
 name:               hash-string
-version:            0.1.0.1
+version:            0.1.0.2
 synopsis:
   binary strings supporting constant-time base16 and comparisons
 description:
@@ -41,6 +41,7 @@ library
                        -- csrc/hs_hashstring_base64.c
                        csrc/hs_hashstring_xor.c
 
+    cc-options: -ftree-vectorize
     default-language: Haskell2010
 
 source-repository head
