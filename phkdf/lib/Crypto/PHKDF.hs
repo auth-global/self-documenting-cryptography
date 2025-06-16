@@ -233,6 +233,8 @@ module Crypto.PHKDF
   , phkdfCtx_toStream
   , phkdfCtx_toGen
   , phkdfCtx_byteCount
+  , phkdfCtx_blockCount
+  , phkdfCtx_bufferLength
   , phkdfCtx_endPaddingLength
   , phkdfCtx_blockPaddingLength
 {--
@@ -296,7 +298,6 @@ phkdfCtx_init = phkdfCtx_initLike . hmacKeyLike_init
 phkdfCtx_initLike :: HmacKeyLike -> PhkdfCtx
 phkdfCtx_initLike key =
   PhkdfCtx {
-    phkdfCtx_byteCount = hmacKeyLike_byteCount key,
     phkdfCtx_state = hmacKeyLike_ipadCtx key,
     phkdfCtx_hmacKeyLike = key
   }
@@ -310,9 +311,7 @@ phkdfCtx_initHashed = phkdfCtx_init . hmacKeyHashed_toKey
 
 phkdfCtx_initPrefixed :: ByteString -> HmacKeyPrefixed -> PhkdfCtx
 phkdfCtx_initPrefixed str key = PhkdfCtx
-    { phkdfCtx_byteCount = hmacKeyPrefixed_byteCount key
-                         + fromIntegral (B.length str)
-    , phkdfCtx_state = sha256_update (hmacKeyPrefixed_ipadCtx key) str
+    { phkdfCtx_state = sha256_update (hmacKeyPrefixed_ipadCtx key) str
     , phkdfCtx_hmacKeyLike = hmacKeyLike_initPrefixed key
     }
 
@@ -423,7 +422,7 @@ phkdfCtx_toHmacKeyPrefixed genFillerPad ctx =
 
     ctx' = phkdfCtx_unsafeFeed ["\x00",blockPadding] ctx
 
-    paddingIsValid = phkdfCtx_byteCount ctx' `mod` 64 == 0
+    paddingIsValid = phkdfCtx_bufferLength ctx' == 0
                   && B.length blockPadding == blockPadLen
 
     ipadCtx' = assert paddingIsValid $ phkdfCtx_state ctx'
@@ -454,6 +453,28 @@ phkdfCtx_blockPaddingLength :: PhkdfCtx -> Int
 phkdfCtx_blockPaddingLength ctx =
   fromIntegral ((63 - phkdfCtx_byteCount ctx) .&. 63)
 
+-- | How many bytes long is the current phkdf message? This doesn't count the
+--   very first block of the SHA256 message, which is dedicated to the HMAC key.
+--   Thus it is always 64 bytes less than what 'sha256_byteCount' would report.
+
+phkdfCtx_byteCount :: PhkdfCtx -> Word64
+phkdfCtx_byteCount = (\x -> x - 64) . sha256_byteCount . phkdfCtx_state
+
+-- | How many complete blocks have been processed in the current phkdf message?
+--   This doesn't count the very first block of the SHA256 message, which is
+--   dedicated to the HMAC key.  Thus it is always one less than what
+--   'sha256_blockCount' would report
+
+phkdfCtx_blockCount :: PhkdfCtx -> Word64
+phkdfCtx_blockCount = (\x -> x - 1) . sha256_blockCount . phkdfCtx_state
+
+-- | How long is the buffer of unprocessed data?  Always returns a number
+--   between 0 and 63, inclusive, and returns the same number that
+--   'sha256_bufferLength' would report.
+
+phkdfCtx_bufferLength :: PhkdfCtx -> Word8
+phkdfCtx_bufferLength = sha256_bufferLength . phkdfCtx_state
+
 -- actually I should probably offer a version of this function with permuted
 -- arguments, as there is at least one potentially useful partial application
 -- here, namely the block computations involved in processing the
@@ -481,7 +502,7 @@ phkdfCtx_toGen genFillerPad counter0 tag ctx =
 
     ctx' = phkdfCtx_unsafeFeed ["\x00",endPadding] ctx
 
-    endPaddingIsValid = phkdfCtx_byteCount ctx' `mod` 64 == 32
+    endPaddingIsValid = phkdfCtx_bufferLength ctx' == 32
                      && B.length endPadding == endPadLen
 
     context0 = assert endPaddingIsValid $ phkdfCtx_state ctx'

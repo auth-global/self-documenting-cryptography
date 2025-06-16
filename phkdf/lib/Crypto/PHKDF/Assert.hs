@@ -11,6 +11,7 @@ module Crypto.PHKDF.Assert where
 import Data.Bits
 import Data.Word
 import Crypto.PHKDF.Subtle
+import Crypto.PHKDF(phkdfCtx_byteCount)
 
 phkdfCtx_assertBufferPosition' :: Word64 -> PhkdfCtx -> PhkdfCtx
 phkdfCtx_assertBufferPosition' n ctx

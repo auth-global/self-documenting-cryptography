@@ -25,26 +25,18 @@ import           Data.Word
 -- proof of concept.  See the new SHA256 bindings WIP.
 
 data PhkdfCtx = PhkdfCtx
-  { phkdfCtx_byteCount :: !Word64
-  , phkdfCtx_state :: !Sha256Ctx
+  { phkdfCtx_state :: !Sha256Ctx
   , phkdfCtx_hmacKeyLike :: !HmacKeyLike
   }
 
 data P = P !Word64 !Sha256Ctx
 
 phkdfCtx_unsafeFeed :: Foldable f => f ByteString -> PhkdfCtx -> PhkdfCtx
-phkdfCtx_unsafeFeed strs ctx0 =
-  if null strs then ctx0
-  else ctx0 {
-    phkdfCtx_byteCount = byteCount',
-    phkdfCtx_state = state'
+phkdfCtx_unsafeFeed strs ctx =
+  if null strs then ctx
+  else ctx {
+    phkdfCtx_state = sha256_feeds strs (phkdfCtx_state ctx)
   }
-  where
-    delta (P len ctx) str = P (len + (fromIntegral (B.length str))) (sha256_update ctx str)
-
-    p0 = P (phkdfCtx_byteCount ctx0) (phkdfCtx_state ctx0)
-
-    P byteCount' state' = foldl' delta p0 strs
 
 data PhkdfGen = PhkdfGen
   { phkdfGen_hmacKeyLike :: !HmacKeyLike
