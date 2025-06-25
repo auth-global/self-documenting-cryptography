@@ -332,8 +332,8 @@ nominal `Salt` parameter.
 
 Here is PBKDF2's cryptographically secure pseudorandum number generator
 (CSPRNG) on top, followed by the modified generator on bottom.  Both are
-examples of a "KDF in feedback mode" from [NIST SP 800-108: Recommendation
-for Key Derivation Using Pseudorandom Functions](https://csrc.nist.gov/pubs/sp/800/108/upd1/final)
+examples of a "KDF in feedback mode" from [NIST SP 800-108](https://csrc.nist.gov/pubs/sp/800/108/r1/upd1/final):
+Recommendation for Key Derivation Using Pseudorandom Functions.
 
     i = (output block number, typically 0 but also [1..] for longer outputs)
     U 1 = HMAC (Password, Salt + INT_32_BE(i))
@@ -350,7 +350,7 @@ for Key Derivation Using Pseudorandom Functions](https://csrc.nist.gov/pubs/sp/8
     ⋮
     T c = HMAC (Seguid, T (c-1) + INT_32_BE(i + c) + DomainTag )
 
-These modifications take much inspiration from HKDF and [RFC 5869](https://datatracker.ietf.org/doc/html/rfc5869),
+These modifications to PBKDF2 take much inspiration from HKDF and [RFC 5869](https://datatracker.ietf.org/doc/html/rfc5869),
 which inspired the name PHKDF. Assuming the domain tag is less than 20 bytes
 long, the only algorithmic change is that some of input bytes to HMAC-SHA256's
 compression function that were specified to be mostly null are now specified
@@ -360,6 +360,12 @@ In cases where the domain tag is 20 bytes or longer, this adds one or more
 additional SHA256 block computations per round,[^cyclic-extension] which
 shouldn't be an issue. In fact, it should be extremely safe to compensate for
 longer tags by specifying a smaller number of PHKDF rounds.
+
+These now-utilized bytes form an extended salt that pushes collisions between
+differing domain tags immediately apart. Futhermore, the addition of a counter
+means that loops during this key stretching phase have a length that is a
+multiple of 2^32, which is two less than the maximum number of rounds defined
+by the G3P.
 
 One of the more obvious differences is that the parameter that PBKDF2 calls the
 `Password` is now called the `Seguid`. Instead of using the actual password as
@@ -398,7 +404,8 @@ Sometimes cracking isn't really necessary. In classic bcrypt, nearly any
 continuation will reveal the plaintext of the password directly, as it is
 needed throughout the key-stretching process. In other cases, such as PBKDF2's
 classic mode of operation, such a continuation must reveal a hashed version of
-the password with no key stretching applied.
+the password with no key stretching applied, if not the plaintext of the
+password itself.
 
 A synchronization point is a continuation whose most efficient cracking attack
 costs almost as much _per guess_ as the work required to create that
@@ -434,7 +441,7 @@ a long input to HMAC. Overall, this phase looks like a single call to HMAC:
                  "G3Pb2 charlie" + keyB + bcryptOutput +
                  keyC + ContextTags + "SEED" + DomainTag)
 
-The inclusion of the continuation control key ("keyC") allows for some or all of
+The inclusion of the continuation control key `keyC` allows for some or all of
 the bcrypt key-stretching computation to be outsourced to another semi-trusted
 device while retaining exclusive control over the final seed.
 
@@ -456,15 +463,20 @@ This final key derivation function resembles HKDF-SHA256, with the computation
 of `keyL` corresponding to HKDF-Extract, and the output blocks corresponding
 to HKDF-Expand.
 
-However, there are a handful of mostly minor changes: we are using a
+However, there are a handful of mostly minor changes: the `EchoCounter` is a
 parameterized 4-byte counter before the domain tag, whereas HKDF uses a
-hardcoded 1-byte counter after the info tag. Furthermore, this construction
-also parameterizes of the right 32 bytes of the output key.
+hardcoded 1-byte counter after the info tag.
 
-However, the most significant change by far is parameterizing the 32-byte
-initial generator state. Note a trivial collision can be obtained by feeding an
-output block back into the `EchoHeader` parameter and by incrementing the
-counter by one, which is the same thing as the next output block.
+Furthermore, `EchoKey` also parameterizes the right 32 bytes of the output key.
+Repeating the account's salt and/or the deployment's domain tag in this
+parameter ensures that the most common collision across accounts and/or
+deployments occurs on the very last SHA256 block computation.[^echokey-collisions]
+
+However, the most significant change by far is that the `EchoHeader`
+parameterizes the 32-byte initial generator state. Note a trivial collision can
+be obtained by feeding an output block back into the `EchoHeader` parameter and
+by incrementing the counter by one, which is the same thing as the next output
+block.
 
 Also, the `EchoHeader` parameter violates HKDF's strict principle of cleanly
 separating entropy extraction and final output expansion. As a result,
@@ -755,7 +767,7 @@ parameters are necessary even for a more minimal design.
 Additionally, there is a visibility graph between parameters. For example,
 being able to specify the `Username` and compute the output hash yourself on
 your own hardware implies that your computer must know every other parameter.
-Being able to specify the "password" implies knowledge of every parameter
+Being able to specify the `Password` implies knowledge of every parameter
 other than the `Username`, the plaintext of which can be hidden using partial
 evaluation.
 
@@ -798,32 +810,66 @@ hash could then be included in the G3P's `Credentials` vector to support 2SKD.
 
 ## Account Separation
 
-### Public Salts
-
-Assoming your deployment will have more than one user, your deployment should
+Assuming your deployment will have more than one user, your deployment should
 almost certainly be applying a unique salt per account as domain separation,
-and should do so up-front. This per-account salt achieves exactly the same
-effect as what traditional salts achieve: in effect, every account gets to use
-its own unique password hash function. Ideally this salt would be applied early
-on in the hashing process, preferably before the password is even hashed.
+and should do so up-front.
 
-Handling per-account salt is a significantly more complicated when client-side
-prehashing is involved, as the client will have to somehow know which salt to
-use. The remainder of this section should be understood within this prehashing
-context.
-
-There's two basic categories of approaches: transparently deriving a salt from
-a login name, or storing a random salt directly in a database. In the former
-scenario, there is an unbreakable connection between login names and derived
-salts, which can be guessed offline. In the latter scenario, members of the
-general public need to be able query the salt associated with a specific login
-name via a public salt server.
+When dealing with client-side prehashing, this salt would typically be
+determined by the login name.  There are two basic approaches: deriving a salt
+from a login name, or storing a random salt directly in a database. In the
+former scenario, there is an unbreakable connection between login names and
+derived salts, which can be guessed offline. In the latter scenario, anybody
+who has the ability to try to log in needs to be able query the salt associated
+with a specific login name via a public salt server.
 
 In either case, security can be substantially improved by having login names
 that are untethered (at least in part) from public identifiers. Otherwise, if
 the password hash of a high-profile account gets leaked, it won't be difficult
 for a cracker to find the login name from the salt alone no matter what approach
 you take.
+
+This per-account salt achieves exactly the same effect as what traditional salts
+achieve: in effect, every account gets to use its own unique password hash
+function. Ideally this salt would be applied early on in the hashing process,
+preferably before the password is even hashed.
+
+For example, a utility that supports purely local, passphrase-based file
+encryption might store a random 16-byte salt along with any plaintext tags as
+part of the encryption header.
+
+On the other hand, for easily-memorizable public-key certificates, one might
+use a utility that deterministically generates ECC keypairs from a passphrase.
+This type of deployment cannot meaningfully apply salt, so a utility might
+"enforce" the requirement that the passphrase be at least eight words long.
+
+In the more typical context of a login-based web service, applying no account
+separation at all on the client side does have the advantage that if Eve steals
+your password database, the hashes can be securely decoupled from the login
+names. While Eve is likely to know this mapping, she has the option of hiding
+login names from Craig, preventing Craig from logging into an account that he
+successfully cracks. This is a rare case in which the interests of Alice
+and Eve are aligned. Without inside knowledge, this association cannot be
+reconstructed even by the most enterprising and Orphean Craigs.
+
+This comes at the cost that if Eve manages to wiretap your TLS connections and
+collects multiple password hashes from your deployment, then the key-stretching
+computation associated with a cracking attempt can be amortized across all of
+those hashes. If Eve manages to collect a thousand passwords, she can crack
+all of those passwords together a thousand times faster than she could crack
+them one by one.
+
+Preventing the possibility of sharing cracking attempts across accounts is why,
+with the narrowest of exceptions,[^no-account-separation] you should prefer to
+achieve account separation as early as possible, and why you should almost
+certainly achieve account separation on the client side, before a solid
+majority of the client-side key stretching work has been performed.
+
+Handling per-account salt is a significantly more complicated when client-side
+prehashing is involved, as the client will have to somehow know which salt to
+use. The remainder of this section should be understood within this prehashing
+context.
+
+### Public Salts
 
 The simplest possible transparently-derived salt might use a normalized login
 name as the input to the `Username` parameter only. The G3P ensures that the
@@ -833,8 +879,8 @@ a modicum of privacy when they turn the hashes over to crackers.
 
 However, this partial evaluation doesn't apply any key-stretching to the
 login name, so it would be relatively inexpensive for a cracker to try to guess
-the login name. Furthermore, the password and the login name could be cracked
-one at a time.
+the login name, which can be guessed offline. Furthermore, the password and the
+login name could be cracked one at a time.
 
 One could apply key-stretching to the login name, possibly via the G3P, to
 derive a salt in a transparent way. That derived salt should be included in
@@ -878,7 +924,8 @@ online service represents.
 A reasonable length for a random public salt might be 8-16 bytes. There's
 no need for long salts if your database can enforce uniqueness. Moreover,
 cross-domain collisions on this salt will not be an issue if you are using
-deployment-identifying domain separation as well.
+deployment-identifying domain separation as well, as is highly recommended
+in all cases, everywhere.
 
 It is highly recommended that the public salts be sampled or derived from a
 high-quality cryptographically secure source and stored directly in a database.
@@ -911,6 +958,54 @@ to avoid the need of storing every non-existent username ever asked about.
 Perhaps there would be one or more bloom filters per key, each tracking the
 nonexistent usernames that key has very likely seen.
 
+### OPRFs and PAKE
+
+An oblivious pseudo-random function (OPRF) is a multi-party computation that
+applies a salt that only the server knows to a password only the client knows.
+Thus every non-secret result of this secret salt is tied to a very specific
+password guess. OPRFs are commonly used in password-authenticated key exchange
+(PAKE) protocols.
+
+Even though these salts normally remain secret, they are not plausibly deniable.
+This is because an OPRF server reveals to unauthenticated agents something that
+is deterministically generated from a password attempt and the secret salt. This
+means the OPRF server enables those in possession of a purported salt for a
+given login name to easily verify if the salt is genuine, and enables those
+in possession of a genuine salt and who are lucky enough to guess the login
+name to make the association between the two.
+
+Thus while there are many potential advantages to replacing a public salt with
+an OPRF, hiding the association between stolen salts and login names from Craig
+is not among them. Other than the peripherally-relevant fact that stolen public
+salts can be plausibly deniable while stolen OPRF salts cannot, in theory there
+is no significant difference between a typical OPRF server and a public salt
+server in the context of account privacy.
+
+In practice, the effort that would need to go into implementing or administering
+an OPRF server is very comparable to the effort that would need to go into a
+public salt server. In particular, there's still a need for fake answers that
+are stable over time.
+
+As genuine OPRF salts usually cannot be changed within any definite timeframe,
+one should least make a genuine derivation look indistinguishable from a fake
+derivation. However, this would require omitting a per-account seed, which
+in turn makes login names offline-crackable from stolen salts if the key is also
+in the attacker's possession. For this reason, genuine OPRF salts should likely
+be effectively random and stored directly in a database, and not derived
+from persistent secrets.
+
+Pursuing the deployment of an asymmetric PAKE does seem like a very worthy
+endeavor, however, PAKEs also present extremely non-obvious tradeoffs relative
+to more traditional password-based authentication flows augmented with
+prehashing.
+
+For example, in OPAQUE, the client learns whether the password is correct
+before the server does: thus there is no way for the server to surreptitiously
+fail an authentication attempt that uses the correct password, based on other
+factors. Perfectly falsified failures are readily achieved using a more
+traditional password-based authentication flow, and might be supportable in the
+context of other asymmetric PAKE protocols.
+
 ### Private Salts
 
 It's highly recommended that in addition to a public salt, that your deployment
@@ -942,7 +1037,7 @@ you can delete your existing keys.
 
 It is highly recommended to apply self-documenting tags on the server side
 as well as the client side. Unfortunately argon2 is not particularly secure
-in the sense of Adversarial Literate Programming, as none of it's bytestring
+in the sense of Adversarial Literate Programming, as none of its bytestring
 inputs are required to compute its key-stretching phase.
 
 Using the G3P, or it's simplified "foxtrot" variant, as a preprocessing
@@ -976,6 +1071,11 @@ use as the password and/or second secret inputs. This nonce should have at
 least 128 bits of entropy, and it should be sampled or derived from a
 cryptographically-secure source. The server then sends the password and say,
 the first 16 bytes of the hash resulting from the test.
+
+The server should forget the nonce as soon as it has been both hashed and sent.
+On the other hand, the full 32 bytes of the resulting hash should be retained
+until the client successfully responds, or until the dress rehearsal expires,
+say at least 10 or 15 minutes later.
 
 The client should then run the G3P on the password with the full number of
 rounds, and then use the outputs as further inputs to the G3P and its key
@@ -1043,12 +1143,15 @@ as part of this full dress rehearsal. This should be reused to protect against
 weaknesses in the client's source of cryptographically-secure randomness.
 
 Substantial key-stretching is applied to this nonce as part of a full dress
-rehearsal. You could use an output derived from this key stretching computation,
-though it's also not strictly necessary if startup latency is a concern.
+rehearsal. There is benefit to using an output derived from this key stretching
+computation; it's best to use something that has been domain-separated from the
+test output shortly before the full dress rehearsal was completed.
 
-Then we sample data from the client's cryptographically-secure random sources,
-and hash those samples with the output. The result can be used to seed a CSPRNG,
-and all source material needs to then be permanently forgotten.
+However, reusing this key-stretching is also not strictly necessary if startup
+latency is a concern. Next data is sampled from the client's cryptographically-
+secure random sources, and hash those samples with the output. The result can
+be used to seed a CSPRNG, and all source material needs to then be permanently
+forgotten.
 
 The client should sample from whatever cryptographically secure random sources
 are available. Ideally a client would sample both `/dev/urandom` (or comparable
@@ -1194,9 +1297,10 @@ that acheiving a traditionally-strong security margin in the context of
 Adversarial Literate Programming seems implausible.
 
 On the other hand, that linear factor is quite large, and password cracking is
-sensitive to even modest overhead. In this context, FHE doesn't seem to be any
-immediate threat to Adversarial Literate Programming based on standard
-cryptographic primitives like SHA-256 and blowfish-expand.
+sensitive to even modest overhead, making password hashing something of a
+best-case scenario. In this context, FHE doesn't seem to be any immediate
+threat to Adversarial Literate Programming based on standard cryptographic
+primitives like SHA-256 and blowfish-expand.
 
 While I don't know how much better future homomorphic encryption schemes might
 be able to perform on SHA-256 and blowfish, I'm not expecting revolutionary
@@ -1212,7 +1316,7 @@ to protect a professional password cracker from illicitly commingled hashes, as
 it would be unethical to knowingly run a password cracker that incorporates
 homomorphic encryption.
 
-However, a argon2-based suffixed salts are not particularly secure in the sense
+However, argon2-based suffixed salts are not particularly secure in the sense
 of Adversarial Literate Programming. This is because in more adversarial
 scenarios, such as password crackers running on botnets and other stolen
 compting resources, it's very important to maximize the overhead inflicted
@@ -1246,16 +1350,15 @@ plaintext tags all the way through the key-stretching computation, combining
 the G3P and argon2 is likely a more than adequate workaround for now. Catena
 and yescrypt appear to have significant potential for being self-documenting
 memory-hard password hash functions, though this appears to be accidental and
-this potential could almost certainly be improved, much like the partial
+thus this potential could almost certainly be improved, much like the partial
 cache-hardness of bcrypt.
 
 In the argon2-only FHE scenario, Craig _might_ be able to still determine the
-parameters hidden inside by computing a hash with a known password and then
-cracking the unknowns. This approach can be facilitated when Craig is aware
-of Alice's documentation but is not yet aware that Alice's documentation is
-immediately relevant to the hash functin he is reverse engineering, so it
-helps to be open and notorious about your deployments of self-documenting
-cryptography.
+hidden parameters by computing a hash with a known password and then cracking
+the unknowns. This approach can be facilitated when Craig is aware of Alice's
+documentation but is not yet aware that Alice's documentation is immediately
+relevant to the hash function he is reverse engineering, so it helps to be open
+and notorious about your deployments of self-documenting cryptography.
 
 However, this requires more sophistication and more computation on Craig's part
 compared to reverse engineering Alice's documentation from Eve's implementation.
@@ -1346,9 +1449,10 @@ In retrospect, that class was my introduction to signals and communication
 theory. While I was unravelling this puzzle, I basically thought of the
 plaintext tag as a signal, with the space of cryptographic state changes
 as the transmission medium. I thought of a cryptographic hash function as some
-sort of exotic modem capable of guaranteeing the delivery of messages exactly
-in the most relevant situations and incapable of making any other guarantees
-regarding delivery or non-delivery in other situations.
+sort of exotic modem with an utterly alien queuing discipline capable of
+guaranteeing the delivery of messages exactly in the most relevant situations,
+and incapable of making any other guarantees regarding delivery or non-delivery
+in other situations.
 
 And yet, my conscious mind was resolutely in denial about the connections
 between what I was doing and communications theory. The penny finally dropped
@@ -1405,7 +1509,7 @@ Adversarial Literate Programming problem.
 
 While self-documenting domain separation seems a valuable thing to incorporate
 into fast key derivation functions, some amount of key stretching seems
-neccessary to convincingly tackle some of the more adversarial scenarios.
+necessary to convincingly tackle some of the more adversarial scenarios.
 Primitive hash algorithms with enhanced cryptoacoustic advantage could
 potentially reduce or eliminate the need for this key-stretching, thus
 extending the applicability of cryptoacoustics.
@@ -1573,6 +1677,16 @@ into assisting the counterintelligence goals of your organization.
     key-stretching phase, so that the seed need not be implicitly transferred
     along with everything else.
 
+[^echokey-collisions]:
+    If the `EchoKey` is different between applications of the G3P and the final
+    output block collides, there must be a non-trivial collision within the last
+    call to HMAC. Moreover, colliding more than one output would require a
+    distinct collision on every block.
+
+    The only option beyond a single collision on the very last SHA256 block
+    computation involves multiple collisions; namely, both the HMAC outer key
+    computation and the inner pad computation would have to collide.
+
 [^modified-bcrypt-memory-estimate]:
     Bcrypt's P-box is 72 bytes, Bcrypt's S-box is 4096 bytes, plus one SHA256
     accumulator context at 32 bytes, plus two 32 byte derived bcrypt keys, plus
@@ -1665,6 +1779,46 @@ into assisting the counterintelligence goals of your organization.
     NMAC keys, a.k.a. precomputed HMAC keys. Thus the name was chosen to hint
     at the intended use of the parameter.
 
+[^no-account-separation]:
+    Other than obvious cases where no account separation is possible, such
+    as deterministic generation of public/private keypairs, applying no account
+    separation on the client side can be appropriate when the absolute privacy
+    of login names is more important than avoiding cracking attacks that apply
+    to multiple accounts at once.
+
+    For example, in the case of a on-premise home automation server, one can
+    reasonably assume that (in the vast majority of deployments) there will
+    never be more than a handful of accounts, and that TLS eavesdropping
+    attacks are not a major part of the threat model.
+
+    In this scenario, applying account separation only on the server side can
+    be a sensible thing to do. The possibility of completely decoupling a
+    stolen hash from a login name could well be more important than avoiding
+    any possibility of more efficient cracking attacks in a niche scenario.
+
+    In this scenario, salt can and probably should be used to domain-separate
+    hashes to a specific deployment on the client side, even if a TLS
+    eavesdropper might be theoretically capable of obtaining hashes that are
+    not domain-separated by account.
+
+    Another scenario that might make sense to delay account separation is when
+    hashing the second secret, especially if your deployment uses an external
+    checksum. Account separation might be delayed until after the checksum has
+    been computed, then the key-stretching computation reused to apply account
+    separation before the second secret is possibly persisted on the user's
+    device.
+
+    Much like the deterministic public/private keypairs, the second secret
+    often has a connotation of more reliably being a high-quality, high-entropy
+    passphrase, and not applying account separation to this key-stretching
+    computation means that the public salt can more easily be rotated without
+    forcing the user to change their second secret.
+
+    Alternatively, perhaps the user's device helps choose the new public salt
+    such that their existing second secret continues to pass the external
+    checksum, which would require another fairly expensive mining computation
+    on a possibly constrained-power device.
+
 [^ephemeral-derivations]:
     Do feel free to derive public salts from _ephemeral_ values, though,
     as long as they are quickly forgotten and include a high quality source of
@@ -1690,7 +1844,7 @@ into assisting the counterintelligence goals of your organization.
     towards protecting the privacy of your accounts.
 
     If you take this approach, you may want to at least maintain a log of fake
-    usernames that have been inquired about, so that you have the option of
+    login names that have been inquired about, so that you have the option of
     smoothly migrating away from your simple solution as your needs grow.
 
 [^bloom-example]:
@@ -1742,11 +1896,10 @@ into assisting the counterintelligence goals of your organization.
 [^have-i-been-pwned-lookup]:
     Notably, the lookup method to see if a given password is in Have I Been
     Pwned's password breach database does not exhibit this key-stretching
-    security property: if an eavesdropper manages to capture the first few
-    bytes of a sha256 hash of a plaintext password, and they know that a certain
-    severely truncated fast hash is associated with a usefully long but much
-    more expensive slow hash, then they can use the fast hash as a password
-    prefilter to speed up their attacks on slow hash by orders of magnitude.
+    security property: if an eavesdropper manages to capture an association
+    between the first few bytes of a sha256 hash and a usefully long but much
+    more expensive slow hash, then they can use the fast hash as a prefilter
+    to speed up their attacks on the slow hash by orders of magnitude.
 
 [^unreasonable-precautions]:
     You should consider taking a few unreasonable precautions as well. I
@@ -1763,7 +1916,7 @@ into assisting the counterintelligence goals of your organization.
     stealer won't be able to use the status of memory-locked pages to more
     easily zero in on the most interesting bits of data in a highly generic way.
 
-    This "advantage" might not be worth much, as an all-powerful memory
+    This "advantage" might not be worth much, as such an all-powerful memory
     eavesdropper would be able to target your specific application. The only
     robust defense against a kernel-level eavesdropper is a suitable hardware
     security module.
