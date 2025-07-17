@@ -6,11 +6,11 @@ This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 Intern
 
 # Introduction
 
-The Global Password Prehash Protocol (G3P) version 2 (G3Pb2) is designed to
-adversarially pass messages inside its algorithm via the mathematics of
-game theory. It a slow password hash and key derivation function based on
-HMAC-SHA256 and blowfish, using variants of PBKDF2, HKDF, and bcrypt that have
-been minimally modified in order to better support the goal of self-documenting
+The Global Password Prehash Protocol (G3P) version 2 (G3Pb2) is a slow password
+hash and key derivation function designed to adversarially pass messages inside
+its algorithm via the mathematics of game theory. It is based on HMAC-SHA256
+and blowfish, using variants of PBKDF2, HKDF, and bcrypt that have been
+minimally modified in order to better support the goal of self-documenting
 cryptography. Also, the G3P is explicitly designed to support keying end-to-end
 encryption (E2EE) off of the password, so long as the G3P is deployed as a
 client-side prehash.
@@ -814,68 +814,104 @@ Assuming your deployment will have more than one user, your deployment should
 almost certainly be applying a unique salt per account as domain separation,
 and should do so up-front.
 
-When dealing with client-side prehashing, this salt would typically be
-determined by the login name.  There are two basic approaches: deriving a salt
-from a login name, or storing a random salt directly in a database. In the
-former scenario, there is an unbreakable connection between login names and
-derived salts, which can be guessed offline. In the latter scenario, anybody
-who has the ability to try to log in needs to be able query the salt associated
-with a specific login name via a public salt server.
-
-In either case, security can be substantially improved by having login names
-that are untethered (at least in part) from public identifiers. Otherwise, if
-the password hash of a high-profile account gets leaked, it won't be difficult
-for a cracker to find the login name from the salt alone no matter what approach
-you take.
-
 This per-account salt achieves exactly the same effect as what traditional salts
 achieve: in effect, every account gets to use its own unique password hash
 function. Ideally this salt would be applied early on in the hashing process,
 preferably before the password is even hashed.
 
-For example, a utility that supports purely local, passphrase-based file
-encryption might store a random 16-byte salt along with any plaintext tags as
-part of the encryption header.
+Imagine a purely local, password-based file-encryption app, and a user encrypts
+multiple files with a handful of different passwords. An evesdropper then
+obtains all of the encrypted files.
 
-On the other hand, for easily-memorizable public-key certificates, one might
-use a utility that deterministically generates ECC keypairs from a passphrase.
-This type of deployment cannot meaningfully apply salt, so a utility might
-"enforce" the requirement that the passphrase be at least eight words long.
+Without applying some form of cryptographic separation per file, a cracker would
+be able to make one key-stretching computation and then check all the files. If
+the attacker manages to collect a thousand such files, this makes their attack
+a thousand times more efficient.
 
-In the more typical context of a login-based web service, applying no account
-separation at all on the client side does have the advantage that if Eve steals
-your password database, the hashes can be securely decoupled from the login
-names. While Eve is likely to know this mapping, she has the option of hiding
-login names from Craig, preventing Craig from logging into an account that he
-successfully cracks. This is a rare case in which the interests of Alice
-and Eve are aligned. Without inside knowledge, this association cannot be
-reconstructed even by the most enterprising and Orphean Craigs.
+If the separation is applied late, say, after the key stretching, then the
+attacker would have to do a bit more work to check all the files, but can
+still share all of the work that takes place before account separation happens.
+Thus applying account separation late won't reduce this multiplier by much.
 
-This comes at the cost that if Eve manages to wiretap your TLS connections and
-collects multiple password hashes from your deployment, then the key-stretching
-computation associated with a cracking attempt can be amortized across all of
-those hashes. If Eve manages to collect a thousand passwords, she can crack
-all of those passwords together a thousand times faster than she could crack
-them one by one.
+Sometimes account separation is not possible: imagine a purely local app that
+allows one to generate public/private keypairs from a passphrase. Assuming the
+user wants to be able to reconstitute their keys from memory alone, they would
+have to memorize all the necessary salts in addition to their passphrase.
 
-Preventing the possibility of sharing cracking attempts across accounts is why,
-with the narrowest of exceptions,[^no-account-separation] you should prefer to
-achieve account separation as early as possible, and why you should almost
-certainly achieve account separation on the client side, before a solid
-majority of the client-side key stretching work has been performed.
+If the app is intended to allow the user to lose absolutely all of their devices
+and accounts and still recover their keys, any salt beyond a deployment-wide
+"please report any cracking activity here" is infeasible. The only thing that
+can be done to compensate for the lack of account separation is to encourage a
+minimum passphrase length. Thus the utility might "enforce" a minimum
+passphrase length of eight words.
 
-Handling per-account salt is a significantly more complicated when client-side
-prehashing is involved, as the client will have to somehow know which salt to
-use. The remainder of this section should be understood within this prehashing
-context.
+Sometimes account separation is not desireable, at least at certain stages.
+Consider a more typical example of network-based server that uses password
+authentication, supplemented with prehashing. In this scenario, account
+separation would typically be somehow effected via the login name.
+
+If account separation is used on the client side, then unauthenticated members
+of the general public have to be given access to the salt associated with a
+login name, or use something like an *oblivious pseudo-random function* (OPRF)
+that reveals something deterministically derived from a password attempt and
+secret salt to unauthenticated members of the general public.
+
+When Eve steals password hashes directly from Alice, I assume that she is likely
+to also discover the login names and salts, at least for the hashes she has
+stolen. But when Eve gives the hashes to Craig, she might want to withhold the
+login name so that Craig doesn't have the option of exploiting any accounts that
+he manages to crack. This is a rare alignment of interests between Alice and
+Eve.
+
+Yet in order to do his job effectively, Craig must be given all salts. When
+account separation is applied on the client side, if Craig can guess the login
+name, then he can confirm the association between the login name and the hash
+via the account salt.
+
+If one simply does not apply account separation on the client side, there is
+no salt that can be confirmed or denied to be associated with a login name by
+unauthenticated users. Without inside knowledge, the association between login
+names and salts cannot be reconstructed even by the most enterprising and
+Orphean Craigs.
+
+This comes at the cost that when Eve breaks into TLS and collects a thousand
+prehashes with no account separation applied, then those hashes can be cracked
+a thousand times more efficiently, just like our file encryption example.
+
+Thus, foregoing account separation on the client side may well be a sensible
+option for say, a typical deployment of a home automation server. In this
+context, that will never be more than a handful of individual accounts, and
+TLS eavesdropping is not likely to be a primary concern.
+
+On the other hand, in the context of a more typical webservice, or exceptionally
+large deployments of this home automation server, you almost certainly want to
+apply account seperation on the client side as early as possible. This is the
+intended purpose of the "Username" parameter.[^delayed-account-separation]
+
+Security can be substantially improved by having login names that are untethered
+(at least in part) from public identifiers. Otherwise, if the password hash of a
+high-profile account gets leaked, it won't be difficult for Craig to find the
+login name from the salt alone no matter what approach you take.
 
 ### Public Salts
 
+When dealing with client-side prehashing, public salts would typically be
+determined by the login name, and directly revealed to unauthenticated agents.
+There are two basic approaches: deterministically deriving a salt from a login
+name in a transparent way, or storing a random salt directly in a database.
+
+The main tradeoff is that transparently-derived public salts create an
+unbreakable connection between salt and login name that can be cracked offline.
+Running a public salt server runs the risk of creating an account-existence
+oracle, or even worse, an account-enumeration oracle, in addition to the more
+generic attack surface that running an online service represents.
+
 The simplest possible transparently-derived salt might use a normalized login
-name as the input to the `Username` parameter only. The G3P ensures that the
-entire plaintext of this parameter can be partially evaluated away, so in this
-scenario it's always possible for an eavesdropper to give individual accounts
-a modicum of privacy when they turn the hashes over to crackers.
+name as the input to the `Username` parameter only.[^why-only-username] The G3P
+ensures that the entire plaintext of this parameter can be partially evaluated
+away, so in this scenario it's always possible for an eavesdropper to give
+individual accounts a modicum of privacy when they turn the hashes over to
+crackers.
 
 However, this partial evaluation doesn't apply any key-stretching to the
 login name, so it would be relatively inexpensive for a cracker to try to guess
@@ -884,20 +920,16 @@ login name could be cracked one at a time.
 
 One could apply key-stretching to the login name, possibly via the G3P, to
 derive a salt in a transparent way. That derived salt should be included in
-both the `Username` and `ContextTags` parameters, but probably omitted from the
-`BcryptContextTags` parameter. This might make it much more expensive for
-a cracker to guess a login name from a transparently-derived salt.
+both the `Username`, `ContextTags`, and `EchoKey`[^why-echokey] parameters,
+but probably omitted from the `BcryptContextTags` parameter.[^why-not-bcrypt-tags]
+This can make it much more expensive for a cracker to guess a login name from a
+transparently-derived salt.
 
-The advantage is that transparently derived salts avoid possibilities for
-account existence attacks, account enumeration attacks, and other pitfalls of
-running a public salt server. The downside is that a cracker who has obtained
-one of your salts could crack the login name offline, without ever talking to
-your public salt server.
-
-Furthermore, you will probably want or need to normalize the login name in one
-or more ways. For example, if you want to support case-insensitive login names,
-you might choose to convert the login name to all lower case, or all upper case.
-Supporting Unicode login names potentially brings its own normalization issues.
+In either case, you will probably want or need to normalize the login name in
+one or more ways. For example, if you want to support case-insensitive login
+names, you might choose to convert the login name to all lower case, or all
+upper case. Supporting Unicode login names potentially brings its own
+normalization issues.
 
 Transparently deriving a salt means you will will need to robustly apply these
 normalization rules. Prehashing scenarios require that this normalization be
@@ -908,18 +940,14 @@ setting a password.
 
 On the other hand, if you use random salts, login names cannot possibly be
 guessed from the salt without talking to your public salt server. Just like a
-key-stretched username, this salt should be included in both the `Username`and
-`ContextTags` parameters but not the `BcryptContextTags` parameter.
+key-stretched username, this salt should be included in the `Username`,
+`ContextTags`, and `EchoKey` parameters but not the `BcryptContextTags`
+parameter.
 
 Futhermore, you wouldn't have to deal with login name normalization issues on
 the client: this could be confined to server-side computations where you have a
 lot more control over what ultimately happens. Moreover, this approach need not
 carry a cryptographic commitment to your normalization scheme.
-
-The downside of running a public salt server is that it could provide an
-account existence oracle, or even worse, an account enumeration oracle, to
-attackers. This is addition to the more generic attack surface that running an
-online service represents.
 
 A reasonable length for a random public salt might be 8-16 bytes. There's
 no need for long salts if your database can enforce uniqueness. Moreover,
@@ -927,14 +955,14 @@ cross-domain collisions on this salt will not be an issue if you are using
 deployment-identifying domain separation as well, as is highly recommended
 in all cases, everywhere.
 
-It is highly recommended that the public salts be sampled or derived from a
+It is recommended that the public salts be sampled or derived from a
 high-quality cryptographically secure source and stored directly in a database.
 In particular, because you cannot migrate away from a public salt in any
 kind of bounded timeframe, they should not be derived from non-public seeds and
 keys.[^ephemeral-derivations] This avoids any possibility of an eavesdropper
 stealing that non-public information and using it as evidence to third parties
 that they have actually compromised your infrastructure, preserving your
-plausible deniability regarding the incident.
+plausible deniability regarding the incident.[^public-salts-and-oprf]
 
 Handling queries for accounts that don't exist is the most complicated aspect
 of running a public salt server. You should endeavor to hide the existence or
@@ -962,24 +990,27 @@ nonexistent usernames that key has very likely seen.
 
 An oblivious pseudo-random function (OPRF) is a multi-party computation that
 applies a salt that only the server knows to a password only the client knows.
-Thus every non-secret result of this secret salt is tied to a very specific
-password guess. OPRFs are commonly used in password-authenticated key exchange
-(PAKE) protocols.
+Thus every result is tied to a very specific password guess. OPRFs are commonly
+used in password-authenticated key exchange (PAKE) protocols.
 
-Even though these salts normally remain secret, they are not plausibly deniable.
-This is because an OPRF server reveals to unauthenticated agents something that
-is deterministically generated from a password attempt and the secret salt. This
-means the OPRF server enables those in possession of a purported salt for a
-given login name to easily verify if the salt is genuine, and enables those
-in possession of a genuine salt and who are lucky enough to guess the login
-name to make the association between the two.
+Even though these salts normally remain secret, a sufficiently interested
+unauthenticated agent can detect when the salt changes, and this salt is not
+plausibly deniable when it gets stolen. This is because an OPRF server reveals
+to unauthenticated agents something that is deterministically generated from a
+password attempt and the secret salt.
 
-Thus while there are many potential advantages to replacing a public salt with
-an OPRF, hiding the association between stolen salts and login names from Craig
-is not among them. Other than the peripherally-relevant fact that stolen public
-salts can be plausibly deniable while stolen OPRF salts cannot, in theory there
-is no significant difference between a typical OPRF server and a public salt
-server in the context of account privacy.
+This means the OPRF server enables those in possession of a purported salt for
+a given login name to easily verify if the salt is genuine, and enables those
+in possession of a genuine salt and who are lucky enough to guess the login name
+to make the association between the two.
+
+Thus while there are many potential advantages to replacing or supplementing a
+public salt with an OPRF, hiding the association between stolen salts and login
+names from Craig is not among them. Other than the peripherally-relevant fact
+that Eve can prove to third parties that she has stolen an OPRF salt, while
+Alice might be able to plausibly deny Eve's claim to have stolen a public salt,
+in the context of account privacy there is no significant difference between a
+typical OPRF server and a public salt server, at least in theory.
 
 In practice, the effort that would need to go into implementing or administering
 an OPRF server is very comparable to the effort that would need to go into a
@@ -994,7 +1025,7 @@ in the attacker's possession. For this reason, genuine OPRF salts should likely
 be effectively random and stored directly in a database, and not derived
 from persistent secrets.
 
-Pursuing the deployment of an asymmetric PAKE does seem like a very worthy
+Pursuing the deployment of an augmented PAKE does seem like a very worthy
 endeavor, however, PAKEs also present extremely non-obvious tradeoffs relative
 to more traditional password-based authentication flows augmented with
 prehashing.
@@ -1004,7 +1035,7 @@ before the server does: thus there is no way for the server to surreptitiously
 fail an authentication attempt that uses the correct password, based on other
 factors. Perfectly falsified failures are readily achieved using a more
 traditional password-based authentication flow, and might be supportable in the
-context of other asymmetric PAKE protocols.
+context of other augmented PAKE protocols.
 
 ### Private Salts
 
@@ -1779,29 +1810,8 @@ into assisting the counterintelligence goals of your organization.
     NMAC keys, a.k.a. precomputed HMAC keys. Thus the name was chosen to hint
     at the intended use of the parameter.
 
-[^no-account-separation]:
-    Other than obvious cases where no account separation is possible, such
-    as deterministic generation of public/private keypairs, applying no account
-    separation on the client side can be appropriate when the absolute privacy
-    of login names is more important than avoiding cracking attacks that apply
-    to multiple accounts at once.
-
-    For example, in the case of a on-premise home automation server, one can
-    reasonably assume that (in the vast majority of deployments) there will
-    never be more than a handful of accounts, and that TLS eavesdropping
-    attacks are not a major part of the threat model.
-
-    In this scenario, applying account separation only on the server side can
-    be a sensible thing to do. The possibility of completely decoupling a
-    stolen hash from a login name could well be more important than avoiding
-    any possibility of more efficient cracking attacks in a niche scenario.
-
-    In this scenario, salt can and probably should be used to domain-separate
-    hashes to a specific deployment on the client side, even if a TLS
-    eavesdropper might be theoretically capable of obtaining hashes that are
-    not domain-separated by account.
-
-    Another scenario that might make sense to delay account separation is when
+[^delayed-account-separation]:
+    A scenario where might make sense to delay account separation is when
     hashing the second secret, especially if your deployment uses an external
     checksum. Account separation might be delayed until after the checksum has
     been computed, then the key-stretching computation reused to apply account
@@ -1819,10 +1829,71 @@ into assisting the counterintelligence goals of your organization.
     checksum, which would require another fairly expensive mining computation
     on a possibly constrained-power device.
 
+[^why-only-username]:
+    Of course, if one wanted your deployment to *enforce* the constraint that
+    any cracker must know the login name for some reason, you could include the
+    plaintext login name in another parameter, with `ContextTags` and `EchoKey`
+    being particularly interesting choices. However, this would seem to be
+    quite an unusual choice.
+
+[^why-echokey]:
+    Including account separation in the `EchoKey` parameter means that any
+    collisions between accounts must necessarily involve a cryptographically
+    non-trivial collision in the very last call to HMAC. Furthermore, there
+    must be a cryptographically non-trivial collision at every output block,
+    making multiple collisions extremely unlikely.
+
+    Furthermore, this approach makes it safer to allow users to bypass the
+    key-stretching phase by specifying a `seed` or `keyL` directly. This can
+    benefit users of password managers, especially on power-constrained devices.
+
+    The fact that including a plaintext login name here would imply that it
+    must be known to crackers is the biggest downside to using login names
+    without key stretching as account separation.
+
+[^why-not-bcrypt-tags]:
+    Including account separation in the `ContextTags` parameter reinforces this
+    separation at key points in the protocol, and increases the combined entropy
+    of the `keyB` and `keyC` values. And since (pseudo)random salts aren't as
+    sensitive as plaintext login names, there's little downside to including
+    it in parameters beyond the `Username`.
+
+    However, the G3P is also designed so that most or all of the bcrypt
+    key-stretching computation can be outsourced to another semi-trusted device
+    while retaining exclusive control over the final result. Including
+    the account separation salt in the `BcryptContextTags` parameter implies
+    that either this salt must be disclosed to the device, or requires one
+    roundtrip between the devices per bcrypt super-round instead of one
+    roundtrip for the totality of the bcrypt key-stretching computation.
+
+    Hiding the account salt helps guard against cracking attempts on the
+    password that can result from sending the request to this semi-trusted
+    device, as then both the account salt and the password would have to be
+    guessed simultaneously.
+
 [^ephemeral-derivations]:
     Do feel free to derive public salts from _ephemeral_ values, though,
     as long as they are quickly forgotten and include a high quality source of
     randomness. You could even apply self-documenting tags to this derivation.
+
+[^public-salts-and-oprf]:
+    Typically, it will not be plausibly deniable that a given public salt is
+    associated with a given login name. However it can be plausibly deniable
+    that somebody has "stolen" a public salt.
+
+    On the other hand, an OPRF salt is never directly revealed to typical
+    users, but if it's stolen, only rarely could it be plausibly deniable that
+    it was stolen.
+
+    This is a separate and less-important threat model than making it difficult
+    for Craig to reconstruct login names from account salts. One might sensibly
+    decide that one doesn't care much about this tertiary concern, and decide
+    to derive public salts from seeds and keys.
+
+    This could be a particularly sensible choice if your deployment makes use of
+    both public salts and secret OPRF salts. One could reuse the per-account
+    seeds to derive both kinds of salt, decreasing the storage requirements
+    of your authentication database.
 
 [^also-evidence-of-compromise]:
     Moreover, leaking such a key would grant its holders the ability to prove
