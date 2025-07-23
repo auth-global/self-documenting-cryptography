@@ -820,7 +820,7 @@ function. Ideally this salt would be applied early on in the hashing process,
 preferably before the password is even hashed.
 
 Imagine a purely local, password-based file-encryption app, and a user encrypts
-multiple files with a handful of different passwords. An evesdropper then
+multiple files with a handful of different passwords. An eavesdropper then
 obtains all of the encrypted files.
 
 Without applying some form of cryptographic separation per file, a cracker would
@@ -841,14 +841,14 @@ have to memorize all the necessary salts in addition to their passphrase.
 If the app is intended to allow the user to lose absolutely all of their devices
 and accounts and still recover their keys, any salt beyond a deployment-wide
 "please report any cracking activity here" is infeasible. The only thing that
-can be done to compensate for the lack of account separation is to encourage a
-minimum passphrase length. Thus the utility might "enforce" a minimum
+can be done to compensate for the lack of account separation is to encourage
+the use of longer passwords. Thus the utility might "enforce" a minimum
 passphrase length of eight words.
 
-Sometimes account separation is not desireable, at least at certain stages.
-Consider a more typical example of network-based server that uses password
-authentication, supplemented with prehashing. In this scenario, account
-separation would typically be somehow effected via the login name.
+Account separation has a number of non-obvious tradeoffs. Consider a more
+typical example of network-based server that uses password authentication,
+supplemented with prehashing. In this scenario, account separation would
+typically be somehow effected via the login name.
 
 If account separation is used on the client side, then unauthenticated members
 of the general public have to be given access to the salt associated with a
@@ -883,15 +883,23 @@ option for say, a typical deployment of a home automation server. In this
 context, that will never be more than a handful of individual accounts, and
 TLS eavesdropping is not likely to be a primary concern.
 
-On the other hand, in the context of a more typical webservice, or exceptionally
-large deployments of this home automation server, you almost certainly want to
-apply account seperation on the client side as early as possible. This is the
-intended purpose of the "Username" parameter.[^delayed-account-separation]
+In this context, you should still be concerned about the potential of Eve
+stealing the password database directly. To prevent her from efficiently
+cracking all of the hashes at once, you should still apply account separation
+on the server side. To prevent her from sharing too much computation between
+accounts, you should also perform at least as much key-stretching on the
+server side as the client side, if not substantially more.
+
+On the other hand, in the context of a more typical webservice, or deployments
+of this home automation server in exceptional contexts, you almost certainly
+want to apply account seperation on the client side as early as possible. This
+is the intended purpose of the "Username" parameter.[^delayed-account-separation]
 
 Security can be substantially improved by having login names that are untethered
 (at least in part) from public identifiers. Otherwise, if the password hash of a
 high-profile account gets leaked, it won't be difficult for Craig to find the
-login name from the salt alone no matter what approach you take.
+login name from a public salt or OPRF salt alone no matter what approach you
+take.
 
 ### Public Salts
 
@@ -959,10 +967,12 @@ It is recommended that the public salts be sampled or derived from a
 high-quality cryptographically secure source and stored directly in a database.
 In particular, because you cannot migrate away from a public salt in any
 kind of bounded timeframe, they should not be derived from non-public seeds and
-keys.[^ephemeral-derivations] This avoids any possibility of an eavesdropper
-stealing that non-public information and using it as evidence to third parties
-that they have actually compromised your infrastructure, preserving your
-plausible deniability regarding the incident.[^public-salts-and-oprf]
+keys.[^ephemeral-derivations]
+
+This avoids any possibility of an eavesdropper stealing that non-public
+information and using it as evidence to third parties that a particular account
+exists, or as evidence that they have actually compromised your infrastructure,
+preserving account privacy and plausible deniability regarding the incident.
 
 Handling queries for accounts that don't exist is the most complicated aspect
 of running a public salt server. You should endeavor to hide the existence or
@@ -1017,13 +1027,20 @@ an OPRF server is very comparable to the effort that would need to go into a
 public salt server. In particular, there's still a need for fake answers that
 are stable over time.
 
-As genuine OPRF salts usually cannot be changed within any definite timeframe,
-one should least make a genuine derivation look indistinguishable from a fake
-derivation. However, this would require omitting a per-account seed, which
-in turn makes login names offline-crackable from stolen salts if the key is also
-in the attacker's possession. For this reason, genuine OPRF salts should likely
-be effectively random and stored directly in a database, and not derived
-from persistent secrets.
+Stealing an OPRF salt can be used by attackers to prove to third parties that
+they have indeed been inside your servers. Thus there is little downside to
+deriving these salts from persistent secrets. Moreover, if your deployment uses
+both public salts and secret OPRF salts, one might as well derive those public
+salts and further reduce the storage requirements of your authentication
+database.
+
+However, depending on implementation details, derived salts can also provide
+verifiable evidence that a given account does or does not exist. While this
+issue might be unavoidable to some degree, one should still endeavor to
+mitigate it. In particular, solutions where the non-existence of fake accounts
+can be externally verified via stolen salt derivations, but the existence of
+real accounts remains ambiguous, seem to be correlated with the least-worst
+failure modes.
 
 Pursuing the deployment of an augmented PAKE does seem like a very worthy
 endeavor, however, PAKEs also present extremely non-obvious tradeoffs relative
@@ -1875,25 +1892,6 @@ into assisting the counterintelligence goals of your organization.
     Do feel free to derive public salts from _ephemeral_ values, though,
     as long as they are quickly forgotten and include a high quality source of
     randomness. You could even apply self-documenting tags to this derivation.
-
-[^public-salts-and-oprf]:
-    Typically, it will not be plausibly deniable that a given public salt is
-    associated with a given login name. However it can be plausibly deniable
-    that somebody has "stolen" a public salt.
-
-    On the other hand, an OPRF salt is never directly revealed to typical
-    users, but if it's stolen, only rarely could it be plausibly deniable that
-    it was stolen.
-
-    This is a separate and less-important threat model than making it difficult
-    for Craig to reconstruct login names from account salts. One might sensibly
-    decide that one doesn't care much about this tertiary concern, and decide
-    to derive public salts from seeds and keys.
-
-    This could be a particularly sensible choice if your deployment makes use of
-    both public salts and secret OPRF salts. One could reuse the per-account
-    seeds to derive both kinds of salt, decreasing the storage requirements
-    of your authentication database.
 
 [^also-evidence-of-compromise]:
     Moreover, leaking such a key would grant its holders the ability to prove
