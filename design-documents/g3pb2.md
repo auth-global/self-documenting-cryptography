@@ -911,8 +911,9 @@ name in a transparent way, or storing a random salt directly in a database.
 The main tradeoff is that transparently-derived public salts create an
 unbreakable connection between salt and login name that can be cracked offline.
 Running a public salt server runs the risk of creating an account-existence
-oracle, or even worse, an account-enumeration oracle, in addition to the more
-generic attack surface that running an online service represents.
+oracle, or even worse, an account-enumeration oracle,[^account-oracles-defined]
+in addition to the more generic attack surface that running an online service
+represents.
 
 The simplest possible transparently-derived salt might use a normalized login
 name as the input to the `Username` parameter only.[^why-only-username] The G3P
@@ -927,9 +928,9 @@ the login name, which can be guessed offline. Furthermore, the password and the
 login name could be cracked one at a time.
 
 One could apply key-stretching to the login name, possibly via the G3P, to
-derive a salt in a transparent way. That derived salt should be included in
-both the `Username`, `ContextTags`, and `EchoKey`[^why-echokey] parameters,
-but probably omitted from the `BcryptContextTags` parameter.[^why-not-bcrypt-tags]
+derive a salt in a transparent way. That derived salt should be included in the
+`Username`, `ContextTags`, and `EchoKey`[^why-echokey] parameters, but likely
+should be omitted from the `BcryptContextTags` parameter.[^why-not-bcrypt-tags]
 This can make it much more expensive for a cracker to guess a login name from a
 transparently-derived salt.
 
@@ -1003,11 +1004,11 @@ applies a salt that only the server knows to a password only the client knows.
 Thus every result is tied to a very specific password guess. OPRFs are commonly
 used in password-authenticated key exchange (PAKE) protocols.
 
-Even though these salts normally remain secret, a sufficiently interested
-unauthenticated agent can detect when the salt changes, and this salt is not
-plausibly deniable when it gets stolen. This is because an OPRF server reveals
-to unauthenticated agents something that is deterministically generated from a
-password attempt and the secret salt.
+Even though these salts remain secret in normal operation, a sufficiently
+interested unauthenticated agent can detect when the salt changes, and this salt
+is not plausibly deniable when it gets stolen. This is because an OPRF server
+reveals to unauthenticated agents something that is deterministically generated
+from a password attempt and the secret salt.
 
 This means the OPRF server enables those in possession of a purported salt for
 a given login name to easily verify if the salt is genuine, and enables those
@@ -1845,6 +1846,15 @@ into assisting the counterintelligence goals of your organization.
     such that their existing second secret continues to pass the external
     checksum, which would require another fairly expensive mining computation
     on a possibly constrained-power device.
+
+[^account-oracles-defined]:
+    In this context, a account-existence oracle allows unauthorized agents
+    (often unauthenticated agents, but possibly involving non-admin accounts)
+    to inquire about a specific login name, and discover whether or not there
+    is a corresponding active account.
+
+    An account-enumeration oracle allows unauthorized agents to retrieve a list
+    of login names that correspond to active accounts.
 
 [^why-only-username]:
     Of course, if one wanted your deployment to *enforce* the constraint that
