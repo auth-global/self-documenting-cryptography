@@ -49,7 +49,7 @@ void
 hs_hashstring_xormutate
   ( const uint8_t *const a,
     const size_t len,
-    uint8_t *const restrict out )
+    uint8_t *const out )
 {
   for(size_t i = 0; i < len; i++) {
     out[i] ^= a[i];

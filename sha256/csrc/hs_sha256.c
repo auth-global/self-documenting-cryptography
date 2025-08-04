@@ -262,7 +262,7 @@ hs_sha256_promote_to_ctx
 void
 hs_sha256_encode_state
 (const uint32_t in[const SHA256_STATE_LEN],
- uint8_t out[const SHA256_DIGEST_SIZE])
+ uint8_t out[restrict const SHA256_DIGEST_SIZE])
 {
 #if WORDS_BIGENDIAN
   memcpy(out, (uint8_t *)in, SHA256_DIGEST_SIZE);

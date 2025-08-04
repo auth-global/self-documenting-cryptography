@@ -48,7 +48,7 @@ hs_sha256_finalize_ctx_bits
 void
 hs_sha256_encode_state
 (const uint32_t in[const SHA256_STATE_LEN],
- uint8_t out[const SHA256_DIGEST_SIZE]);
+ uint8_t out[restrict const SHA256_DIGEST_SIZE]);
 
 void
 hs_sha256_decode_state

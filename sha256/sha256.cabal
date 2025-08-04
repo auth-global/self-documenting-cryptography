@@ -46,7 +46,7 @@ library
   include-dirs:      csrc
   default-language:  Haskell2010
   ghc-options:       -Wall
-  cc-options:        -Wall  
+  cc-options:        -Wall -ftree-vectorize
   install-includes:  csrc/hs_sha256.h
   c-sources:         csrc/hs_sha256.c
 

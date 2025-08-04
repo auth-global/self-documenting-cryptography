@@ -27,6 +27,6 @@ hs_hashstring_xorleft
 
 void
 hs_hashstring_xormutate
-  ( const uint8_t *const a,
+  ( const uint8_t *a,
     const size_t alen,
     uint8_t *const restrict out );
