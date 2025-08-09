@@ -211,7 +211,7 @@ Now that I'm starting to understand the overall structure of argon2, a few comme
     ```
 
     Here, `a`, `b`, `c`, and `d` are 8-byte unsigned machine words.  `m` is a 128-byte message
-q    block, considered as an array of 16 words, each 8 bytes long. `j` is an index that gets
+    block, considered as an array of 16 words, each 8 bytes long. `j` is an index that gets
     filled in by the blake2 round function `P`. Each application of `P` calls `MIX` exactly
     once for each `j ∈ [0..7]`. The compression function `G` then calls the round function
     `P` exactly once for each `i ∈ [0..15]`.
@@ -285,3 +285,103 @@ q    block, considered as an array of 16 words, each 8 bytes long. `j` is an ind
     the changes to PBKDF2 or bcrypt. It would thus be strongly preferable to apply
     differential and linear cryptanalyses to the modified compression function so that
     these changes can be evaluated and likely improved upon.
+
+## Notes on Argon2's compression function
+
+1.  Both argon2 and blake2 uses something that is close to (or the same as, from a
+    point of view?) the Davies-Meyer construction to build a one-way compression function.
+    The Davies-Meyer construction is used to turn block ciphers into one-way compression
+    functions.
+
+    This raises the question, are these mixing functions invertible?
+
+2.   In blake2's case, the answer is "yes", unless you don't know the message that was mixed
+    into the state.  (Very likely not reversable, if you don't know the message. But who
+    would know the result of a mixing function without also knowing the message that was
+    just mixed? The emphasis the G3P puts on being able to transfer partial key-stretching
+    computations cannot be a sensible answer, because then it would be better to complete the
+    few inexpensive operations remaining in the Davies-Meyer construction...)
+
+    Also, blake2's message schedule SIGMA is a Latin rectangle. There are probably some
+    deeper properties that can be sussed out.
+
+3.  The invertibility of argon2's mixing function depends on how many solutions there are to
+    `z = x + y + (2 * x_L * y_L)` given `y` and `z`, and how effiencently you can find `x`.
+    Here `x`, `y`, and `z` are 64 bit integers and x_L and y_L are the respective least
+    significant 32 bits.
+
+    Rearranging, we find `x + (2 * y_L) x_L = z - y`. Note that `x = 2^32 * x_R + x_L`.
+    Rearranging again, `2^32 * x_R + (2 * y_L + 1) * x_L = x - y`
+
+    Because `(2 * y_L + 1)` is odd, the least signficant bit of `x_L` must be equal to the
+    least signficant bit of `z - y`.  Let `b` be this bit, and `a` be `x_L` with this bit
+    truncated.  Then `x_L = 2*a + b`, and then calculate
+    `(2 * y_L + 1) * (2*a + b) = 4 * y_L * a + 2 * y_L * b + 2*a + b`
+
+    Substituting and rearranging
+    `2^32 * x_R +  4 * y_L * a + 2*a = x - y + 2 * y_L * b - b`
+
+    As nothing on the left can contibute anything to the last two bits of the right
+    except for `2*a`, we can compute the least signficant bit of `a`.
+
+    Repeating this process, it should be possible to calculate `x_L` bit by bit, and then
+    solve for `x_R`. There may be a faster and more elegant solution that calculates multiple
+    bits of `x_L` using a handful of operations, but this is efficient enough for my purposes.
+
+4.  Thus, both mixing functions are in effect some kind of block cipher. Argon2 uses the
+    Davies-Meyer construction to provide non-invertibility, whereas Blake2 uses a modified
+    Davies-Meyer construction.
+
+    I don't think Blake2 can be viewed as an instance of Davies-Meyer proper, because its
+    compression function doesn't allow the direct computation of fixpoints.
+
+    In retrospect, I'm not at all surprised that the mixing functions are invertible; after
+    all permutations makes it easy to argue that you preserve information entropy, and
+    also makes it easy to demonstrate that any difference in inputs cause the resulting
+    states to diverge from each other.
+
+    This in turn gives me a great deal more confidence in my proposed design, in particular
+    I understand much better why varying the personalization tag causes divergence in
+    the argon state, and why it doesn't change the overall probability distribution
+    on average.
+
+    Though perhaps I should try to spend some time learning differential and linear
+    cryptanalysis, I'm also feeling much more confident that these issues are basically
+    already covered in existing analyses of Blake2 and Argon2.
+
+5.  This does leave the issue of a good message schedule within a single application of
+    the compression function `G`. I do intend to use a single 128-byte personalization tag
+    block throughout all applications of the round function `P`, though this will be
+    rotated between applications of `G` so that longer tags can be processed during
+    key-stretching.
+
+    Reusing Blake2's `SIGMA` is probably a reasonable-ish thing to do, however, due to the
+    change in how the round function `P` is used to construct Blake2's compression function
+    versus Argon2's compression function, it's well worth doing some Monte-Carlo simulations
+    on the result.
+
+    There's a reasonable chance we could use this to compare and contrast the efficacy of
+    various message schedules. Perhaps a likely-better message schedule could be found.
+    If this modified schedule simply added a few rows onto `SIGMA`, then the number of
+    constants needed by an argon2 implementation would then be somewhat less.
+
+## Prototype implementation strategy:
+
+1.  Extend Haskell's FFI bindings to include the Ctx datatype. It's not too bad to simply
+    construct this data structure in Haskell. Moreover, the key and associated data fields
+    aren't otherwise accessible via the C api. (This should be contributed back to the
+    original argon2 binding, and doing this first should make this a bit easier.)
+
+2.  Extend the test suite to cover the newly-supported parameters.
+
+3.  Add an `info` parameter to the context structure.
+
+4.  If the `info` parameter is non-empty, encode it onto the end of argon2's initial
+    call to blake2b as a length-prefixed parameter.
+
+5.  If the `info` parameter is non-empty, encode 64 bytes of it at a time onto the
+    calls to blake2b that generate the first two blocks.
+
+6.  Modify the compression function to mix the `info` tag in the key-stretching phase.
+
+7.  Extend the test suite to cover the `info` parameter.
