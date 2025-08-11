@@ -295,7 +295,7 @@ Now that I'm starting to understand the overall structure of argon2, a few comme
 
     This raises the question, are these mixing functions invertible?
 
-2.   In blake2's case, the answer is "yes", unless you don't know the message that was mixed
+2.  In blake2's case, the answer is "yes", unless you don't know the message that was mixed
     into the state.  (Very likely not reversable, if you don't know the message. But who
     would know the result of a mixing function without also knowing the message that was
     just mixed? The emphasis the G3P puts on being able to transfer partial key-stretching
@@ -365,7 +365,127 @@ Now that I'm starting to understand the overall structure of argon2, a few comme
     If this modified schedule simply added a few rows onto `SIGMA`, then the number of
     constants needed by an argon2 implementation would then be somewhat less.
 
-## Prototype implementation strategy:
+## Notes on the proposed mixing function
+
+Define
+
+```
+MIXL((a,b,c,d),x) = do
+   a := a + b + (2 * a_L * b_L) + x
+   d := (d ^ a) >>> 32
+   c := c + d + (2 * c_L * d_L)
+   b := (b ^ c) >>> 24
+```
+
+and
+
+```
+MIXR((a,b,c,d),y) = do
+   a := a + b + (2 * a_L * b_L) + y
+   d := (d ^ a) >>> 16
+   c := c + d + (2 * c_L * d_L)
+   b := (b ^ c) >>> 63
+```
+
+**Theorem 1** Given any starting state `S = (a,b,c,d)`, and any two distinct 64-bit words
+`x ≠ y`, then `MIXL(S,x) ≠ MIXL(S,y)`, and `MIXR(S,x) ≠ MIXR(S,y)`. In fact, each
+sub-component of the resulting states will be distinct.
+
+**Proof:** Every step in each mixing function is invertible. Because we start out at `t = 0`
+with identical versions of `a`, and identical versions of `b`, after one step the `a` that
+results from `x` will be distinct from the `a` that results from `y`. This reasoning carries
+through the remaining steps: since at `t = 1` both versions of `d` are still the same, but
+the versions of `a` are guaranteed to be different, then at `t = 2` the `d` that results from
+`x` must be different than the `d` that results from `y`, and so on.
+
+**Theorem 2** Given any 64-bit word `x` and any two distinct starting states `S ≠ T`, then
+  `MIXL(S,x) ≠ MIXL(T,x)`, and `MIXR(S,x) ≠ MIXR(T,x)`.
+
+The proof is identical in overall structure as the one above, it's just that which component
+is guaranteed to be the same, and which one is guaranteed to be different, is swapped.
+
+A consequence of these first two thereoms is that either half of this modified mixing
+function forms a Latin rectangle with `2^256` columns and `2^64` rows.
+
+**Theorem 3** Choose any final state `T`. Then in any corresponding starting state and message
+such that `MIXR(S,x)=T`, the last three components of `S` are determined without any
+reference to `x`.
+
+The proof can be completed by simply reversing the last three steps of either mixing function.
+
+Next, define:
+
+```
+MIX(S,x) = do
+  MIXL(S,x_0)
+  MIXR(S,x_1)
+```
+
+**Theorem 4** Given any starting state `S`, and any two distinct 128-bit messages `x ≠ y`,
+  then `MIX(S, x) ≠ MIX(S, y)`.
+
+**Proof:** As `x ≠ y`, then either `x_0 ≠ y_0`, `x_1 ≠ y_1`, or both. If only one is true,
+the theorem follows immediately as a consequence of the previous theorems. The trickier
+case is where both are true.
+
+In this case, every component of the vectors `MIXL(S,x_0) = S_x` must be distinct from the
+corresponding component of `MIXL(S,y_0) = S_y`. As the last three components must differ,
+we cannot choose any combination of `x_1` and `y_1` to make `MIXR(S_x,x_1)` equal to
+`MIXR(S_y,y_1)`.
+
+At this step, it's fairly obvious that we lose the property that every component of the
+resulting state vectors must differ: in fact given any `x_1`, it is easy to pick an `y_1`
+that makes any single chosen component of the result the same.
+
+I believe it should be fairly straightforward to prove that the resulting state vectors can
+agree on at most one component, and that at least three components will differ.
+
+Theorem 4 means our full mixing function also forms a Latin rectangle, one with `2^256`
+columns and `2^128` rows.
+
+**Theorem 5** If first you pick a 64-bit word `x`, and then choose an initial state vector
+over any probability distribution that is uniform on either the first component `a` or the
+last component `d`, then the resulting probability distribution over `MIXL(S,x)` does not
+depend upon the choice of `x`.
+
+This follows from the group structure of `+` on 64-bit words. Since `a` and/or `d` have
+been chosen uniformly at random, the distribution over `a + d + (a_L * d_L)` is uniform, and
+thus the distribution `a + d + (a_L * d_L) + x` is uniform even if `x` is chosen by an
+adversary.
+
+Of course, if an adversary is allowed to peek at `a` and `d` before choosing `x`, then it is
+trivial to skew the new distribution of `a` in any way desired, say by always ensuring the
+result is zero.
+
+**Discussion**
+
+These theorems relate to the mixing's function ability to conserve entropy by not being a
+source of collisions and by ensuring that, given different keys, the evolution of intermediate
+states have a natural tendancy to diverge from each other. Any time there is such a collision,
+the next state is *guaranteed* to be different, which then quickly decays into a probable
+difference.
+
+The group structure of `+` on 64-bit words also implies that even if a reverse engineer,
+cannot directly observe the keys being fed into the mixing function due to some magical
+obfuscation technique, the reverse engineer can still infer the keys being fed into the
+mixing function by observing the before-and-after states of the
+`a := a + d + (a_L * d_L) + key` transitions, meaning that the magical obfuscation
+techniques must also extend deeply into the modified argon2 algorithm.
+
+This property is the real reason why we are making this effort: after all, argon2 already
+supports adequate levels of domain separation, but its cryptoacoustic properties are poor.
+
+The last theorem in particular is related to the notion that there is no such thing as
+a "bad" key, as long as the key was chosenly honestly without knowledge of the other inputs.
+However, the way that the mixing function is extended to blocks likely makes it much less
+secure blake2b when keys are chosen adversarially with knowledge of other parameters.
+
+For this reason, the entire personalization tag is committed to in the first call to blake2b.
+Thus once the mixing function is applied, its key cannot be changed without recalculating the
+state vector it is being applied to. Thus this approach ties the assumptions of Theorem 5
+to the cryptographic properties of the blake2b hash function.
+
+# Prototype implementation strategy:
 
 1.  Extend Haskell's FFI bindings to include the Ctx datatype. It's not too bad to simply
     construct this data structure in Haskell. Moreover, the key and associated data fields
@@ -382,6 +502,22 @@ Now that I'm starting to understand the overall structure of argon2, a few comme
 5.  If the `info` parameter is non-empty, encode 64 bytes of it at a time onto the
     calls to blake2b that generate the first two blocks.
 
+    *   With blake2b, there seems to be some benefit to cyclically extending the tag to cover
+        an entire block, whereas the benefit of doing this with SHA256 seems more suspect.
+
+    *   This does leave open the question of whether or not the cyclic extension should
+        persist across blocks, or if you just start over at the beginning on the block
+	after the cyclic extension is used.
+
 6.  Modify the compression function to mix the `info` tag in the key-stretching phase.
+
+    *   How should the `info` tag be broken into blocks for the round function?
+
+    *   How should these blocks be distributed across applications to the round function?
+
+    *   How should the round function break apart it's inputs for distribution to the
+        mixing function?
+
+    *   How should these blocks be distributed across applications to the mixing function?
 
 7.  Extend the test suite to cover the `info` parameter.
