@@ -407,9 +407,9 @@ is guaranteed to be the same, and which one is guaranteed to be different, is sw
 A consequence of these first two thereoms is that either half of this modified mixing
 function forms a Latin rectangle with `2^256` columns and `2^64` rows.
 
-**Theorem 3** Choose any final state `T`. Then in any corresponding starting state and message
-such that `MIXR(S,x)=T`, the last three components of `S` are determined without any
-reference to `x`.
+**Theorem 3** Choose any final state `T`. Then given any starting state `S` and key `x`
+that results in `MIXL(S,x)=T`, the last three components of `S` are determined without any
+reference to `x`. An analogous statement is true for `MIXR`.
 
 The proof can be completed by simply reversing the last three steps of either mixing function.
 
@@ -435,7 +435,7 @@ we cannot choose any combination of `x_1` and `y_1` to make `MIXR(S_x,x_1)` equa
 
 At this step, it's fairly obvious that we lose the property that every component of the
 resulting state vectors must differ: in fact given any `x_1`, it is easy to pick an `y_1`
-that makes any single chosen component of the result the same.
+that makes any single chosen component of the resulting state vector the same.
 
 I believe it should be fairly straightforward to prove that the resulting state vectors can
 agree on at most one component, and that at least three components will differ.
@@ -469,7 +469,7 @@ The group structure of `+` on 64-bit words also implies that even if a reverse e
 cannot directly observe the keys being fed into the mixing function due to some magical
 obfuscation technique, the reverse engineer can still infer the keys being fed into the
 mixing function by observing the before-and-after states of the
-`a := a + d + (a_L * d_L) + key` transitions, meaning that the magical obfuscation
+`a := a + d + (2 * a_L * d_L) + key` transitions, meaning that the magical obfuscation
 techniques must also extend deeply into the modified argon2 algorithm.
 
 This property is the real reason why we are making this effort: after all, argon2 already
@@ -485,6 +485,83 @@ Thus once the mixing function is applied, its key cannot be changed without reca
 state vector it is being applied to. Thus this approach ties the assumptions of Theorem 5
 to the cryptographic properties of the blake2b hash function.
 
+## Argon2's round function `P`
+
+The only difference between argon2 and blake2b's round function is that the mixing function
+adds in a multiplicative term to every other step, i.e. those steps that consist of addition.
+
+The original argon2 does not support mixing a key into this stage, but blake2b does. Thus I'm
+not too worried that adding back blake2b's features to the existing mixing function will
+impact the internal structure of the round function too negatively.
+
+However, the respective round functions are applied very differently: blake2b applies its
+round function 12 times in an iterative fashion on a state of 128 bytes, whereas argon2 uses a
+wide-block construction that applies its round function 16 times, but to transform a block of
+1024 bytes. From starting state to ending state, the overall depth of the applications of `P`
+is 12 in blake2b versus 2 in argon2.
+
+I am somewhat concerned that the current proposal to blend blake2b's mixing function into
+argon2 may not be a good match for the resulting compression function, due to these
+differences. Better understanding some of the properties of the round function may be
+important to understanding the impacts to th e compression function.
+
+In particular, at least locally, this difference should make it relatively easy to achieve
+some highly non-uniform behavior in the modified argon2 round function if one is freed of the
+commitment to pick the key without knowledge of the current state, as is currently enforced
+by blake2b in the proposed construction.
+
+It should be possible to greatly reduce this non-uniformity by choosing a plausible-looking
+block design specifically for applying tags to argon2's compression function, and only
+processing 16, 32, or 64 bytes per application instead of 128. This would also make blake2b's
+message schedule `SIGMA` irrelevant.
+
+Processing 16 bytes of tag per application of the compression function would be safest, at
+least from this (possibly limited) perspective. And at OWASP recommended minimums involve
+plenty of applications of the compression function, so there is not any need to process more
+than that to achieve a good result, unlike blake2b's need to efficiently compute the digests
+of very long messages.
+
+Regarding message schedule, I am tacitly assuming that we want to use differently-keyed
+mixing functions at every stage of the compression function. There's only one reduced Latin
+rectangle of two elements and more than one row, and that is the Latin Square `[[1 0][0 1]]`.
+However, in this case we could potentially use the alternative presentation `[[0 1][1 0]]`,
+and also possibly subtract some of the keys. Alternatively, we might choose to apply the same
+8-byte key block to both arguments of the mixing function in some cases.
+
+Between swapping the order of the sub-keys, and whether to add or subtract each of the
+two sub-keys, that provides eight possibilities for keying the mixing function from two
+64-bit words. As the round function involves eight applications of the mixing function,
+maybe this is a good match?
+
+Hmm, adding the bitwise complement seems like it should be somewhat better than subtracting.
+This is equivalent to subtracting the `(key + 1)` instead of subtracting `key`, but the
+complement does mean that the two variants have different effects for every key, whereas
+subtracting means that +0 has the same effect as -0, likewise with +2^63 and -2^63.
+This does make "compatibility" with old argon2 a bit more complicated, but I feel like
+its time to yeet that design goal. I think it did help focus my attention at first, but
+I also feel like it's outlived it's usefulness.
+
+Honestly I'm leaning towards clear differentiation. I think I could do a (slightly) "better"
+job with the variable length hash function, and perhaps also with the initial call. But
+I'm not sure I care enough to adopt all of the corresponding features of G3Pb2.
+
+Certain block designs should make it harder than others for anybody to achieve non-uniform
+behavior from the compression function if they are allowed to look at the state before picking
+the keys. The fact that only 16 bytes of tag are processed per application of the compression
+function greatly reduces the degrees of freedom that adversarial use has to achieve
+non-uniform behaviors. This means the block design wouldn't necessarily need to be as close
+to optimal to be effective, compared to a design that processed 32 bytes or more
+of tag per application of the compression function.
+
+This block design should likely be tailored so that it admits particularly efficient
+vectorized implementations.
+
+However, these concerns are also well outside the intended use case of these modifications.
+Usage conventions dictate that the personalization tag should be chosen without knowledge of
+the user's password, and most typically would be a deployment-wide constant. Moreover,
+blake2b is used to enforce that one cannot look at the state vector of the mixing function
+and then select the key being applied to it.
+
 # Prototype implementation strategy:
 
 1.  Extend Haskell's FFI bindings to include the Ctx datatype. It's not too bad to simply
@@ -496,28 +573,73 @@ to the cryptographic properties of the blake2b hash function.
 
 3.  Add an `info` parameter to the context structure.
 
+    *   consider removing the output parameter from the context structure, as it conflicts
+        with const-correctness
+
 4.  If the `info` parameter is non-empty, encode it onto the end of argon2's initial
     call to blake2b as a length-prefixed parameter.
 
-5.  If the `info` parameter is non-empty, encode 64 bytes of it at a time onto the
-    calls to blake2b that generate the first two blocks.
+    *   To achieve clear differentiation, maybe consider setting blake2b's salt or
+        personalization argument to `argon36`.  Maybe reconsider a deeper redesign of
+        the initial parameter block.
 
-    *   With blake2b, there seems to be some benefit to cyclically extending the tag to cover
-        an entire block, whereas the benefit of doing this with SHA256 seems more suspect.
+    *   With blake2b, there seems to be some benefit to cyclically extending a tag to cover
+        an entire block, whereas the benefit of repeating a plaintext tag within a single
+        SHA256 block seems more suspect.
 
-    *   This does leave open the question of whether or not the cyclic extension should
-        persist across blocks, or if you just start over at the beginning on the block
-	after the cyclic extension is used.
+    *   What if we only encoded it on the end of the variable-length hash function?  Maybe.
+
+5.  If the `info` parameter is non-empty, encode 64 bytes of it at a time into the
+    variable-length hash function that uses blake2b to generate the first two blocks.
+
+    *   Should the cyclic extension be carried over across blocks, or should you just start
+        over at the beginning of the tag on the next block after the cyclic extension is used?
+
+        It shouldn't really matter that much one way or the other, but we do have to commit
+        to a single choice. The former is a little more elegant and doesn't favor one part
+        of the personalization tag over another. The latter should be a little bit simpler to
+        implement in a particularly efficient and performant way, especially with respect to
+        memory-alignment issues. I'm leaning towards the latter choice.
+
+    *   Also, the very first call to blake2b in this case has a message length of 68 bytes
+        instead of the usual 64 bytes.  Do we cut four bytes off the first block of the
+        personalization tag, repeat the entire personalization tag, or do something else?
+
+    *   Since argon2's variable-length hash function is also used to generate the final
+        output, it would probably be a good idea to include the entire personalization tag in
+        the first call that it makes to blake2b. This choice also implies that it wouldn't be
+        strictly necessary to include the personalization tag in the initial parameter
+        call to blake2b.
 
 6.  Modify the compression function to mix the `info` tag in the key-stretching phase.
 
-    *   How should the `info` tag be broken into blocks for the round function?
+    *   It could be very useful to take the time to write commentary on `blamka-round*.h`
+
+    *   Disable all vectorized implementations for now.
+
+    *   Cyclically extend the `info` tag so that its length is a multiple of 16 bytes
+
+    *   break up into blocks, then cycle those blocks.
 
     *   How should these blocks be distributed across applications to the round function?
 
     *   How should the round function break apart it's inputs for distribution to the
-        mixing function?
+        mixing function?  (It shouldn't break anything apart, but repeat the same 16 bytes
+        everywhere.)
 
     *   How should these blocks be distributed across applications to the mixing function?
+        (Again, repeat the same 16 bytes everywhere)
 
 7.  Extend the test suite to cover the `info` parameter.
+
+# Production Ready TODO:
+
+1.  Develop a test plan for all vectorized implementations
+
+2.  Update each vectorized implementation
+
+3.  Add new vectorized implementations, especially for ARM (Raspberry Pi, Phones)
+
+    *   This could be useful, but also not a priority until we are seriously contemplating
+        running argon2 on client devices, or have a project intended to be deployed on a
+        Raspberry Pi server.
